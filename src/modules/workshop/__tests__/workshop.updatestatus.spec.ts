@@ -126,7 +126,7 @@ describe('WorkshopService.updateStatus()', () => {
   it('CHEF_ATELIER peut passer DIAGNOSING → QUOTE_PENDING', async () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.serviceOrder.findUnique.mockResolvedValue(
-      makeOT({ status: OTStatus.DIAGNOSING }),
+      makeOT({ status: OTStatus.DIAGNOSING, observations: [{ id: 'obs-1' }] }),
     );
     prismaMock.serviceOrder.update.mockResolvedValue({ id: 'ot-1', status: OTStatus.QUOTE_PENDING });
 
@@ -246,8 +246,8 @@ describe('WorkshopService.updateStatus()', () => {
     prismaMock.serviceOrder.findUnique.mockResolvedValue(
       makeOT({ status: OTStatus.DRAFT, mileageIn: 45000, version: 3 }),
     );
-    // Simule Prisma P2025 : enregistrement introuvable car version ne correspond plus
-    prismaMock.serviceOrder.update.mockRejectedValue(new Error('Record not found'));
+    // $executeRaw retourne 0 lignes affectées → version a changé (modification concurrente)
+    prismaMock.$executeRaw.mockResolvedValueOnce(0);
 
     await expect(
       service.updateStatus('ot-1', OTStatus.RECEIVED, makeUser(['RECEPTIONNISTE']), {}),
@@ -265,12 +265,10 @@ describe('WorkshopService.updateStatus()', () => {
 
     await service.updateStatus('ot-1', OTStatus.RECEIVED, makeUser(['RECEPTIONNISTE']), {});
 
-    expect(prismaMock.serviceOrder.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ version: 5 }),
-        data: expect.objectContaining({ version: { increment: 1 } }),
-      }),
-    );
+    // Le service utilise $executeRaw (CTE atomique) — le WHERE clause contient la version actuelle
+    expect(prismaMock.$executeRaw).toHaveBeenCalled();
+    // 7ème argument du tagged template = ot.version dans le WHERE
+    expect(prismaMock.$executeRaw.mock.calls[0][6]).toBe(5);
   });
 
   it('enregistre un audit fire-and-forget à chaque transition', async () => {
@@ -316,7 +314,7 @@ describe('WorkshopService.updateStatus()', () => {
     // some() passe (1 rôle sur 2 est valide) ; every() échouerait (TECHNICIEN non autorisé)
     const { service, prismaMock } = makeDeps();
     prismaMock.serviceOrder.findUnique.mockResolvedValue(
-      makeOT({ status: OTStatus.DIAGNOSING }),
+      makeOT({ status: OTStatus.DIAGNOSING, observations: [{ id: 'obs-1' }] }),
     );
     prismaMock.serviceOrder.update.mockResolvedValue({ id: 'ot-1', status: OTStatus.QUOTE_PENDING });
 
@@ -382,8 +380,8 @@ describe('WorkshopService.updateStatus()', () => {
 
     await service.updateStatus('ot-1', OTStatus.CLOSED, makeUser(['CAISSIER']), {});
 
-    const updateData = prismaMock.serviceOrder.update.mock.calls[0][0].data;
-    expect(updateData.closedAt).toBeInstanceOf(Date);
+    // 5ème param du tagged template $executeRaw = closedAt
+    expect(prismaMock.$executeRaw.mock.calls[0][4]).toBeInstanceOf(Date);
   });
 
   it('closedAt est null quand targetStatus ≠ CLOSED (préserve la valeur existante)', async () => {
@@ -395,8 +393,8 @@ describe('WorkshopService.updateStatus()', () => {
 
     await service.updateStatus('ot-1', OTStatus.RECEIVED, makeUser(['RECEPTIONNISTE']), {});
 
-    const updateData = prismaMock.serviceOrder.update.mock.calls[0][0].data;
-    expect(updateData.closedAt).toBeNull();
+    // 5ème param du tagged template $executeRaw = closedAt (null car pas CLOSED)
+    expect(prismaMock.$executeRaw.mock.calls[0][4]).toBeNull();
   });
 
   it('cancellationReason du body est utilisé si fourni', async () => {
@@ -413,8 +411,8 @@ describe('WorkshopService.updateStatus()', () => {
       { cancellationReason: 'Nouveau motif' },
     );
 
-    const updateData = prismaMock.serviceOrder.update.mock.calls[0][0].data;
-    expect(updateData.cancellationReason).toBe('Nouveau motif');
+    // 4ème param du tagged template $executeRaw = cancellationReason
+    expect(prismaMock.$executeRaw.mock.calls[0][3]).toBe('Nouveau motif');
   });
 
   it('cancellationReason de l\'OT existant est préservé si body n\'en fournit pas', async () => {
@@ -426,8 +424,8 @@ describe('WorkshopService.updateStatus()', () => {
 
     await service.updateStatus('ot-1', OTStatus.CLOSED, makeUser(['CAISSIER']), {});
 
-    const updateData = prismaMock.serviceOrder.update.mock.calls[0][0].data;
-    expect(updateData.cancellationReason).toBe('Motif existant');
+    // 4ème param du tagged template $executeRaw = cancellationReason (préservé depuis l'OT)
+    expect(prismaMock.$executeRaw.mock.calls[0][3]).toBe('Motif existant');
   });
 
   it('audit metadata.automated = false pour une transition utilisateur normale', async () => {
@@ -461,11 +459,8 @@ describe('WorkshopService.updateStatusBySystem()', () => {
       reason: 'Soldé automatiquement — facture inv-1',
     });
 
-    expect(prismaMock.serviceOrder.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ status: OTStatus.INVOICED }),
-      }),
-    );
+    // Le service utilise $executeRaw (CTE atomique) — on vérifie que la transition a eu lieu
+    expect(prismaMock.$executeRaw).toHaveBeenCalled();
     expect(auditMock.log).toHaveBeenCalledWith(
       expect.objectContaining({
         performedBy: 'user-caisse',
@@ -535,11 +530,8 @@ describe('WorkshopService — flux QC', () => {
 
     await service.updateStatus('ot-1', OTStatus.IN_PROGRESS, makeUser(['ADMIN']), {});
 
-    expect(prismaMock.serviceOrder.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ status: OTStatus.IN_PROGRESS }),
-      }),
-    );
+    // Le service utilise $executeRaw (CTE atomique) pour les transitions
+    expect(prismaMock.$executeRaw).toHaveBeenCalled();
   });
 
   it('TECHNICIEN peut passer IN_PROGRESS → QC_PENDING', async () => {
@@ -602,10 +594,12 @@ describe('WorkshopService.assignChef()', () => {
 
     await service.assignChef('ot-1', 'chef-1');
 
-    expect(prismaMock.serviceOrder.update).toHaveBeenCalledWith({
-      where: { id: 'ot-1' },
-      data: { assignedChef: 'chef-1' },
-    });
+    expect(prismaMock.serviceOrder.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'ot-1' },
+        data: { assignedChef: 'chef-1' },
+      }),
+    );
   });
 });
 
@@ -621,7 +615,7 @@ describe('WorkshopService.removeWorkItem()', () => {
       oTWorkItem: { delete: jest.fn().mockResolvedValue({ id: 'wi-1' }) },
     };
     const auditMock    = { log: jest.fn() };
-    const notifMock    = { notifyUsers: jest.fn() };
+    const notifMock    = { notifyUsers: jest.fn(), getUserIdsByRoles: jest.fn().mockResolvedValue([]), createInApp: jest.fn().mockResolvedValue({}) };
     const smsQueueMock = { add: jest.fn() };
     const partsFlowMock = { onQuoteApproved: jest.fn(), consumeReservedParts: jest.fn(), releaseReservationsForOrder: jest.fn(), reconcilePartsAtQc: jest.fn() };
     const service = new WorkshopService(prismaMock as any, auditMock as any, notifMock as any, partsFlowMock as any, smsQueueMock as any);

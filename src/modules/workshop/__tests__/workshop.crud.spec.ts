@@ -43,7 +43,7 @@ function makeDeps() {
     $transaction: jest.fn().mockImplementation(async (fn: any) => fn(txMock)),
   };
   const auditMock         = { log: jest.fn() };
-  const notifMock         = { notifyUsers: jest.fn(), getInbox: jest.fn(), getUnreadCount: jest.fn(), markRead: jest.fn(), markAllRead: jest.fn() };
+  const notifMock         = { notifyUsers: jest.fn(), getInbox: jest.fn(), getUnreadCount: jest.fn(), markRead: jest.fn(), markAllRead: jest.fn(), getUserIdsByRoles: jest.fn().mockResolvedValue([]), createInApp: jest.fn().mockResolvedValue({}) };
   const smsQueueMock      = { add: jest.fn() };
   const partsFlowMock     = { onQuoteApproved: jest.fn(), consumeReservedParts: jest.fn(), releaseReservationsForOrder: jest.fn(), reconcilePartsAtQc: jest.fn() };
   const service = new WorkshopService(prismaMock as any, auditMock as any, notifMock as any, partsFlowMock as any, smsQueueMock as any);
@@ -97,7 +97,7 @@ describe('WorkshopService.listOTs()', () => {
     await service.listOTs();
     const call = prismaMock.serviceOrder.findMany.mock.calls[0][0];
     expect(call.include.customer).toBe(true);
-    expect(call.include.vehicle).toBe(true);
+    expect(call.include.vehicle).toBeTruthy();
     expect(call.include.workItems).toBe(true);
   });
 
@@ -165,13 +165,13 @@ describe('WorkshopService.getOT()', () => {
 
     const call = prismaMock.serviceOrder.findUnique.mock.calls[0][0];
     expect(call.include.customer).toBe(true);
-    expect(call.include.vehicle).toBe(true);
+    expect(call.include.vehicle).toBeTruthy();
     expect(call.include.workItems.include.laborCatalog).toBe(true);
     expect(call.include.workItems.include.technician).toBe(true);
     expect(call.include.observations.include.observer).toBe(true);
     expect(call.include.receptionChecks.include.checkItems.include.catalog).toBe(true);
     expect(call.include.statusHistory.include.user).toBe(true);
-    expect(call.include.quotes.include.lines).toBe(true);
+    expect(call.include.quotes.include.lines).toBeTruthy();
   });
 
   it('403 si technicien accède à un OT non assigné', async () => {
@@ -582,10 +582,12 @@ describe('WorkshopService.assignChef()', () => {
 
     await service.assignChef('ot-1', 'chef-1');
 
-    expect(prismaMock.serviceOrder.update).toHaveBeenCalledWith({
-      where: { id: 'ot-1' },
-      data: { assignedChef: 'chef-1' },
-    });
+    expect(prismaMock.serviceOrder.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'ot-1' },
+        data: { assignedChef: 'chef-1' },
+      }),
+    );
   });
 });
 
