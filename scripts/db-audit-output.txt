@@ -1,0 +1,2689 @@
+﻿REPORT_WRITTEN: C:\Users\jakaa\Downloads\atelier-2026\scripts\db-audit-report.json
+{
+  "meta": {
+    "auditedAt": "2026-05-23T15:22:27.705Z",
+    "postgres": "PostgreSQL 17.6 on aarch64-unknown-linux-gnu",
+    "connection": "DIRECT_URL (port 5432)"
+  },
+  "schema": {
+    "prismaModelCount": 33,
+    "dbTableCount": 46,
+    "extraTables": [
+      "audit_logs_2026_01",
+      "audit_logs_2026_02",
+      "audit_logs_2026_03",
+      "audit_logs_2026_04",
+      "audit_logs_2026_05",
+      "audit_logs_2026_06",
+      "audit_logs_2026_07",
+      "audit_logs_2026_08",
+      "audit_logs_2026_09",
+      "audit_logs_2026_10",
+      "audit_logs_2026_11",
+      "audit_logs_2026_12",
+      "audit_logs_overflow"
+    ],
+    "missingTables": [],
+    "auditLogsPartitioned": true,
+    "auditPartitions": [
+      "audit_logs_2026_01",
+      "audit_logs_2026_02",
+      "audit_logs_2026_03",
+      "audit_logs_2026_04",
+      "audit_logs_2026_05",
+      "audit_logs_2026_06",
+      "audit_logs_2026_07",
+      "audit_logs_2026_08",
+      "audit_logs_2026_09",
+      "audit_logs_2026_10",
+      "audit_logs_2026_11",
+      "audit_logs_2026_12",
+      "audit_logs_overflow"
+    ],
+    "softDeleteTables": [
+      "customers",
+      "users",
+      "vehicles"
+    ],
+    "softDeleteExpected": [
+      "users",
+      "customers",
+      "vehicles"
+    ]
+  },
+  "migrations": {
+    "prismaMigrationRows": 0,
+    "migrations": [],
+    "note": "Schema likely applied via custom_schema.sql, not prisma migrate deploy"
+  },
+  "security": {
+    "rlsEnabledAll": true,
+    "rlsWithoutPolicies": 45,
+    "policyCount": 0,
+    "policies": [],
+    "publicGrants": [
+      {
+        "grantee": "anon",
+        "table_name": "appointments",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "asp_purchases",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "audit_logs",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "audit_logs_2026_01",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "audit_logs_2026_02",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "audit_logs_2026_03",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "audit_logs_2026_04",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "audit_logs_2026_05",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "audit_logs_2026_06",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "audit_logs_2026_07",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "audit_logs_2026_08",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "audit_logs_2026_09",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "audit_logs_2026_10",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "audit_logs_2026_11",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "audit_logs_2026_12",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "audit_logs_overflow",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "counter_sale_lines",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "counter_sales",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "customers",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "invoice_lines",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "invoices",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "labor_catalog",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "ot_status_history",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "ot_work_items",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "parts_catalog",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "payments",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "permissions",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "quality_controls",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "quote_lines",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "quotes",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "reception_check_catalog",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "reception_check_items",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "reception_checks",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "role_permissions",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "roles",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "service_orders",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "sms_notifications",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "stock_movements",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "suppliers",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "technician_observations",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "user_roles",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "users",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "v_active_ot_dashboard",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "v_pending_invoices",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "v_stock_status",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "v_user_permissions",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "vehicle_immobilizations",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "vehicle_makes",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "vehicle_models",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "anon",
+        "table_name": "vehicles",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "appointments",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "asp_purchases",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "audit_logs",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "audit_logs_2026_01",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "audit_logs_2026_02",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "audit_logs_2026_03",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "audit_logs_2026_04",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "audit_logs_2026_05",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "audit_logs_2026_06",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "audit_logs_2026_07",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "audit_logs_2026_08",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "audit_logs_2026_09",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "audit_logs_2026_10",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "audit_logs_2026_11",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "audit_logs_2026_12",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "audit_logs_overflow",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "counter_sale_lines",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "counter_sales",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "customers",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "invoice_lines",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "invoices",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "labor_catalog",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "ot_status_history",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "ot_work_items",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "parts_catalog",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "payments",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "permissions",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "quality_controls",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "quote_lines",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "quotes",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "reception_check_catalog",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "reception_check_items",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "reception_checks",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "role_permissions",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "roles",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "service_orders",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "sms_notifications",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "stock_movements",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "suppliers",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "technician_observations",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "user_roles",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "users",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "v_active_ot_dashboard",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "v_pending_invoices",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "v_stock_status",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "v_user_permissions",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "vehicle_immobilizations",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "vehicle_makes",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "vehicle_models",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "vehicles",
+        "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+      }
+    ],
+    "securityDefinerFunctions": [
+      {
+        "name": "rls_auto_enable",
+        "args": "",
+        "security": "SECURITY DEFINER",
+        "schema": "public"
+      }
+    ],
+    "allFunctions": [
+      {
+        "name": "cash_dist",
+        "args": "money, money",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "date_dist",
+        "args": "date, date",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "float4_dist",
+        "args": "real, real",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "float8_dist",
+        "args": "double precision, double precision",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "fn_apply_stock_movement",
+        "args": "",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "fn_invoice_recalc",
+        "args": "",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "fn_next_ref",
+        "args": "prefix text, seq_name text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "fn_next_ref",
+        "args": "p_prefix text, p_seq regclass",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "fn_ot_auto_fields",
+        "args": "",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "fn_ot_status_history",
+        "args": "",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "fn_set_updated_at",
+        "args": "",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "fn_stock_alert",
+        "args": "",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "fn_trg_audit_generic",
+        "args": "",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "fn_trg_ot_status_history",
+        "args": "",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "fn_trg_stock_consumption",
+        "args": "",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "fn_vehicle_immob_sync",
+        "args": "",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bit_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bit_consistent",
+        "args": "internal, bit, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bit_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bit_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bit_same",
+        "args": "gbtreekey_var, gbtreekey_var, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bit_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bool_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bool_consistent",
+        "args": "internal, boolean, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bool_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bool_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bool_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bool_same",
+        "args": "gbtreekey2, gbtreekey2, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bool_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bpchar_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bpchar_consistent",
+        "args": "internal, character, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bytea_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bytea_consistent",
+        "args": "internal, bytea, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bytea_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bytea_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bytea_same",
+        "args": "gbtreekey_var, gbtreekey_var, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_bytea_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_cash_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_cash_consistent",
+        "args": "internal, money, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_cash_distance",
+        "args": "internal, money, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_cash_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_cash_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_cash_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_cash_same",
+        "args": "gbtreekey16, gbtreekey16, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_cash_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_date_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_date_consistent",
+        "args": "internal, date, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_date_distance",
+        "args": "internal, date, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_date_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_date_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_date_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_date_same",
+        "args": "gbtreekey8, gbtreekey8, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_date_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_decompress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_enum_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_enum_consistent",
+        "args": "internal, anyenum, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_enum_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_enum_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_enum_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_enum_same",
+        "args": "gbtreekey8, gbtreekey8, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_enum_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_float4_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_float4_consistent",
+        "args": "internal, real, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_float4_distance",
+        "args": "internal, real, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_float4_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_float4_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_float4_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_float4_same",
+        "args": "gbtreekey8, gbtreekey8, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_float4_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_float8_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_float8_consistent",
+        "args": "internal, double precision, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_float8_distance",
+        "args": "internal, double precision, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_float8_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_float8_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_float8_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_float8_same",
+        "args": "gbtreekey16, gbtreekey16, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_float8_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_inet_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_inet_consistent",
+        "args": "internal, inet, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_inet_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_inet_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_inet_same",
+        "args": "gbtreekey16, gbtreekey16, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_inet_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int2_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int2_consistent",
+        "args": "internal, smallint, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int2_distance",
+        "args": "internal, smallint, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int2_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int2_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int2_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int2_same",
+        "args": "gbtreekey4, gbtreekey4, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int2_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int4_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int4_consistent",
+        "args": "internal, integer, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int4_distance",
+        "args": "internal, integer, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int4_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int4_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int4_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int4_same",
+        "args": "gbtreekey8, gbtreekey8, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int4_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int8_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int8_consistent",
+        "args": "internal, bigint, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int8_distance",
+        "args": "internal, bigint, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int8_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int8_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int8_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int8_same",
+        "args": "gbtreekey16, gbtreekey16, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_int8_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_intv_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_intv_consistent",
+        "args": "internal, interval, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_intv_decompress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_intv_distance",
+        "args": "internal, interval, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_intv_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_intv_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_intv_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_intv_same",
+        "args": "gbtreekey32, gbtreekey32, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_intv_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_macad8_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_macad8_consistent",
+        "args": "internal, macaddr8, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_macad8_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_macad8_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_macad8_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_macad8_same",
+        "args": "gbtreekey16, gbtreekey16, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_macad8_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_macad_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_macad_consistent",
+        "args": "internal, macaddr, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_macad_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_macad_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_macad_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_macad_same",
+        "args": "gbtreekey16, gbtreekey16, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_macad_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_numeric_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_numeric_consistent",
+        "args": "internal, numeric, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_numeric_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_numeric_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_numeric_same",
+        "args": "gbtreekey_var, gbtreekey_var, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_numeric_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_oid_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_oid_consistent",
+        "args": "internal, oid, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_oid_distance",
+        "args": "internal, oid, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_oid_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_oid_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_oid_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_oid_same",
+        "args": "gbtreekey8, gbtreekey8, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_oid_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_text_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_text_consistent",
+        "args": "internal, text, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_text_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_text_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_text_same",
+        "args": "gbtreekey_var, gbtreekey_var, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_text_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_time_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_time_consistent",
+        "args": "internal, time without time zone, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_time_distance",
+        "args": "internal, time without time zone, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_time_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_time_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_time_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_time_same",
+        "args": "gbtreekey16, gbtreekey16, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_time_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_timetz_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_timetz_consistent",
+        "args": "internal, time with time zone, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_ts_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_ts_consistent",
+        "args": "internal, timestamp without time zone, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_ts_distance",
+        "args": "internal, timestamp without time zone, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_ts_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_ts_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_ts_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_ts_same",
+        "args": "gbtreekey16, gbtreekey16, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_ts_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_tstz_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_tstz_consistent",
+        "args": "internal, timestamp with time zone, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_tstz_distance",
+        "args": "internal, timestamp with time zone, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_uuid_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_uuid_consistent",
+        "args": "internal, uuid, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_uuid_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_uuid_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_uuid_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_uuid_same",
+        "args": "gbtreekey32, gbtreekey32, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_uuid_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_var_decompress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbt_var_fetch",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbtreekey16_in",
+        "args": "cstring",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbtreekey16_out",
+        "args": "gbtreekey16",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbtreekey2_in",
+        "args": "cstring",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbtreekey2_out",
+        "args": "gbtreekey2",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbtreekey32_in",
+        "args": "cstring",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbtreekey32_out",
+        "args": "gbtreekey32",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbtreekey4_in",
+        "args": "cstring",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbtreekey4_out",
+        "args": "gbtreekey4",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbtreekey8_in",
+        "args": "cstring",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbtreekey8_out",
+        "args": "gbtreekey8",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbtreekey_var_in",
+        "args": "cstring",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gbtreekey_var_out",
+        "args": "gbtreekey_var",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gin_extract_query_trgm",
+        "args": "text, internal, smallint, internal, internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gin_extract_value_trgm",
+        "args": "text, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gin_trgm_consistent",
+        "args": "internal, smallint, text, integer, internal, internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gin_trgm_triconsistent",
+        "args": "internal, smallint, text, integer, internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gtrgm_compress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gtrgm_consistent",
+        "args": "internal, text, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gtrgm_decompress",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gtrgm_distance",
+        "args": "internal, text, smallint, oid, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gtrgm_in",
+        "args": "cstring",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gtrgm_options",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gtrgm_out",
+        "args": "gtrgm",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gtrgm_penalty",
+        "args": "internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gtrgm_picksplit",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gtrgm_same",
+        "args": "gtrgm, gtrgm, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "gtrgm_union",
+        "args": "internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "immutable_unaccent",
+        "args": "text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "int2_dist",
+        "args": "smallint, smallint",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "int4_dist",
+        "args": "integer, integer",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "int8_dist",
+        "args": "bigint, bigint",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "interval_dist",
+        "args": "interval, interval",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "oid_dist",
+        "args": "oid, oid",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "rls_auto_enable",
+        "args": "",
+        "security": "SECURITY DEFINER",
+        "schema": "public"
+      },
+      {
+        "name": "set_limit",
+        "args": "real",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "show_limit",
+        "args": "",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "show_trgm",
+        "args": "text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "similarity",
+        "args": "text, text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "similarity_dist",
+        "args": "text, text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "similarity_op",
+        "args": "text, text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "strict_word_similarity",
+        "args": "text, text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "strict_word_similarity_commutator_op",
+        "args": "text, text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "strict_word_similarity_dist_commutator_op",
+        "args": "text, text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "strict_word_similarity_dist_op",
+        "args": "text, text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "strict_word_similarity_op",
+        "args": "text, text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "time_dist",
+        "args": "time without time zone, time without time zone",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "ts_dist",
+        "args": "timestamp without time zone, timestamp without time zone",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "tstz_dist",
+        "args": "timestamp with time zone, timestamp with time zone",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "unaccent",
+        "args": "text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "unaccent",
+        "args": "regdictionary, text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "unaccent_init",
+        "args": "internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "unaccent_lexize",
+        "args": "internal, internal, internal, internal",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "word_similarity",
+        "args": "text, text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "word_similarity_commutator_op",
+        "args": "text, text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "word_similarity_dist_commutator_op",
+        "args": "text, text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "word_similarity_dist_op",
+        "args": "text, text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      },
+      {
+        "name": "word_similarity_op",
+        "args": "text, text",
+        "security": "SECURITY INVOKER",
+        "schema": "public"
+      }
+    ]
+  },
+  "enums": {
+    "total": 27,
+    "legacyPascalCase": [
+      "CheckResult",
+      "CustomerType",
+      "ImmobilizationReason",
+      "InvoiceStatus",
+      "OTStatus",
+      "PartStatus",
+      "PaymentMethod",
+      "QuoteStatus",
+      "SMSStatus",
+      "StockMovementType",
+      "UserStatus",
+      "VehicleStatus"
+    ],
+    "mappedSql": [
+      "asp_status_t",
+      "check_result_t",
+      "customer_type_t",
+      "immobilization_reason_t",
+      "invoice_status_t",
+      "ot_status_t",
+      "part_status_t",
+      "payment_method_t",
+      "quote_status_t",
+      "sms_status_t",
+      "stock_movement_type_t",
+      "user_status_t",
+      "vehicle_status_t",
+      "work_item_status_t"
+    ],
+    "duplicateAnalysis": [
+      {
+        "prisma": "UserStatus",
+        "sql": "user_status_t",
+        "labelsMatch": true,
+        "prismaLabels": "{ACTIVE,SUSPENDED,DELETED}",
+        "sqlLabels": "{ACTIVE,SUSPENDED,DELETED}"
+      },
+      {
+        "prisma": "VehicleStatus",
+        "sql": "vehicle_status_t",
+        "labelsMatch": true,
+        "prismaLabels": "{IN_WORKSHOP,WAITING_PICKUP,IMMOBILIZED,DELIVERED}",
+        "sqlLabels": "{IN_WORKSHOP,WAITING_PICKUP,IMMOBILIZED,DELIVERED}"
+      },
+      {
+        "prisma": "OTStatus",
+        "sql": "ot_status_t",
+        "labelsMatch": true,
+        "prismaLabels": "{DRAFT,RECEIVED,DIAGNOSING,QUOTE_PENDING,QUOTE_APPROVED,IN_PROGRESS,QC_PENDING,QC_REJECTED,QC_DONE,READY,INVOICED,CLOSED,CANCELLED}",
+        "sqlLabels": "{DRAFT,RECEIVED,DIAGNOSING,QUOTE_PENDING,QUOTE_APPROVED,IN_PROGRESS,QC_PENDING,QC_REJECTED,QC_DONE,READY,INVOICED,CLOSED,CANCELLED}"
+      },
+      {
+        "prisma": "CheckResult",
+        "sql": "check_result_t",
+        "labelsMatch": true,
+        "prismaLabels": "{OK,WARNING,CRITICAL,NA}",
+        "sqlLabels": "{OK,WARNING,CRITICAL,NA}"
+      },
+      {
+        "prisma": "QuoteStatus",
+        "sql": "quote_status_t",
+        "labelsMatch": true,
+        "prismaLabels": "{DRAFT,SENT,APPROVED,REJECTED,REVISED,BILLED}",
+        "sqlLabels": "{DRAFT,SENT,APPROVED,REJECTED,REVISED,BILLED}"
+      },
+      {
+        "prisma": "InvoiceStatus",
+        "sql": "invoice_status_t",
+        "labelsMatch": true,
+        "prismaLabels": "{DRAFT,ISSUED,PARTIAL,PAID,DISPUTED,CANCELLED}",
+        "sqlLabels": "{DRAFT,ISSUED,PARTIAL,PAID,DISPUTED,CANCELLED}"
+      },
+      {
+        "prisma": "PaymentMethod",
+        "sql": "payment_method_t",
+        "labelsMatch": true,
+        "prismaLabels": "{CASH,ORANGE_MONEY,MTN_MOBILE_MONEY,BANK_TRANSFER,CHECK}",
+        "sqlLabels": "{CASH,ORANGE_MONEY,MTN_MOBILE_MONEY,BANK_TRANSFER,CHECK}"
+      },
+      {
+        "prisma": "StockMovementType",
+        "sql": "stock_movement_type_t",
+        "labelsMatch": true,
+        "prismaLabels": "{PURCHASE,OT_CONSUMPTION,ASP_PURCHASE,COUNTER_SALE,RETURN,ADJUSTMENT,TRANSFER}",
+        "sqlLabels": "{PURCHASE,OT_CONSUMPTION,ASP_PURCHASE,COUNTER_SALE,RETURN,ADJUSTMENT,TRANSFER}"
+      },
+      {
+        "prisma": "PartStatus",
+        "sql": "part_status_t",
+        "labelsMatch": true,
+        "prismaLabels": "{PENDING,ASP_ORDERED,STOCK_RESERVED,RECEIVED,CONSUMED,CANCELLED}",
+        "sqlLabels": "{PENDING,ASP_ORDERED,STOCK_RESERVED,RECEIVED,CONSUMED,CANCELLED}"
+      },
+      {
+        "prisma": "CustomerType",
+        "sql": "customer_type_t",
+        "labelsMatch": true,
+        "prismaLabels": "{INDIVIDUAL,COMPANY}",
+        "sqlLabels": "{INDIVIDUAL,COMPANY}"
+      },
+      {
+        "prisma": "SMSStatus",
+        "sql": "sms_status_t",
+        "labelsMatch": true,
+        "prismaLabels": "{PENDING,SENT,DELIVERED,FAILED}",
+        "sqlLabels": "{PENDING,SENT,DELIVERED,FAILED}"
+      },
+      {
+        "prisma": "ImmobilizationReason",
+        "sql": "immobilization_reason_t",
+        "labelsMatch": true,
+        "prismaLabels": "{WAITING_CLIENT_APPROVAL,WAITING_PARTS,WAITING_PAYMENT,WAITING_CLIENT_PICKUP,TECHNICAL_HOLD,OTHER}",
+        "sqlLabels": "{WAITING_CLIENT_APPROVAL,WAITING_PARTS,WAITING_PAYMENT,WAITING_CLIENT_PICKUP,TECHNICAL_HOLD,OTHER}"
+      },
+      {
+        "prisma": "AppointmentStatus",
+        "sql": null,
+        "missingSqlEnum": true,
+        "prismaLabels": "{SCHEDULED,CONFIRMED,CANCELLED,NO_SHOW,COMPLETED}"
+      }
+    ]
+  },
+  "integrity": {
+    "orphanChecks": [
+      {
+        "name": "vehicles ÔåÆ deleted customer",
+        "count": 0,
+        "sample": []
+      },
+      {
+        "name": "service_orders ÔåÆ deleted customer",
+        "count": 0,
+        "sample": []
+      },
+      {
+        "name": "service_orders ÔåÆ deleted vehicle",
+        "count": 0,
+        "sample": []
+      },
+      {
+        "name": "parts_catalog negative qty_available",
+        "count": 0,
+        "sample": []
+      },
+      {
+        "name": "parts_catalog qty_available mismatch",
+        "count": 0,
+        "sample": []
+      },
+      {
+        "name": "users soft-deleted still ACTIVE status",
+        "count": 0,
+        "sample": []
+      },
+      {
+        "name": "payments exceed invoice total",
+        "count": 0,
+        "sample": []
+      },
+      {
+        "name": "duplicate customer phone (active)",
+        "count": 1,
+        "sample": [
+          {
+            "phone_primary": "+237 699 123 456",
+            "cnt": "6"
+          }
+        ]
+      },
+      {
+        "name": "OT status history without matching order",
+        "count": 0,
+        "sample": []
+      }
+    ],
+    "checkConstraintCount": 64,
+    "checks": [
+      {
+        "table_name": "asp_purchases",
+        "conname": "asp_purchases_purchase_price_xaf_check",
+        "definition": "CHECK ((purchase_price_xaf >= (0)::numeric))"
+      },
+      {
+        "table_name": "asp_purchases",
+        "conname": "asp_purchases_quantity_check",
+        "definition": "CHECK ((quantity > (0)::numeric))"
+      },
+      {
+        "table_name": "asp_purchases",
+        "conname": "asp_purchases_sale_price_xaf_check",
+        "definition": "CHECK ((sale_price_xaf >= (0)::numeric))"
+      },
+      {
+        "table_name": "asp_purchases",
+        "conname": "asp_purchases_status_check",
+        "definition": "CHECK ((status = ANY (ARRAY['PENDING'::text, 'AUTHORIZED'::text, 'ORDERED'::text, 'RECEIVED'::text, 'BILLED'::text, 'CANCELLED'::text])))"
+      },
+      {
+        "table_name": "asp_purchases",
+        "conname": "chk_asp_authorized",
+        "definition": "CHECK (((status <> ALL (ARRAY['AUTHORIZED'::text, 'ORDERED'::text, 'RECEIVED'::text, 'BILLED'::text])) OR ((authorized_by IS NOT NULL) AND (authorized_at IS NOT NULL))))"
+      },
+      {
+        "table_name": "counter_sale_lines",
+        "conname": "counter_sale_lines_discount_pct_check",
+        "definition": "CHECK (((discount_pct >= (0)::numeric) AND (discount_pct <= (100)::numeric)))"
+      },
+      {
+        "table_name": "counter_sale_lines",
+        "conname": "counter_sale_lines_quantity_check",
+        "definition": "CHECK ((quantity > (0)::numeric))"
+      },
+      {
+        "table_name": "counter_sale_lines",
+        "conname": "counter_sale_lines_unit_price_xaf_check",
+        "definition": "CHECK ((unit_price_xaf >= (0)::numeric))"
+      },
+      {
+        "table_name": "counter_sales",
+        "conname": "chk_counter_customer",
+        "definition": "CHECK (((customer_id IS NOT NULL) OR ((walk_in_name IS NOT NULL) AND (TRIM(BOTH FROM walk_in_name) <> ''::text))))"
+      },
+      {
+        "table_name": "customers",
+        "conname": "chk_customer_identity",
+        "definition": "CHECK ((((customer_type = 'INDIVIDUAL'::customer_type_t) AND (first_name IS NOT NULL) AND (last_name IS NOT NULL)) OR ((customer_type = 'COMPANY'::customer_type_t) AND (company_name IS NOT NULL))))"
+      },
+      {
+        "table_name": "customers",
+        "conname": "customers_lang_check",
+        "definition": "CHECK ((lang = ANY (ARRAY['fr'::text, 'en'::text])))"
+      },
+      {
+        "table_name": "invoice_lines",
+        "conname": "invoice_lines_discount_pct_check",
+        "definition": "CHECK (((discount_pct >= (0)::numeric) AND (discount_pct <= (100)::numeric)))"
+      },
+      {
+        "table_name": "invoice_lines",
+        "conname": "invoice_lines_line_type_check",
+        "definition": "CHECK ((line_type = ANY (ARRAY['LABOR'::text, 'PART'::text, 'ASP'::text, 'COUNTER'::text, 'OTHER'::text])))"
+      },
+      {
+        "table_name": "invoice_lines",
+        "conname": "invoice_lines_quantity_check",
+        "definition": "CHECK ((quantity > (0)::numeric))"
+      },
+      {
+        "table_name": "invoice_lines",
+        "conname": "invoice_lines_unit_price_xaf_check",
+        "definition": "CHECK ((unit_price_xaf >= (0)::numeric))"
+      },
+      {
+        "table_name": "invoices",
+        "conname": "chk_invoice_credit_reason",
+        "definition": "CHECK (((credit_note_for IS NULL) OR ((credit_note_reason IS NOT NULL) AND (TRIM(BOTH FROM credit_note_reason) <> ''::text))))"
+      },
+      {
+        "table_name": "labor_catalog",
+        "conname": "labor_catalog_unit_price_xaf_check",
+        "definition": "CHECK ((unit_price_xaf >= (0)::numeric))"
+      },
+      {
+        "table_name": "ot_work_items",
+        "conname": "chk_work_completed",
+        "definition": "CHECK (((completed_at IS NULL) OR (started_at IS NULL) OR (completed_at >= started_at)))"
+      },
+      {
+        "table_name": "ot_work_items",
+        "conname": "chk_work_has_desc",
+        "definition": "CHECK (((labor_catalog_id IS NOT NULL) OR ((custom_description IS NOT NULL) AND (TRIM(BOTH FROM custom_description) <> ''::text))))"
+      },
+      {
+        "table_name": "ot_work_items",
+        "conname": "ot_work_items_discount_pct_check",
+        "definition": "CHECK (((discount_pct >= (0)::numeric) AND (discount_pct <= (100)::numeric)))"
+      },
+      {
+        "table_name": "ot_work_items",
+        "conname": "ot_work_items_quantity_check",
+        "definition": "CHECK ((quantity > (0)::numeric))"
+      },
+      {
+        "table_name": "ot_work_items",
+        "conname": "ot_work_items_status_check",
+        "definition": "CHECK ((status = ANY (ARRAY['PENDING'::text, 'IN_PROGRESS'::text, 'DONE'::text, 'CANCELLED'::text])))"
+      },
+      {
+        "table_name": "ot_work_items",
+        "conname": "ot_work_items_unit_price_xaf_check",
+        "definition": "CHECK ((unit_price_xaf >= (0)::numeric))"
+      },
+      {
+        "table_name": "parts_catalog",
+        "conname": "chk_max_threshold",
+        "definition": "CHECK (((max_threshold IS NULL) OR (max_threshold >= min_threshold)))"
+      },
+      {
+        "table_name": "parts_catalog",
+        "conname": "chk_qty_reserved",
+        "definition": "CHECK ((qty_reserved <= qty_in_stock))"
+      },
+      {
+        "table_name": "parts_catalog",
+        "conname": "parts_catalog_min_threshold_check",
+        "definition": "CHECK ((min_threshold >= (0)::numeric))"
+      },
+      {
+        "table_name": "parts_catalog",
+        "conname": "parts_catalog_qty_in_stock_check",
+        "definition": "CHECK ((qty_in_stock >= (0)::numeric))"
+      },
+      {
+        "table_name": "parts_catalog",
+        "conname": "parts_catalog_qty_reserved_check",
+        "definition": "CHECK ((qty_reserved >= (0)::numeric))"
+      },
+      {
+        "table_name": "parts_catalog",
+        "conname": "parts_catalog_sale_price_xaf_check",
+        "definition": "CHECK ((sale_price_xaf >= (0)::numeric))"
+      },
+      {
+        "table_name": "payments",
+        "conname": "payments_amount_xaf_check",
+        "definition": "CHECK ((amount_xaf > (0)::numeric))"
+      }
+    ]
+  },
+  "performance": {
+    "indexCount": 140,
+    "explains": [
+      {
+        "name": "service_orders by status",
+        "nodeType": "Limit",
+        "totalCost": 1.09,
+        "planRows": 1,
+        "indexName": null
+      },
+      {
+        "name": "customers search phone",
+        "nodeType": "Limit",
+        "totalCost": 12.12,
+        "planRows": 1,
+        "indexName": null
+      },
+      {
+        "name": "parts low stock",
+        "nodeType": "Seq Scan",
+        "totalCost": 12,
+        "planRows": 27,
+        "indexName": null
+      },
+      {
+        "name": "role_permissions join",
+        "nodeType": "Limit",
+        "totalCost": 8.6,
+        "planRows": 50,
+        "indexName": null
+      }
+    ],
+    "topSizes": [
+      {
+        "table_name": "parts_catalog",
+        "total_size": "144 kB",
+        "bytes": "147456"
+      },
+      {
+        "table_name": "service_orders",
+        "total_size": "128 kB",
+        "bytes": "131072"
+      },
+      {
+        "table_name": "reception_check_items",
+        "total_size": "104 kB",
+        "bytes": "106496"
+      },
+      {
+        "table_name": "audit_logs_2026_05",
+        "total_size": "96 kB",
+        "bytes": "98304"
+      },
+      {
+        "table_name": "vehicles",
+        "total_size": "96 kB",
+        "bytes": "98304"
+      },
+      {
+        "table_name": "stock_movements",
+        "total_size": "88 kB",
+        "bytes": "90112"
+      },
+      {
+        "table_name": "customers",
+        "total_size": "72 kB",
+        "bytes": "73728"
+      },
+      {
+        "table_name": "user_roles",
+        "total_size": "64 kB",
+        "bytes": "65536"
+      },
+      {
+        "table_name": "users",
+        "total_size": "64 kB",
+        "bytes": "65536"
+      },
+      {
+        "table_name": "technician_observations",
+        "total_size": "64 kB",
+        "bytes": "65536"
+      },
+      {
+        "table_name": "role_permissions",
+        "total_size": "56 kB",
+        "bytes": "57344"
+      },
+      {
+        "table_name": "permissions",
+        "total_size": "48 kB",
+        "bytes": "49152"
+      },
+      {
+        "table_name": "invoices",
+        "total_size": "48 kB",
+        "bytes": "49152"
+      },
+      {
+        "table_name": "labor_catalog",
+        "total_size": "48 kB",
+        "bytes": "49152"
+      },
+      {
+        "table_name": "vehicle_makes",
+        "total_size": "48 kB",
+        "bytes": "49152"
+      },
+      {
+        "table_name": "roles",
+        "total_size": "48 kB",
+        "bytes": "49152"
+      },
+      {
+        "table_name": "ot_status_history",
+        "total_size": "48 kB",
+        "bytes": "49152"
+      },
+      {
+        "table_name": "reception_check_catalog",
+        "total_size": "48 kB",
+        "bytes": "49152"
+      },
+      {
+        "table_name": "quotes",
+        "total_size": "40 kB",
+        "bytes": "40960"
+      },
+      {
+        "table_name": "asp_purchases",
+        "total_size": "40 kB",
+        "bytes": "40960"
+      }
+    ],
+    "sequences": [
+      {
+        "sequencename": "seq_counter",
+        "last_value": null
+      },
+      {
+        "sequencename": "seq_ot",
+        "last_value": "6"
+      },
+      {
+        "sequencename": "seq_quote",
+        "last_value": null
+      },
+      {
+        "sequencename": "seq_invoice",
+        "last_value": null
+      },
+      {
+        "sequencename": "seq_asp",
+        "last_value": "1"
+      }
+    ]
+  },
+  "data": {
+    "rowCounts": {
+      "appointments": 0,
+      "asp_purchases": 0,
+      "audit_logs": 42,
+      "audit_logs_2026_01": 0,
+      "audit_logs_2026_02": 0,
+      "audit_logs_2026_03": 0,
+      "audit_logs_2026_04": 0,
+      "audit_logs_2026_05": 42,
+      "audit_logs_2026_06": 0,
+      "audit_logs_2026_07": 0,
+      "audit_logs_2026_08": 0,
+      "audit_logs_2026_09": 0,
+      "audit_logs_2026_10": 0,
+      "audit_logs_2026_11": 0,
+      "audit_logs_2026_12": 0,
+      "audit_logs_overflow": 0,
+      "counter_sale_lines": 0,
+      "counter_sales": 0,
+      "customers": 11,
+      "invoice_lines": 0,
+      "invoices": 0,
+      "labor_catalog": 9,
+      "ot_status_history": 42,
+      "ot_work_items": 0,
+      "parts_catalog": 1,
+      "payments": 0,
+      "permissions": 42,
+      "quality_controls": 0,
+      "quote_lines": 0,
+      "quotes": 0,
+      "reception_check_catalog": 27,
+      "reception_check_items": 135,
+      "reception_checks": 5,
+      "role_permissions": 131,
+      "roles": 9,
+      "service_orders": 6,
+      "sms_notifications": 3,
+      "stock_movements": 1,
+      "suppliers": 0,
+      "technician_observations": 4,
+      "user_roles": 7,
+      "users": 7,
+      "vehicle_immobilizations": 0,
+      "vehicle_makes": 20,
+      "vehicle_models": 0,
+      "vehicles": 6
+    },
+    "totals": 550
+  },
+  "triggers": [
+    {
+      "table": "asp_purchases",
+      "name": "trg_asp_purchases_updated_at",
+      "timing": "BEFORE",
+      "event": "UPDATE"
+    },
+    {
+      "table": "counter_sales",
+      "name": "trg_counter_sales_updated_at",
+      "timing": "BEFORE",
+      "event": "UPDATE"
+    },
+    {
+      "table": "customers",
+      "name": "trg_customers_updated_at",
+      "timing": "BEFORE",
+      "event": "UPDATE"
+    },
+    {
+      "table": "invoices",
+      "name": "trg_invoices_updated_at",
+      "timing": "BEFORE",
+      "event": "UPDATE"
+    },
+    {
+      "table": "labor_catalog",
+      "name": "trg_labor_catalog_updated_at",
+      "timing": "BEFORE",
+      "event": "UPDATE"
+    },
+    {
+      "table": "ot_work_items",
+      "name": "trg_ot_work_items_updated_at",
+      "timing": "BEFORE",
+      "event": "UPDATE"
+    },
+    {
+      "table": "parts_catalog",
+      "name": "trg_parts_catalog_updated_at",
+      "timing": "BEFORE",
+      "event": "UPDATE"
+    },
+    {
+      "table": "parts_catalog",
+      "name": "trg_stock_alert",
+      "timing": "AFTER",
+      "event": "UPDATE"
+    },
+    {
+      "table": "payments",
+      "name": "trg_payment_invoice",
+      "timing": "AFTER",
+      "event": "INSERT"
+    },
+    {
+      "table": "payments",
+      "name": "trg_payment_invoice",
+      "timing": "AFTER",
+      "event": "UPDATE"
+    },
+    {
+      "table": "quality_controls",
+      "name": "trg_quality_controls_updated_at",
+      "timing": "BEFORE",
+      "event": "UPDATE"
+    },
+    {
+      "table": "quotes",
+      "name": "trg_quotes_updated_at",
+      "timing": "BEFORE",
+      "event": "UPDATE"
+    },
+    {
+      "table": "roles",
+      "name": "trg_roles_updated_at",
+      "timing": "BEFORE",
+      "event": "UPDATE"
+    },
+    {
+      "table": "service_orders",
+      "name": "trg_ot_auto_fields",
+      "timing": "BEFORE",
+      "event": "UPDATE"
+    },
+    {
+      "table": "service_orders",
+      "name": "trg_ot_status_history",
+      "timing": "AFTER",
+      "event": "UPDATE"
+    },
+    {
+      "table": "service_orders",
+      "name": "trg_service_orders_updated_at",
+      "timing": "BEFORE",
+      "event": "UPDATE"
+    },
+    {
+      "table": "stock_movements",
+      "name": "trg_stock_movement",
+      "timing": "BEFORE",
+      "event": "INSERT"
+    },
+    {
+      "table": "suppliers",
+      "name": "trg_suppliers_updated_at",
+      "timing": "BEFORE",
+      "event": "UPDATE"
+    },
+    {
+      "table": "technician_observations",
+      "name": "trg_technician_observations_updated_at",
+      "timing": "BEFORE",
+      "event": "UPDATE"
+    },
+    {
+      "table": "users",
+      "name": "trg_users_updated_at",
+      "timing": "BEFORE",
+      "event": "UPDATE"
+    },
+    {
+      "table": "vehicle_immobilizations",
+      "name": "trg_vehicle_immob",
+      "timing": "AFTER",
+      "event": "INSERT"
+    },
+    {
+      "table": "vehicle_immobilizations",
+      "name": "trg_vehicle_immob",
+      "timing": "AFTER",
+      "event": "UPDATE"
+    },
+    {
+      "table": "vehicles",
+      "name": "trg_vehicles_updated_at",
+      "timing": "BEFORE",
+      "event": "UPDATE"
+    }
+  ],
+  "extensions": [
+    "btree_gist@1.7",
+    "pg_stat_statements@1.11",
+    "pg_trgm@1.6",
+    "pgcrypto@1.3",
+    "plpgsql@1.0",
+    "supabase_vault@0.3.1",
+    "unaccent@1.1",
+    "uuid-ossp@1.1"
+  ]
+}

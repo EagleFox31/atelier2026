@@ -1,0 +1,13 @@
+# Ce fichier configure le service API (NestJS).
+# Le service Frontend (Next.js) utilise les commandes par défaut détectées par Railway.
+
+[build]
+builder = "nixpacks"
+buildCommand = "npm ci && npm run build:api"
+
+[deploy]
+startCommand = "npm run start:api"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3

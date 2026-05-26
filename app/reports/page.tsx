@@ -1,0 +1,456 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  Users, 
+  Wrench, 
+  Clock, 
+  DollarSign,
+  Download,
+  Calendar as CalendarIcon,
+  ChevronRight,
+  ShieldCheck,
+  Lock
+} from "lucide-react";
+import { motion } from "motion/react";
+import { 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis
+} from 'recharts';
+import { reportsApi, billingApi, customersApi, workshopApi } from "@/lib/api";
+import { formatXAF } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+
+export default function ReportsPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [hasPermission, setHasPermission] = useState(true);
+
+  // KPIs
+  const [revenueMtd, setRevenueMtd] = useState(0);
+  const [revenueChange, setRevenueChange] = useState('');
+  const [revenueTrend, setRevenueTrend] = useState<'up' | 'down'>('up');
+
+  const [avgInterventionTime, setAvgInterventionTime] = useState(0);
+  const [avgInterventionChange, setAvgInterventionChange] = useState('');
+  const [avgInterventionTrend, setAvgInterventionTrend] = useState<'up' | 'down'>('down');
+
+  const [newCustomersCount, setNewCustomersCount] = useState(0);
+  const [newCustomersChange, setNewCustomersChange] = useState('');
+  const [newCustomersTrend, setNewCustomersTrend] = useState<'up' | 'down'>('up');
+
+  const [returnRate, setReturnRate] = useState('0.0');
+
+  // Chart Data
+  const [revenueChartData, setRevenueChartData] = useState<any[]>([]);
+  const [techPerformance, setTechPerformance] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadReportData() {
+      setLoading(true);
+      try {
+        const now = new Date();
+        const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
+        // 1. Fetch Revenue report data (requires ADMIN)
+        let revenueCurrent;
+        let revenuePrev;
+        try {
+          [revenueCurrent, revenuePrev] = await Promise.all([
+            reportsApi.revenue({ startDate: currentMonthStart.toISOString() }) as Promise<any>,
+            reportsApi.revenue({ startDate: prevMonthStart.toISOString(), endDate: prevMonthEnd.toISOString() }) as Promise<any>
+          ]);
+        } catch (err: any) {
+          if (err?.status === 403) {
+            setHasPermission(false);
+            setLoading(false);
+            return;
+          }
+          throw err;
+        }
+
+        const curRev = Number(revenueCurrent?.totalRevenue || 0);
+        const preRev = Number(revenuePrev?.totalRevenue || 0);
+        setRevenueMtd(curRev);
+
+        if (preRev > 0) {
+          const diff = ((curRev - preRev) / preRev) * 100;
+          setRevenueChange(diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`);
+          setRevenueTrend(diff >= 0 ? 'up' : 'down');
+        } else {
+          setRevenueChange('+100%');
+          setRevenueTrend('up');
+        }
+
+        // 2. Fetch Technician Performance (requires ADMIN)
+        const perfData = await reportsApi.performance() as Record<string, { estimatedHours: number; actualHours: number }>;
+        
+        let totalEst = 0;
+        let totalAct = 0;
+        Object.values(perfData).forEach(p => {
+          totalEst += Number(p.estimatedHours || 0);
+          totalAct += Number(p.actualHours || 0);
+        });
+        
+        const techCount = Object.keys(perfData).length;
+        const avgTime = techCount > 0 ? (totalAct / techCount) : 0;
+        setAvgInterventionTime(avgTime);
+        // Compare to target standard (e.g. 4.0 hours)
+        const timeDiff = ((avgTime - 4.0) / 4.0) * 100;
+        setAvgInterventionChange(timeDiff <= 0 ? `${timeDiff.toFixed(1)}%` : `+${timeDiff.toFixed(1)}%`);
+        setAvgInterventionTrend(timeDiff <= 0 ? 'down' : 'up');
+
+        // 3. Fetch New Customers count
+        const customers = await customersApi.list() as any[];
+        const curCust = customers.filter(c => new Date(c.createdAt) >= currentMonthStart).length;
+        const preCust = customers.filter(c => {
+          const d = new Date(c.createdAt);
+          return d >= prevMonthStart && d < currentMonthStart;
+        }).length;
+
+        setNewCustomersCount(curCust);
+        if (preCust > 0) {
+          const diff = ((curCust - preCust) / preCust) * 100;
+          setNewCustomersChange(diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`);
+          setNewCustomersTrend(diff >= 0 ? 'up' : 'down');
+        } else {
+          setNewCustomersChange('+100%');
+          setNewCustomersTrend('up');
+        }
+
+        // 4. Calculate return rate proxy (cancelled OTs rate)
+        const ots = await workshopApi.listOTs() as any[];
+        const cancelledCount = ots.filter(o => o.status === 'CANCELLED').length;
+        const calculatedRate = ots.length > 0 ? ((cancelledCount / ots.length) * 100).toFixed(1) : "0.0";
+        setReturnRate(calculatedRate);
+
+        // 5. Monthly Revenue Chart (grouping last 6 months of paid invoices)
+        const invoices = await billingApi.listInvoices() as any[];
+        const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+        
+        const revChartData = [];
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date();
+          d.setMonth(d.getMonth() - i);
+          const monthIndex = d.getMonth();
+          const year = d.getFullYear();
+          const label = monthNames[monthIndex];
+          
+          const monthlyRevenue = invoices
+            .filter(inv => {
+              if (inv.status !== 'PAID' || !inv.paidAt) return false;
+              const paidDate = new Date(inv.paidAt);
+              return paidDate.getMonth() === monthIndex && paidDate.getFullYear() === year;
+            })
+            .reduce((sum, inv) => sum + Number(inv.totalXaf || 0), 0);
+            
+          const target = monthlyRevenue > 0 ? Math.round(monthlyRevenue * 1.15) : 1000000;
+          
+          revChartData.push({ month: label, revenue: monthlyRevenue, target });
+        }
+        setRevenueChartData(revChartData);
+
+        // 6. Map technician performance table depuis perfData déjà chargé
+        const mappedTechs = Object.entries(perfData).map(([name, data]) => {
+          const efficiency = data.actualHours > 0
+            ? Math.round((data.estimatedHours / data.actualHours) * 100)
+            : 100;
+          return { name, jobs: Math.round(data.actualHours), efficiency };
+        });
+        setTechPerformance(mappedTechs);
+
+      } catch (err) {
+        console.error("Error loading reports data:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadReportData();
+  }, []);
+
+  const formatKpiValue = (val: number): string => {
+    if (val >= 1000000) {
+      return (val / 1000000).toFixed(1) + "M";
+    }
+    if (val >= 1000) {
+      return (val / 1000).toFixed(0) + "k";
+    }
+    return val.toString();
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-8 p-4">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Skeleton className="h-96 rounded-xl" />
+          <Skeleton className="h-96 rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasPermission) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center p-6">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md w-full"
+        >
+          <Card className="bg-card/60 backdrop-blur-xl border-border/80 shadow-2xl text-center p-8 relative overflow-hidden">
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-red-500/5 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="mx-auto w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-6 ring-1 ring-red-500/20">
+              <Lock className="text-red-500" size={28} />
+            </div>
+            
+            <CardTitle className="text-2xl font-bold text-foreground mb-3">Accès Restreint</CardTitle>
+            <CardDescription className="text-sm text-muted-foreground mb-6 leading-relaxed">
+              Ce module de rapports financiers et de performance nécessite des privilèges d'administrateur. Veuillez contacter votre chef d'atelier pour obtenir les accès requis.
+            </CardDescription>
+            
+            <div className="flex flex-col gap-3">
+              <Button 
+                onClick={() => router.push('/')}
+                className="w-full bg-brand hover:bg-brand-hover text-white shadow-lg shadow-brand/20 h-11"
+              >
+                Retour au Tableau de Bord
+              </Button>
+            </div>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
+
+  const kpis = [
+    {
+      title: "Chiffre d'affaires (MTD)",
+      value: formatKpiValue(revenueMtd),
+      unit: "XAF",
+      change: revenueChange,
+      trend: revenueTrend,
+      icon: DollarSign,
+      color: "text-green-600",
+      bg: "bg-green-500/10",
+    },
+    {
+      title: "Temps moyen d'intervention",
+      value: avgInterventionTime > 0 ? avgInterventionTime.toFixed(1) : "—",
+      unit: "heures",
+      change: avgInterventionChange,
+      trend: avgInterventionTrend === 'down' ? 'up' : 'down', // down is good for time
+      icon: Clock,
+      color: "text-blue-600",
+      bg: "bg-blue-500/10",
+    },
+    {
+      title: "Nouveaux Clients",
+      value: newCustomersCount.toString(),
+      unit: "ce mois",
+      change: newCustomersChange,
+      trend: newCustomersTrend,
+      icon: Users,
+      color: "text-purple-600",
+      bg: "bg-purple-500/10",
+    },
+    {
+      title: "Taux d'annulation / retour",
+      value: returnRate,
+      unit: "%",
+      change: "-0.5%",
+      trend: "up",
+      icon: ShieldCheck,
+      color: "text-amber-600",
+      bg: "bg-amber-500/10",
+    },
+  ];
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Rapports & Performance</h1>
+          <p className="text-muted-foreground">Analysez l&apos;activité et la rentabilité de votre atelier</p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" className="gap-2 border-border">
+            <CalendarIcon size={18} />
+            {new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+          </Button>
+          <Button className="bg-brand hover:bg-brand-hover gap-2 text-white">
+            <Download size={18} />
+            Exporter le rapport
+          </Button>
+        </div>
+      </div>
+
+      {/* KPI Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {kpis.map((kpi, index) => (
+          <motion.div
+            key={kpi.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+          >
+            <Card className="border-border shadow-sm ring-1 ring-border/50 bg-card hover:shadow-md transition-all">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className={`${kpi.bg} p-2.5 rounded-xl`}>
+                    <kpi.icon className={kpi.color} size={20} />
+                  </div>
+                  {kpi.change && (
+                    <div className={`flex items-center gap-1 text-xs font-bold ${kpi.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+                      {kpi.trend === 'up' ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                      {kpi.change}
+                    </div>
+                  )}
+                </div>
+                <div className="mt-4">
+                  <p className="text-sm font-medium text-muted-foreground">{kpi.title}</p>
+                  <div className="flex items-baseline gap-1.5 mt-1">
+                    <span className="text-2xl font-bold text-foreground">{kpi.value}</span>
+                    <span className="text-xs font-mono text-muted-foreground">{kpi.unit}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Revenue Chart */}
+        <Card className="border-border shadow-sm ring-1 ring-border/50 bg-card">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold">Évolution du Chiffre d&apos;Affaires</CardTitle>
+            <CardDescription>Revenus mensuels vs Objectifs (en XAF)</CardDescription>
+          </CardHeader>
+          <CardContent className="h-[350px] pt-4">
+            {revenueChartData.length === 0 ? (
+              <div className="h-full w-full flex items-center justify-center text-muted-foreground text-sm">
+                Aucune donnée financière disponible
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueChartData}>
+                  <defs>
+                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--brand)" stopOpacity={0.1}/>
+                      <stop offset="95%" stopColor="var(--brand)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                  <XAxis 
+                    dataKey="month" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }}
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }}
+                    tickFormatter={(value) => value >= 1000000 ? `${value / 1000000}M` : value.toLocaleString()}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      borderRadius: '12px', 
+                      border: '1px solid var(--border)', 
+                      boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                      color: 'var(--foreground)'
+                    }}
+                    itemStyle={{ color: 'var(--foreground)' }}
+                    formatter={(value: any) => [`${Number(value).toLocaleString()} XAF`, 'Revenu']}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="revenue" 
+                    stroke="var(--brand)" 
+                    strokeWidth={3}
+                    fillOpacity={1} 
+                    fill="url(#colorRev)" 
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="target" 
+                    stroke="#cbd5e1" 
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    fill="transparent" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Technician Performance */}
+        <Card className="border-border shadow-sm ring-1 ring-border/50 bg-card">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold">Performance par Technicien</CardTitle>
+            <CardDescription>Productivité et qualité du travail</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {techPerformance.map((tech) => (
+                <div key={tech.name} className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-brand/10 text-brand flex items-center justify-center font-bold text-xs">
+                        {tech.name.split(' ').map((n: string) => n[0]).join('')}
+                      </div>
+                      <span className="text-sm font-bold text-foreground">{tech.name}</span>
+                    </div>
+                    <span className="text-xs font-mono text-muted-foreground">{tech.jobs} OT terminés</span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
+                      <span>Efficacité</span>
+                      <span>{tech.efficiency}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-brand rounded-full" 
+                        style={{ width: `${Math.min(tech.efficiency, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Button variant="ghost" className="w-full mt-6 text-brand hover:bg-brand/10 font-bold text-xs" onClick={() => router.push('/team')}>
+              Détails de l&apos;équipe <ChevronRight size={16} className="ml-1" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

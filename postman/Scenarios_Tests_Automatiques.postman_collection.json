@@ -1,0 +1,659 @@
+{
+    "info": {
+        "name": "Atelier 2026 - Scénarios Automatisés E2E (Par Profil)",
+        "description": "Tests complets (A to Z) passant le relais de profil en profil en utilisant l'API NestJS.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:3001/api"
+        },
+        {
+            "key": "adminToken",
+            "value": ""
+        },
+        {
+            "key": "advisorToken",
+            "value": ""
+        },
+        {
+            "key": "techToken",
+            "value": ""
+        },
+        {
+            "key": "cashierToken",
+            "value": ""
+        },
+        {
+            "key": "stockToken",
+            "value": ""
+        },
+        {
+            "key": "customerId",
+            "value": ""
+        },
+        {
+            "key": "vehicleId",
+            "value": ""
+        },
+        {
+            "key": "otId",
+            "value": ""
+        },
+        {
+            "key": "quoteId",
+            "value": ""
+        },
+        {
+            "key": "invoiceId",
+            "value": ""
+        },
+        {
+            "key": "partId",
+            "value": ""
+        }
+    ],
+    "item": [
+        {
+            "name": "1. Profil : Conseiller Service (Réception)",
+            "item": [
+                {
+                    "name": "1.1 Login Conseiller",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Login reussi\", function () { pm.response.to.have.status(200); });",
+                                    "var jsonData = pm.response.json();",
+                                    "if(jsonData.access_token) pm.collectionVariables.set(\"advisorToken\", jsonData.access_token);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"identifier\":\"reception@atelier.cm\", \"password\":\"Atelier2026!\"}"
+                        }
+                    }
+                },
+                {
+                    "name": "1.2 Création Client",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Client cree\", function () { pm.response.to.be.success; });",
+                                    "var jsonData = pm.response.json();",
+                                    "if(jsonData.id) pm.collectionVariables.set(\"customerId\", jsonData.id);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{advisorToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/customers",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "customers"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"firstName\": \"Jean\",\n  \"lastName\": \"Testeur\",\n  \"phonePrimary\": \"+237699000000\",\n  \"customerType\": \"INDIVIDUAL\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "1.3 Création Véhicule",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Vehicule cree\", function () { pm.response.to.be.success; });",
+                                    "var jsonData = pm.response.json();",
+                                    "if(jsonData.id) pm.collectionVariables.set(\"vehicleId\", jsonData.id);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{advisorToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/vehicles",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "vehicles"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"plateNumber\": \"LT-5678-C\" \n}"
+                        }
+                    }
+                },
+                {
+                    "name": "1.4 Ouverture OT (Ordre Travail)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"OT Ouvert\", function () { pm.response.to.be.success; });",
+                                    "var jsonData = pm.response.json();",
+                                    "if(jsonData.id) pm.collectionVariables.set(\"otId\", jsonData.id);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{advisorToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/workshop/ot",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "workshop",
+                                "ot"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"customerId\": \"{{customerId}}\",\n  \"clientComplaint\": \"Bruit moteur étrange lors de l'accélération\",\n  \"mileageIn\": 45000\n}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "2. Profil : Chef Atelier (Diagnostic & Suivi)",
+            "item": [
+                {
+                    "name": "2.1 Login Chef Atelier",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if(jsonData.access_token) pm.collectionVariables.set(\"techToken\", jsonData.access_token);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"identifier\":\"chef@atelier.cm\", \"password\":\"Atelier2026!\"}"
+                        }
+                    }
+                },
+                {
+                    "name": "2.2 Passer OT en DIAGNOSING",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Status mis a jour DIAGNOSING\", function () { pm.response.to.be.success; });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{techToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/workshop/ot/{{otId}}/status",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "workshop",
+                                "ot",
+                                "{{otId}}",
+                                "status"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"status\": \"DIAGNOSING\",\n  \"reason\": \"Début du diagnostic technique\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "2.3 Ajouter Observation Diagnostic",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{techToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/workshop/ot/{{otId}}/observation",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "workshop",
+                                "ot",
+                                "{{otId}}",
+                                "observation"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"description\": \"Plaquettes de frein avant usées à plus de 80%\",\n  \"severity\": \"WARNING\",\n  \"includeInQuote\": true\n}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "3. Profil : Magasinier (Gestion de Stock)",
+            "item": [
+                {
+                    "name": "3.1 Login Magasinier",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if(jsonData.access_token) pm.collectionVariables.set(\"stockToken\", jsonData.access_token);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"identifier\":\"admin@atelier.cm\", \"password\":\"Atelier2026!\"}"
+                        }
+                    }
+                },
+                {
+                    "name": "3.2 Création Pièce au Catalogue",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Piece cree\", function () { pm.response.to.be.success; });",
+                                    "var jsonData = pm.response.json();",
+                                    "if(jsonData.id) pm.collectionVariables.set(\"partId\", jsonData.id);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{stockToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/stock/parts",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "stock",
+                                "parts"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"reference\": \"PF-789\",\n  \"nameFr\": \"Plaquettes de frein Toyota\",\n  \"category\": \"FREINAGE\",\n  \"salePriceXaf\": 100000,\n  \"qtyInStock\": 10,\n  \"qtyReserved\": 0,\n  \"minThreshold\": 2\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "3.3 Mouvement Sortie (Consommation de pièce sur OT)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{stockToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/stock/movement",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "stock",
+                                "movement"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"partId\": \"{{partId}}\",\n  \"type\": \"OT_CONSUMPTION\",\n  \"quantity\": 1,\n  \"serviceOrderId\": \"{{otId}}\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "3.4 Consulter Pièces sous-Stock",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{stockToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/stock/parts/low-stock",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "stock",
+                                "parts",
+                                "low-stock"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "4. Profil : Caissier / Facturation",
+            "item": [
+                {
+                    "name": "4.1 Login Facturation",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if(jsonData.access_token) pm.collectionVariables.set(\"cashierToken\", jsonData.access_token);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"identifier\":\"caisse@atelier.cm\", \"password\":\"Atelier2026!\"}"
+                        }
+                    }
+                },
+                {
+                    "name": "4.2 Générer le Devis",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Devis genere\", function () { pm.response.to.be.success; });",
+                                    "var jsonData = pm.response.json();",
+                                    "if(jsonData.id) pm.collectionVariables.set(\"quoteId\", jsonData.id);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{cashierToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/billing/quotes",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "billing",
+                                "quotes"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"serviceOrderId\": \"{{otId}}\",\n  \"customerId\": \"{{customerId}}\",\n  \"subtotal\": 150000,\n  \"lines\": [\n    {\n      \"lineType\": \"LABOR\",\n      \"description\": \"Main d'oeuvre\",\n      \"quantity\": 2,\n      \"unitPriceXaf\": 25000\n    },\n    {\n      \"lineType\": \"PART\",\n      \"partId\": \"{{partId}}\",\n      \"description\": \"Jeu plaquettes frein\",\n      \"quantity\": 1,\n      \"unitPriceXaf\": 100000\n    }\n  ]\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "4.3 Transformer Devis en Facture",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Facture emise\", function () { pm.response.to.be.success; });",
+                                    "var jsonData = pm.response.json();",
+                                    "if(jsonData.id) pm.collectionVariables.set(\"invoiceId\", jsonData.id);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{cashierToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/billing/invoice/from-quote/{{quoteId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "billing",
+                                "invoice",
+                                "from-quote",
+                                "{{quoteId}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "4.4 Valider le Paiement",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "pm.test(\"Paiement reussi\", function () { pm.response.to.be.success; });"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{cashierToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/billing/payment",
+                            "host": [
+                                " {{baseUrl}}"
+                            ],
+                            "path": [
+                                "billing",
+                                "payment"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"invoiceId\": \"{{invoiceId}}\",\n  \"amount\": 178875,\n  \"method\": \"ORANGE_MONEY\",\n  \"transactionRef\": \"OM-MP123456\"\n}"
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

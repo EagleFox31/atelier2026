@@ -1,0 +1,83 @@
+{
+  "label": "before",
+  "capturedAt": "2026-05-23T15:33:05.446Z",
+  "statusCols": [
+    {
+      "table_name": "appointments",
+      "column_name": "status",
+      "data_type": "USER-DEFINED",
+      "udt_name": "AppointmentStatus"
+    },
+    {
+      "table_name": "asp_purchases",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text"
+    },
+    {
+      "table_name": "ot_work_items",
+      "column_name": "status",
+      "data_type": "text",
+      "udt_name": "text"
+    }
+  ],
+  "staleChecks": [
+    {
+      "tbl": "asp_purchases",
+      "conname": "asp_purchases_status_check",
+      "def": "CHECK ((status = ANY (ARRAY['PENDING'::text, 'AUTHORIZED'::text, 'ORDERED'::text, 'RECEIVED'::text, 'BILLED'::text, 'CANCELLED'::text])))"
+    },
+    {
+      "tbl": "ot_work_items",
+      "conname": "ot_work_items_status_check",
+      "def": "CHECK ((status = ANY (ARRAY['PENDING'::text, 'IN_PROGRESS'::text, 'DONE'::text, 'CANCELLED'::text])))"
+    }
+  ],
+  "views": [
+    {
+      "relname": "v_active_ot_dashboard",
+      "reloptions": null,
+      "security_invoker": false
+    },
+    {
+      "relname": "v_pending_invoices",
+      "reloptions": null,
+      "security_invoker": false
+    },
+    {
+      "relname": "v_stock_status",
+      "reloptions": null,
+      "security_invoker": false
+    },
+    {
+      "relname": "v_user_permissions",
+      "reloptions": null,
+      "security_invoker": false
+    }
+  ],
+  "grants": [
+    {
+      "grantee": "anon",
+      "table_count": "51",
+      "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+    },
+    {
+      "grantee": "authenticated",
+      "table_count": "51",
+      "privileges": "DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE"
+    }
+  ],
+  "enums": [
+    "asp_status_t",
+    "work_item_status_t"
+  ],
+  "qcRound": [
+    {
+      "column_name": "round",
+      "data_type": "smallint"
+    }
+  ],
+  "qcUnique": [
+    "quality_controls_service_order_id_round_key"
+  ]
+}

@@ -1,0 +1,36 @@
+# Dépendances & builds
+node_modules/
+.next/
+dist/
+coverage/
+/generated/prisma
+*.tsbuildinfo
+
+# Secrets & env local
+.env*
+!.env.example
+!deploy/.env.prod.example
+src/.env
+
+# Logs & OS
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE / assistants locaux
+.claude/
+.cursor/
+
+# Outils de test — artefacts générés
+.stryker-tmp/
+/reports/
+test-results/
+playwright/.auth/
+reports/playwright/
+
+# Postman — généré au dev / après run Newman (peut contenir tokens)
+postman/env_dynamic.json
+postman/newman-env.json
+
+# Déploiement local
+deploy/.env.prod

@@ -1,0 +1,69 @@
+{
+  "success": true,
+  "steps": [
+    {
+      "step": "BEGIN",
+      "at": "2026-05-23T15:37:08.530Z"
+    },
+    {
+      "step": "drop-stale-checks",
+      "at": "2026-05-23T15:37:08.542Z"
+    },
+    {
+      "step": "ensure-enums",
+      "at": "2026-05-23T15:37:08.782Z"
+    },
+    {
+      "step": "drop-views-and-status-indexes",
+      "at": "2026-05-23T15:37:09.082Z"
+    },
+    {
+      "step": "convert-ot_work_items-status",
+      "at": "2026-05-23T15:37:09.342Z"
+    },
+    {
+      "step": "convert-asp_purchases-status",
+      "at": "2026-05-23T15:37:09.587Z"
+    },
+    {
+      "step": "restore-chk-asp-authorized",
+      "at": "2026-05-23T15:37:09.828Z"
+    },
+    {
+      "step": "recreate-status-indexes",
+      "at": "2026-05-23T15:37:10.195Z"
+    },
+    {
+      "step": "quality-controls-round",
+      "at": "2026-05-23T15:37:10.434Z"
+    },
+    {
+      "step": "recreate-view-v_active_ot_dashboard",
+      "at": "2026-05-23T15:37:10.696Z"
+    },
+    {
+      "step": "recreate-view-v_pending_invoices",
+      "at": "2026-05-23T15:37:11.198Z"
+    },
+    {
+      "step": "recreate-view-v_stock_status",
+      "at": "2026-05-23T15:37:11.433Z"
+    },
+    {
+      "step": "recreate-view-v_user_permissions",
+      "at": "2026-05-23T15:37:11.665Z"
+    },
+    {
+      "step": "revoke-anon-authenticated",
+      "at": "2026-05-23T15:37:12.032Z"
+    },
+    {
+      "step": "record-prisma-migration",
+      "at": "2026-05-23T15:37:12.741Z"
+    },
+    {
+      "step": "COMMIT",
+      "at": "2026-05-23T15:37:13.435Z"
+    }
+  ]
+}

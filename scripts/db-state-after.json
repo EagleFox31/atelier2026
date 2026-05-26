@@ -1,0 +1,69 @@
+{
+  "label": "after",
+  "capturedAt": "2026-05-23T15:37:28.208Z",
+  "statusCols": [
+    {
+      "table_name": "appointments",
+      "column_name": "status",
+      "data_type": "USER-DEFINED",
+      "udt_name": "AppointmentStatus"
+    },
+    {
+      "table_name": "asp_purchases",
+      "column_name": "status",
+      "data_type": "USER-DEFINED",
+      "udt_name": "asp_status_t"
+    },
+    {
+      "table_name": "ot_work_items",
+      "column_name": "status",
+      "data_type": "USER-DEFINED",
+      "udt_name": "work_item_status_t"
+    }
+  ],
+  "staleChecks": [],
+  "views": [
+    {
+      "relname": "v_active_ot_dashboard",
+      "reloptions": [
+        "security_invoker=true"
+      ],
+      "security_invoker": true
+    },
+    {
+      "relname": "v_pending_invoices",
+      "reloptions": [
+        "security_invoker=true"
+      ],
+      "security_invoker": true
+    },
+    {
+      "relname": "v_stock_status",
+      "reloptions": [
+        "security_invoker=true"
+      ],
+      "security_invoker": true
+    },
+    {
+      "relname": "v_user_permissions",
+      "reloptions": [
+        "security_invoker=true"
+      ],
+      "security_invoker": true
+    }
+  ],
+  "grants": [],
+  "enums": [
+    "asp_status_t",
+    "work_item_status_t"
+  ],
+  "qcRound": [
+    {
+      "column_name": "round",
+      "data_type": "smallint"
+    }
+  ],
+  "qcUnique": [
+    "quality_controls_service_order_id_round_key"
+  ]
+}

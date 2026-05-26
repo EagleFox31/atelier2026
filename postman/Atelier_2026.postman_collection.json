@@ -1,0 +1,4136 @@
+{
+  "info": {
+    "name": "Atelier 2026 — Tests E2E (A à Z)",
+    "description": "Collection complète de tests de bout en bout pour l'API Atelier 2026.\nScénario complet : Auth → Client → Véhicule → OT → Diagnostic → Devis → Facture → Paiement → Clôture.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001/api",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "customerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "vehicleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "otId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "otReference",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "observationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "quoteId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "invoiceId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "laborCatalogId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "partId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "memberId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "appointmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "saleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idempotencyKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "receptionCatalog",
+      "value": "[]",
+      "type": "string"
+    },
+    {
+      "key": "testEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testPhone",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testPlate",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "memberEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "memberPhone",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "current_ot_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rbac_ot_draft_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rbac_ot_received_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rbac_ot_diagnosing_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rbac_ot_inprogress_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rbac_ot_ready_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rbac_ot_draft_forbidden_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rbac_ot_received_forbidden_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rbac_ot_inprogress_forbidden_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rbac_ot_ready_forbidden_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tech_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "caissier_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "recept_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "01 — AUTHENTIFICATION",
+      "item": [
+        {
+          "name": "01.1 — Login (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — Login réussi', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Token JWT récupéré', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.access_token).to.be.a('string');",
+                  "    pm.collectionVariables.set('jwt_token', json.access_token);",
+                  "    pm.collectionVariables.set('userId', json.user.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"admin@atelier.cm\",\n  \"password\": \"Atelier2026!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "01.2 — Profil utilisateur connecté",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "",
+                  "pm.test('Profil contient rôles et permissions', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.roles).to.be.an('array');",
+                  "    pm.expect(json.permissions).to.be.an('array');",
+                  "    pm.expect(json.firstName).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "01.3 — Login ÉCHEC (mauvais mot de passe)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401 — Identifiants invalides', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"admin@atelier.cm\",\n  \"password\": \"mauvais_mdp\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 — CLIENTS & VÉHICULES",
+      "item": [
+        {
+          "name": "02.1 — Créer un client (Particulier)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var saved = pm.environment.get('customerId');",
+                  "if (saved && saved.length > 0) {",
+                  "    pm.collectionVariables.set('customerId', saved);",
+                  "    pm.collectionVariables.set('testEmail', pm.environment.get('testEmail'));",
+                  "    pm.collectionVariables.set('testPhone', pm.environment.get('testPhone'));",
+                  "    pm.execution.skipRequest();",
+                  "} else {",
+                  "    var ts = Date.now();",
+                  "    var email = 'test.' + ts + '@atelier.cm';",
+                  "    var phone = '+237 6' + Math.floor(10000000 + Math.random() * 89999999);",
+                  "    pm.collectionVariables.set('testEmail', email);",
+                  "    pm.collectionVariables.set('testPhone', phone);",
+                  "    pm.environment.set('testEmail', email);",
+                  "    pm.environment.set('testPhone', phone);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 — Client créé', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('ID client récupéré', function () {",
+                  "    var id = pm.response.json().id;",
+                  "    pm.expect(id).to.be.a('string');",
+                  "    pm.collectionVariables.set('customerId', id);",
+                  "    pm.environment.set('customerId', id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerType\": \"INDIVIDUAL\",\n  \"firstName\": \"Jean-Pierre\",\n  \"lastName\": \"Mbarga\",\n  \"phonePrimary\": \"{{testPhone}}\",\n  \"email\": \"{{testEmail}}\",\n  \"city\": \"Douala\",\n  \"lang\": \"fr\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "customers"
+              ]
+            }
+          }
+        },
+        {
+          "name": "02.2 — Créer un véhicule",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var saved = pm.environment.get('vehicleId');",
+                  "if (saved && saved.length > 0) {",
+                  "    pm.collectionVariables.set('vehicleId', saved);",
+                  "    pm.collectionVariables.set('testPlate', pm.environment.get('testPlate'));",
+                  "    pm.execution.skipRequest();",
+                  "} else {",
+                  "    var plate = 'LT ' + Math.floor(1000 + Math.random() * 9000) + ' AB';",
+                  "    pm.collectionVariables.set('testPlate', plate);",
+                  "    pm.environment.set('testPlate', plate);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 — Véhicule créé', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('ID véhicule récupéré', function () {",
+                  "    var id = pm.response.json().id;",
+                  "    pm.expect(id).to.be.a('string');",
+                  "    pm.collectionVariables.set('vehicleId', id);",
+                  "    pm.environment.set('vehicleId', id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"plateNumber\": \"{{testPlate}}\",\n  \"plateFormat\": \"NEW\",\n  \"year\": 2022,\n  \"color\": \"Noir\",\n  \"fuelType\": \"DIESEL\",\n  \"transmission\": \"AUTO\",\n  \"currentMileage\": 45000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/vehicles",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "vehicles"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — ORDRE DE TRAVAIL (OT) — Flux complet",
+      "item": [
+        {
+          "name": "03.1 — Créer un OT (DRAFT)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var saved = pm.environment.get('otId');",
+                  "if (saved && saved.length > 0) {",
+                  "    pm.collectionVariables.set('otId', saved);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 — OT créé', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('OT en DRAFT', function () {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.status).to.eql('DRAFT');",
+                  "    pm.collectionVariables.set('otId', j.id);",
+                  "    pm.environment.set('otId', j.id);",
+                  "    if (j.reference) pm.collectionVariables.set('otReference', j.reference);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"customerId\": \"{{customerId}}\",\n  \"clientComplaint\": \"Bruit anormal au freinage, voyant moteur allumé\",\n  \"priority\": \"URGENT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.2 — ÉCHEC Transition DRAFT → RECEIVED (sans kilométrage)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var cur = pm.environment.get('otStatus') || '';",
+                  "if (cur && cur !== 'DRAFT') pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400 — Kilométrage obligatoire (ORD-001)', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('ORD-001');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RECEIVED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.3 — Récupérer le catalogue de réception (27 points)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — Catalogue récupéré', () => pm.response.to.have.status(200));",
+                  "pm.test('27 points de contrôle présents', () => {",
+                  "    var catalog = pm.response.json();",
+                  "    pm.expect(catalog.length).to.eql(27);",
+                  "    pm.collectionVariables.set('receptionCatalog', JSON.stringify(catalog));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/workshop/reception-catalog",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "reception-catalog"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.4 — Fiche de Réception (27 points remplis)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "if (pm.environment.get('otReceptionDone') === 'true') { pm.execution.skipRequest(); return; }"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var catalog = JSON.parse(pm.collectionVariables.get('receptionCatalog') || '[]');",
+                  "var results = { 'EXT_01':'WARNING','EXT_02':'OK','EXT_03':'WARNING','EXT_04':'OK',",
+                  "    'EXT_05':'OK','EXT_06':'OK','EXT_07':'OK','EXT_08':'OK','EXT_09':'OK',",
+                  "    'ENG_01':'OK','ENG_02':'OK','ENG_03':'WARNING','ENG_04':'OK','ENG_05':'OK',",
+                  "    'ENG_06':'OK','ENG_07':'OK',",
+                  "    'INT_01':'WARNING','INT_02':'OK','INT_03':'OK','INT_04':'OK','INT_05':'OK',",
+                  "    'INT_06':'OK','INT_07':'OK',",
+                  "    'DOC_01':'OK','DOC_02':'OK','DOC_03':'NA','DOC_04':'OK' };",
+                  "var notes = { 'EXT_01':'Rayure côté passager','EXT_03':'Rétroviseur gauche fissuré',",
+                  "    'ENG_03':'Niveau légèrement bas','INT_01':'Voyant moteur allumé' };",
+                  "var items = catalog.map(function(c) {",
+                  "    return { catalogId: c.id, result: results[c.code] || 'NA', note: notes[c.code] || undefined };",
+                  "});",
+                  "var body = {",
+                  "    mileageAtReception: 45320,",
+                  "    fuelLevel: 6,",
+                  "    globalNotes: 'Rayure côté passager, rétroviseur gauche fissuré',",
+                  "    checkItems: items",
+                  "};",
+                  "pm.request.body.raw = JSON.stringify(body);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 — Fiche créée avec 27 items', () => pm.response.to.have.status(201));",
+                  "pm.test('27 points de contrôle enregistrés', () => {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.checkItems).to.be.an('array');",
+                  "    pm.expect(j.checkItems.length).to.eql(27);",
+                  "    pm.environment.set('otReceptionDone', 'true');",
+                  "});",
+                  "pm.test('Points WARNING tracés (EXT_01, EXT_03, ENG_03, INT_01)', () => {",
+                  "    var warnings = pm.response.json().checkItems.filter(i => i.result === 'WARNING');",
+                  "    pm.expect(warnings.length).to.eql(4);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mileageAtReception\": 45320,\n  \"fuelLevel\": 6,\n  \"globalNotes\": \"Rayure côté passager, rétroviseur gauche fissuré\",\n  \"checkItems\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}/reception-check",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}",
+                "reception-check"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.4 — Transition DRAFT → RECEIVED (avec kilométrage via update)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var O=['DRAFT','RECEIVED','DIAGNOSING','QUOTE_PENDING','QUOTE_APPROVED','IN_PROGRESS','QC_PENDING','QC_REJECTED','QC_DONE','READY','INVOICED','CLOSED'];",
+                  "var cur=pm.environment.get('otStatus')||'';",
+                  "if (cur && O.indexOf(cur) >= O.indexOf('RECEIVED')) pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — Transition réussie vers RECEIVED', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.status).to.eql('RECEIVED');",
+                  "    pm.environment.set('otStatus', 'RECEIVED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RECEIVED\",\n  \"reason\": \"Véhicule réceptionné avec kilométrage renseigné\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.5 — Transition RECEIVED → DIAGNOSING",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var O=['DRAFT','RECEIVED','DIAGNOSING','QUOTE_PENDING','QUOTE_APPROVED','IN_PROGRESS','QC_PENDING','QC_REJECTED','QC_DONE','READY','INVOICED','CLOSED'];",
+                  "var cur=pm.environment.get('otStatus')||'';",
+                  "if (cur && O.indexOf(cur) >= O.indexOf('DIAGNOSING')) pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — En diagnostic', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eql('DIAGNOSING');",
+                  "    pm.environment.set('otStatus', 'DIAGNOSING');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"status\": \"DIAGNOSING\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.6 — Observation Technicien (Mécanique)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var O=['DRAFT','RECEIVED','DIAGNOSING','QUOTE_PENDING','QUOTE_APPROVED','IN_PROGRESS','QC_PENDING','QC_REJECTED','QC_DONE','READY','INVOICED','CLOSED'];",
+                  "var cur=pm.environment.get('otStatus')||'';",
+                  "if (cur && O.indexOf(cur) >= O.indexOf('QUOTE_PENDING')) pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 — Observation ajoutée', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('observationId', json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Plaquettes de frein AV usées à 90%, disques voilés. Remplacement urgent recommandé.\",\n  \"category\": \"MECANIQUE\",\n  \"severity\": \"URGENT\",\n  \"includeInQuote\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}/observation",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}",
+                "observation"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.7 — Transition DIAGNOSING → QUOTE_PENDING",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var O=['DRAFT','RECEIVED','DIAGNOSING','QUOTE_PENDING','QUOTE_APPROVED','IN_PROGRESS','QC_PENDING','QC_REJECTED','QC_DONE','READY','INVOICED','CLOSED'];",
+                  "var cur=pm.environment.get('otStatus')||'';",
+                  "if (cur && O.indexOf(cur) >= O.indexOf('QUOTE_PENDING')) pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — En attente de devis', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eql('QUOTE_PENDING');",
+                  "    pm.environment.set('otStatus', 'QUOTE_PENDING');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"status\": \"QUOTE_PENDING\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.8 — Transition QUOTE_PENDING → QUOTE_APPROVED",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var O=['DRAFT','RECEIVED','DIAGNOSING','QUOTE_PENDING','QUOTE_APPROVED','IN_PROGRESS','QC_PENDING','QC_REJECTED','QC_DONE','READY','INVOICED','CLOSED'];",
+                  "var cur=pm.environment.get('otStatus')||'';",
+                  "if (cur && O.indexOf(cur) >= O.indexOf('QUOTE_APPROVED')) pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — Devis approuvé', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eql('QUOTE_APPROVED');",
+                  "    pm.environment.set('otStatus', 'QUOTE_APPROVED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"status\": \"QUOTE_APPROVED\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.9 — Transition QUOTE_APPROVED → IN_PROGRESS",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var O=['DRAFT','RECEIVED','DIAGNOSING','QUOTE_PENDING','QUOTE_APPROVED','IN_PROGRESS','QC_PENDING','QC_REJECTED','QC_DONE','READY','INVOICED','CLOSED'];",
+                  "var cur=pm.environment.get('otStatus')||'';",
+                  "if (cur && O.indexOf(cur) >= O.indexOf('IN_PROGRESS')) pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — Travaux en cours', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eql('IN_PROGRESS');",
+                  "    pm.environment.set('otStatus', 'IN_PROGRESS');",
+                  "    pm.environment.set('otQcRound', '0');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"status\": \"IN_PROGRESS\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.10 — Transition IN_PROGRESS → QC_PENDING",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var round = parseInt(pm.environment.get('otQcRound') || '0');",
+                  "var cur = pm.environment.get('otStatus') || '';",
+                  "if (round >= 1 || (cur && cur !== 'IN_PROGRESS')) pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — En attente contrôle qualité', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eql('QC_PENDING');",
+                  "    pm.environment.set('otStatus', 'QC_PENDING');",
+                  "    pm.environment.set('otQcRound', '1');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"status\": \"QC_PENDING\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.11 — QC Rejet (QC_PENDING → QC_REJECTED)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var round = parseInt(pm.environment.get('otQcRound') || '0');",
+                  "var cur = pm.environment.get('otStatus') || '';",
+                  "if (round >= 2 || cur === 'QC_REJECTED' || cur === 'QC_DONE' || cur === 'READY') pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — QC rejeté', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eql('QC_REJECTED');",
+                  "    pm.environment.set('otStatus', 'QC_REJECTED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"status\": \"QC_REJECTED\", \"reason\": \"Fuite d'huile résiduelle détectée au niveau du carter\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.12 — Retour atelier (QC_REJECTED → IN_PROGRESS)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var cur = pm.environment.get('otStatus') || '';",
+                  "if (cur && cur !== 'QC_REJECTED') pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — Retour en travaux', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eql('IN_PROGRESS');",
+                  "    pm.environment.set('otStatus', 'IN_PROGRESS');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"status\": \"IN_PROGRESS\", \"reason\": \"Reprise suite rejet QC\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.13 — Re-soumission QC (IN_PROGRESS → QC_PENDING)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var round = parseInt(pm.environment.get('otQcRound') || '0');",
+                  "var cur = pm.environment.get('otStatus') || '';",
+                  "if (round !== 1 || cur !== 'IN_PROGRESS') pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eql('QC_PENDING');",
+                  "    pm.environment.set('otStatus', 'QC_PENDING');",
+                  "    pm.environment.set('otQcRound', '2');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"status\": \"QC_PENDING\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.14 — QC Validé (QC_PENDING → QC_DONE)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var round = parseInt(pm.environment.get('otQcRound') || '0');",
+                  "var cur = pm.environment.get('otStatus') || '';",
+                  "if (round < 2 || cur !== 'QC_PENDING') pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — QC validé', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eql('QC_DONE');",
+                  "    pm.environment.set('otStatus', 'QC_DONE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"status\": \"QC_DONE\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.15 — Véhicule Prêt (QC_DONE → READY)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var cur = pm.environment.get('otStatus') || '';",
+                  "if (cur && cur !== 'QC_DONE') pm.execution.skipRequest();"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — Véhicule prêt', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eql('READY');",
+                  "    pm.environment.set('otStatus', 'READY');",
+                  "});",
+                  "pm.test(\"[AUTO #2] Statut READY confirmé (SMS véhicule prêt déclenché en background)\", () => {",
+                  "    pm.expect(pm.response.json().status).to.equal(\"READY\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"status\": \"READY\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03.16 — Récupérer l'OT complet (vérification finale)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — OT récupéré', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('OT contient historique des statuts', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.statusHistory).to.be.an('array');",
+                  "    pm.expect(json.statusHistory.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "pm.test('OT contient observations', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.observations).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — STOCK & PIÈCES",
+      "item": [
+        {
+          "name": "04.0 — Créer une pièce catalogue",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var saved = pm.environment.get('partId');",
+                  "if (saved && saved.length > 0) {",
+                  "    pm.collectionVariables.set('partId', saved);",
+                  "    pm.collectionVariables.set('testPartRef', pm.environment.get('testPartRef'));",
+                  "    pm.execution.skipRequest();",
+                  "} else {",
+                  "    var ref = 'PLQ-FR-' + Date.now();",
+                  "    pm.collectionVariables.set('testPartRef', ref);",
+                  "    pm.environment.set('testPartRef', ref);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 — Pièce créée', () => pm.response.to.have.status(201));",
+                  "pm.test('ID pièce récupéré', () => {",
+                  "    var id = pm.response.json().id;",
+                  "    pm.expect(id).to.be.a('string');",
+                  "    pm.collectionVariables.set('partId', id);",
+                  "    pm.environment.set('partId', id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reference\": \"{{testPartRef}}\",\n  \"nameFr\": \"Kit plaquettes frein avant Bosch\",\n  \"category\": \"FREINAGE\",\n  \"unit\": \"KIT\",\n  \"salePriceXaf\": 15000,\n  \"purchasePriceXaf\": 9000,\n  \"minThreshold\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/stock/parts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stock",
+                "parts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "04.1 — Liste du catalogue pièces",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var saved = pm.environment.get('partId');",
+                  "if (saved && saved.length > 0) {",
+                  "    pm.collectionVariables.set('partId', saved);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "pm.test('Résultat est un tableau', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "    if (json.length > 0) {",
+                  "        pm.collectionVariables.set('partId', json[0].id);",
+                  "        pm.environment.set('partId', json[0].id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/stock/parts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stock",
+                "parts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "04.2 — Pièces en stock critique",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/stock/parts/low-stock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stock",
+                "parts",
+                "low-stock"
+              ]
+            }
+          }
+        },
+        {
+          "name": "04.3 — Mouvement de stock (Achat)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 — Mouvement enregistré', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partId\": \"{{partId}}\",\n  \"type\": \"PURCHASE\",\n  \"quantity\": 10,\n  \"unitPriceXaf\": 5000,\n  \"referenceDoc\": \"BON-LIVR-2026-001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/stock/movement",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stock",
+                "movement"
+              ]
+            }
+          }
+        },
+        {
+          "name": "04.4 — ASP (Achat Sur Place)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 — ASP enregistré', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"partId\": \"{{partId}}\",\n  \"serviceOrderId\": \"{{otId}}\",\n  \"quantity\": 2,\n  \"purchasePrice\": 8000,\n  \"salePrice\": 12000,\n  \"supplierName\": \"Auto Pièces Bonabéri\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/stock/asp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stock",
+                "asp"
+              ]
+            }
+          }
+        },
+        {
+          "name": "04.5 — Historique des mouvements",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "",
+                  "pm.test('Mouvements retournés', function () {",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/stock/movements?partId={{partId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stock",
+                "movements"
+              ],
+              "query": [
+                {
+                  "key": "partId",
+                  "value": "{{partId}}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 — FACTURATION & PAIEMENT",
+      "item": [
+        {
+          "name": "05.1 — Calcul fiscal (TVA 19.25% + Timbre)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — Calcul fiscal OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('TVA à 19.25% et Timbre fiscal 1000 XAF', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.taxRate).to.eql(0.1925);",
+                  "    pm.expect(json.subtotal).to.eql(50000);",
+                  "    pm.expect(json.taxAmount).to.eql(9625);",
+                  "    pm.expect(json.stampDuty).to.eql(1000);",
+                  "    pm.expect(json.total).to.eql(60625);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"subtotal\": 50000 }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/billing/quote/compute",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "billing",
+                "quote",
+                "compute"
+              ]
+            }
+          }
+        },
+        {
+          "name": "05.2 — Calcul fiscal (sous seuil timbre)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "",
+                  "pm.test('Pas de timbre sous 20000 XAF', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.stampDuty).to.eql(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"subtotal\": 10000 }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/billing/quote/compute",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "billing",
+                "quote",
+                "compute"
+              ]
+            }
+          }
+        },
+        {
+          "name": "05.3 — Créer un devis",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var saved = pm.environment.get('quoteId');",
+                  "if (saved && saved.length > 0) {",
+                  "    pm.collectionVariables.set('quoteId', saved);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 — Devis créé', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var id = pm.response.json().id;",
+                  "    pm.collectionVariables.set('quoteId', id);",
+                  "    pm.environment.set('quoteId', id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"serviceOrderId\": \"{{otId}}\",\n  \"customerId\": \"{{customerId}}\",\n  \"subtotal\": 27000,\n  \"lines\": [\n    {\n      \"lineType\": \"LABOR\",\n      \"description\": \"Changement plaquettes frein AV\",\n      \"quantity\": 1,\n      \"unitPriceXaf\": 12000\n    },\n    {\n      \"lineType\": \"PART\",\n      \"description\": \"Kit plaquettes frein Bosch\",\n      \"quantity\": 1,\n      \"unitPriceXaf\": 15000\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/billing/quotes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "billing",
+                "quotes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "05.4 — Approbation du devis par le client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — Devis approuvé', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eql('APPROVED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientApprovalMethod\": \"PHYSICAL\",\n  \"clientSignatureRef\": \"sig_base64_encoded_data\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/billing/quotes/{{quoteId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "billing",
+                "quotes",
+                "{{quoteId}}",
+                "approve"
+              ]
+            }
+          }
+        },
+        {
+          "name": "05.5 — Générer facture depuis devis",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var saved = pm.environment.get('invoiceId');",
+                  "if (saved && saved.length > 0) {",
+                  "    pm.collectionVariables.set('invoiceId', saved);",
+                  "    pm.execution.skipRequest();",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 — Facture générée', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var j = pm.response.json();",
+                  "    pm.collectionVariables.set('invoiceId', j.id);",
+                  "    pm.environment.set('invoiceId', j.id);",
+                  "    pm.expect(j.status).to.eql('ISSUED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/billing/invoice/from-quote/{{quoteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "billing",
+                "invoice",
+                "from-quote",
+                "{{quoteId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "05.6 — Paiement Orange Money",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Générer une clé d'idempotence unique pour ce paiement",
+                  "pm.collectionVariables.set('idempotencyKey', pm.variables.replaceIn('{{$guid}}'));"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 — Paiement enregistré', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.method).to.eql('ORANGE_MONEY');",
+                  "    pm.expect(json.status).to.eql('CONFIRMED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoiceId\": \"{{invoiceId}}\",\n  \"amount\": 30000,\n  \"method\": \"ORANGE_MONEY\",\n  \"transactionRef\": \"OM-TXN-20260521-001\",\n  \"idempotencyKey\": \"{{idempotencyKey}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/billing/payment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "billing",
+                "payment"
+              ]
+            }
+          }
+        },
+        {
+          "name": "05.7 — ÉCHEC Double paiement (idempotence)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400 — Double paiement bloqué', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('idempotence');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoiceId\": \"{{invoiceId}}\",\n  \"amount\": 30000,\n  \"method\": \"ORANGE_MONEY\",\n  \"transactionRef\": \"OM-TXN-20260521-001\",\n  \"idempotencyKey\": \"{{idempotencyKey}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/billing/payment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "billing",
+                "payment"
+              ]
+            }
+          }
+        },
+        {
+          "name": "05.8 — Paiement MTN MoMo (solde restant)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 — Paiement MTN enregistré', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.json().method).to.eql('MTN_MOBILE_MONEY');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"invoiceId\": \"{{invoiceId}}\",\n  \"amount\": 3198,\n  \"method\": \"MTN_MOBILE_MONEY\",\n  \"transactionRef\": \"MTN-TXN-20260521-002\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/billing/payment",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "billing",
+                "payment"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 — CLÔTURE & VÉRIFICATION",
+      "item": [
+        {
+          "name": "06.1 — [AUTO] Vérifier OT auto-INVOICED (après paiement soldé)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"[AUTO #1] OT en INVOICED ou READY après paiement soldé\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect([\"INVOICED\", \"READY\", \"CLOSED\"]).to.include(body.status);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "06.2 — Transition INVOICED → CLOSED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — OT clôturé', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('CLOSED');",
+                  "    pm.expect(json.closedAt).to.not.be.null;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var cur = pm.environment.get('otStatus') || '';",
+                  "if (cur === 'CLOSED') pm.execution.skipRequest();"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"status\": \"CLOSED\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "06.3 — ÉCHEC Transition CLOSED → autre (Impossible)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400 — Transition non autorisée', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.message).to.include('non autorisée');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"status\": \"IN_PROGRESS\" }"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{otId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{otId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "06.4 — Liste des factures du client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "",
+                  "pm.test('Au moins une facture', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "    pm.expect(json.length).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/billing/invoices?customerId={{customerId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "billing",
+                "invoices"
+              ],
+              "query": [
+                {
+                  "key": "customerId",
+                  "value": "{{customerId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "06.5 — Logout (invalidation du token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — Déconnexion réussie', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 — ÉQUIPE (Team)",
+      "item": [
+        {
+          "name": "07.1 — Re-login Admin (token frais)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('jwt_token', pm.response.json().access_token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"identifier\":\"admin@atelier.cm\",\"password\":\"Atelier2026!\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "07.2 — Créer un membre (TECHNICIEN)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var saved = pm.environment.get('memberId');",
+                  "if (saved && saved.length > 0) {",
+                  "    pm.collectionVariables.set('memberId', saved);",
+                  "    pm.execution.skipRequest();",
+                  "} else {",
+                  "    var ts = Date.now();",
+                  "    var rnd = Math.floor(10000000 + Math.random() * 89999999);",
+                  "    var email = 'tech.' + ts + '.' + rnd + '@atelier.cm';",
+                  "    var phone = '+237 6' + rnd;",
+                  "    pm.variables.set('memberEmail', email);",
+                  "    pm.variables.set('memberPhone', phone);",
+                  "    pm.collectionVariables.set('memberEmail', email);",
+                  "    pm.collectionVariables.set('memberPhone', phone);",
+                  "    pm.environment.set('memberEmail', email);",
+                  "    pm.environment.set('memberPhone', phone);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 — Membre créé', () => pm.response.to.have.status(201));",
+                  "pm.test('Champs obligatoires présents', () => {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.id).to.be.a('string');",
+                  "    pm.expect(j.employeeCode).to.be.a('string');",
+                  "    pm.collectionVariables.set('memberId', j.id);",
+                  "    pm.environment.set('memberId', j.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Théodore\",\n  \"lastName\": \"Nkembi\",\n  \"email\": \"{{memberEmail}}\",\n  \"phone\": \"{{memberPhone}}\",\n  \"roleCode\": \"TECHNICIEN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/team",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team"
+              ]
+            }
+          }
+        },
+        {
+          "name": "07.3 — Lister l'équipe",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Résultat est un tableau non vide', () => {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j).to.be.an('array');",
+                  "    pm.expect(j.length).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/team",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team"
+              ]
+            }
+          }
+        },
+        {
+          "name": "07.4 — Récupérer un membre par ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Membre contient rôles', () => {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.id).to.eql(pm.collectionVariables.get('memberId'));",
+                  "    pm.expect(j.roles).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/team/{{memberId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team",
+                "{{memberId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "07.5 — Modifier un membre (téléphone)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 — Membre modifié', () => pm.response.to.have.status(200));",
+                  "pm.test('Nouveau téléphone enregistré', () => {",
+                  "    pm.expect(pm.response.json().phone).to.eql('+237 699 999 000');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"phone\": \"+237 699 999 000\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/team/{{memberId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team",
+                "{{memberId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "07.6 — ÉCHEC : Email déjà utilisé → 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 409 — Conflit email', () => pm.response.to.have.status(409));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Doublon\",\n  \"lastName\": \"Test\",\n  \"email\": \"admin@atelier.cm\",\n  \"roleCode\": \"TECHNICIEN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/team",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team"
+              ]
+            }
+          }
+        },
+        {
+          "name": "07.7 — Supprimer un membre (soft delete)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 ou 204', () => pm.expect([200,204]).to.include(pm.response.code));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/team/{{memberId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "team",
+                "{{memberId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 — PLANNING (Rendez-vous)",
+      "item": [
+        {
+          "name": "08.1 — Créer un rendez-vous",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 — RDV créé', () => pm.response.to.have.status(201));",
+                  "pm.test('Statut SCHEDULED, ID récupéré', () => {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.id).to.be.a('string');",
+                  "    pm.expect(j.status).to.eql('SCHEDULED');",
+                  "    pm.collectionVariables.set('appointmentId', j.id);",
+                  "    pm.environment.set('appointmentId', j.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"scheduledAt\": \"2026-06-01T09:00:00.000Z\",\n  \"durationMinutes\": 90,\n  \"reason\": \"Vidange + contrôle freins\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/planning/appointments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "planning",
+                "appointments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "08.2 — Lister les RDV par date",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Résultat est un tableau', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/planning/appointments?date=2026-06-01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "planning",
+                "appointments"
+              ],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2026-06-01"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "08.3 — Confirmer un RDV",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Statut CONFIRMED', () => pm.expect(pm.response.json().status).to.eql('CONFIRMED'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\": \"CONFIRMED\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/planning/appointments/{{appointmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "planning",
+                "appointments",
+                "{{appointmentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "08.4 — Annuler un RDV",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Statut CANCELLED', () => pm.expect(pm.response.json().status).to.eql('CANCELLED'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\": \"CANCELLED\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/planning/appointments/{{appointmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "planning",
+                "appointments",
+                "{{appointmentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "08.5 — Supprimer un RDV (hard delete)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 ou 204', () => pm.expect([200,204]).to.include(pm.response.code));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/planning/appointments/{{appointmentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "planning",
+                "appointments",
+                "{{appointmentId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "08.6 — ÉCHEC : RDV sans customerId → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400 — customerId obligatoire', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"scheduledAt\": \"2026-06-02T10:00:00.000Z\",\n  \"reason\": \"RDV sans client\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/planning/appointments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "planning",
+                "appointments"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 — NOTIFICATIONS SMS",
+      "item": [
+        {
+          "name": "09.1 — Historique SMS global",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Résultat est un tableau', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/notifications/sms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "sms"
+              ]
+            }
+          }
+        },
+        {
+          "name": "09.2 — Envoyer un SMS manuel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 — SMS en file', () => pm.response.to.have.status(201));",
+                  "pm.test('Statut PENDING ou SENT', () => {",
+                  "    pm.expect(['PENDING','SENT']).to.include(pm.response.json().status);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"phoneTo\": \"+237699123456\",\n  \"templateCode\": \"VEHICLE_READY\",\n  \"lang\": \"fr\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/notifications/sms/send",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "sms",
+                "send"
+              ]
+            }
+          }
+        },
+        {
+          "name": "09.3 — Historique filtré par téléphone",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tableau retourné', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/notifications/sms?phone=%2B237699123456",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "sms"
+              ],
+              "query": [
+                {
+                  "key": "phone",
+                  "value": "+237699123456"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 — RAPPORTS",
+      "item": [
+        {
+          "name": "10.1 — CA du mois en cours",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('totalRevenue et totalCollected présents', () => {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j).to.have.property('totalRevenue');",
+                  "    pm.expect(j).to.have.property('totalCollected');",
+                  "    pm.expect(Number(j.totalRevenue)).to.be.at.least(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reports/revenue?startDate=2026-05-01T00:00:00.000Z",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "revenue"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-05-01T00:00:00.000Z"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "10.2 — CA avec filtre début + fin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Période retournée', () => {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.period).to.have.property('startDate');",
+                  "    pm.expect(j.period).to.have.property('endDate');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reports/revenue?startDate=2026-01-01T00:00:00.000Z&endDate=2026-05-31T23:59:59.000Z",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "revenue"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01T00:00:00.000Z"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-05-31T23:59:59.000Z"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "10.3 — Performance techniciens",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Réponse est un objet', () => pm.expect(pm.response.json()).to.be.an('object'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reports/workshop-performance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "workshop-performance"
+              ]
+            }
+          }
+        },
+        {
+          "name": "10.4 — ÉCHEC : Accès sans token → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401 — Non autorisé', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/reports/revenue",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "revenue"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 — VENTES COMPTOIR",
+      "item": [
+        {
+          "name": "11.1 — Créer une vente (client connu)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 — Vente créée', () => pm.response.to.have.status(201));",
+                  "pm.test('Référence VCC générée', () => {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.id).to.be.a('string');",
+                  "    pm.expect(j.reference).to.match(/VCC/);",
+                  "    pm.collectionVariables.set('saleId', j.id);",
+                  "    pm.environment.set('saleId', j.id);  // persisté pour reset-test-env",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"paymentMethod\": \"CASH\",\n  \"lines\": [\n    { \"partId\": \"{{partId}}\", \"quantity\": 2, \"unitPriceXaf\": 5000 }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/counter-sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "counter-sales"
+              ]
+            }
+          }
+        },
+        {
+          "name": "11.2 — Créer une vente (client de passage)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('walkInName enregistré', () => {",
+                  "    pm.expect(pm.response.json().walkInName).to.eql('Client Passage');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walkInName\": \"Client Passage\",\n  \"walkInPhone\": \"+237655000000\",\n  \"paymentMethod\": \"ORANGE_MONEY\",\n  \"lines\": [\n    { \"partId\": \"{{partId}}\", \"quantity\": 1, \"unitPriceXaf\": 3500 }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/counter-sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "counter-sales"
+              ]
+            }
+          }
+        },
+        {
+          "name": "11.3 — Lister les ventes comptoir",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Au moins 2 ventes', () => {",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "    pm.expect(pm.response.json().length).to.be.at.least(2);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/counter-sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "counter-sales"
+              ]
+            }
+          }
+        },
+        {
+          "name": "11.4 — ÉCHEC : Vente sans lignes → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400 — Lignes obligatoires', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walkInName\": \"Test\",\n  \"paymentMethod\": \"CASH\",\n  \"lines\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/counter-sales",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "counter-sales"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 — AUDIT",
+      "item": [
+        {
+          "name": "12.1 — Logs d'audit globaux",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tableau avec champs requis', () => {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j).to.be.an('array');",
+                  "    if (j.length > 0) {",
+                  "        pm.expect(j[0]).to.have.property('entityType');",
+                  "        pm.expect(j[0]).to.have.property('action');",
+                  "        pm.expect(j[0]).to.have.property('performedAt');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/audit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audit"
+              ]
+            }
+          }
+        },
+        {
+          "name": "12.2 — Filtrer par entityType ServiceOrder",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Tous les logs concernent ServiceOrder', () => {",
+                  "    pm.response.json().forEach(log => pm.expect(log.entityType).to.eql('ServiceOrder'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/audit?entityType=ServiceOrder",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audit"
+              ],
+              "query": [
+                {
+                  "key": "entityType",
+                  "value": "ServiceOrder"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "12.3 — Filtrer par entityType + entityId (OT du test)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Log trouvé pour cet OT', () => {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j).to.be.an('array');",
+                  "    if (j.length > 0) {",
+                  "        pm.expect(j[0].entityId).to.eql(pm.collectionVariables.get('otId'));",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/audit?entityType=ServiceOrder&entityId={{otId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audit"
+              ],
+              "query": [
+                {
+                  "key": "entityType",
+                  "value": "ServiceOrder"
+                },
+                {
+                  "key": "entityId",
+                  "value": "{{otId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "12.4 — Pagination (limit=5)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Maximum 5 résultats', () => {",
+                  "    pm.expect(pm.response.json().length).to.be.at.most(5);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/audit?limit=5&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audit"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "12.5 — ÉCHEC : Sans token → 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 401 — Non autorisé', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/audit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audit"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 — RBAC (Controle acces par role)",
+      "auth": {
+        "type": "noauth"
+      },
+      "item": [
+        {
+          "name": "13.0.1 — Login Technicien",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test(\"Login OK\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"tech_token\", json.access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"identifier\":\"tech1@atelier.cm\",\"password\":\"Atelier2026!\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13.0.2 — Login Caissier",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test(\"Login OK\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"caissier_token\", json.access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"identifier\":\"caisse@atelier.cm\",\"password\":\"Atelier2026!\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13.0.3 — Login Receptionniste",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test(\"Login OK\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"recept_token\", json.access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"identifier\":\"reception@atelier.cm\",\"password\":\"Atelier2026!\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13.0.4 — Préparer OTs RBAC",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Setup RBAC — OTs créés aux bons statuts', function () {",
+                  "    if (pm.collectionVariables.get('rbac_ot_draft_id')) return;",
+                  "    var base = pm.collectionVariables.get('baseUrl');",
+                  "    var token = pm.collectionVariables.get('jwt_token');",
+                  "    var cid = pm.collectionVariables.get('customerId');",
+                  "    var vid = pm.collectionVariables.get('vehicleId');",
+                  "    function hdr() { return { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }; }",
+                  "    function send(method, path, body) {",
+                  "        return new Promise(function (resolve, reject) {",
+                  "            pm.sendRequest({ url: base + path, method: method, header: hdr(), body: body ? JSON.stringify(body) : undefined }, function (err, res) {",
+                  "                if (err || res.code >= 400) reject(new Error(path + ' → ' + (res && res.text())));",
+                  "                else resolve(res.json());",
+                  "            });",
+                  "        });",
+                  "    }",
+                  "    function patchChain(otId, statuses) {",
+                  "        return statuses.reduce(function (p, st) {",
+                  "            return p.then(function () { return send('PATCH', '/workshop/ot/' + otId + '/status', { status: st }); });",
+                  "        }, Promise.resolve());",
+                  "    }",
+                  "    function createDraftWithReception() {",
+                  "        return send('POST', '/workshop/ot', { vehicleId: vid, customerId: cid, clientComplaint: 'RBAC setup', priority: 'NORMAL' })",
+                  "            .then(function (draft) {",
+                  "                return send('POST', '/workshop/ot/' + draft.id + '/reception-check', { mileageAtReception: 45000, fuelLevel: 6, checkItems: [] })",
+                  "                    .then(function () { return draft; });",
+                  "            });",
+                  "    }",
+                  "    function createReceived() {",
+                  "        return send('POST', '/workshop/ot', { vehicleId: vid, customerId: cid, clientComplaint: 'RBAC setup', priority: 'NORMAL', mileageIn: 45000 });",
+                  "    }",
+                  "    return createDraftWithReception()",
+                  "        .then(function (draft) {",
+                  "            pm.collectionVariables.set('rbac_ot_draft_id', draft.id);",
+                  "            pm.collectionVariables.set('current_ot_id', draft.id);",
+                  "        })",
+                  "        .then(function () { return createDraftWithReception(); })",
+                  "        .then(function (draftForbidden) { pm.collectionVariables.set('rbac_ot_draft_forbidden_id', draftForbidden.id); })",
+                  "        .then(function () { return createReceived(); })",
+                  "        .then(function (received) { pm.collectionVariables.set('rbac_ot_received_id', received.id); })",
+                  "        .then(function () { return createReceived(); })",
+                  "        .then(function (receivedForbidden) { pm.collectionVariables.set('rbac_ot_received_forbidden_id', receivedForbidden.id); })",
+                  "        .then(function () { return createReceived(); })",
+                  "        .then(function (diag) { return patchChain(diag.id, ['DIAGNOSING']).then(function () { pm.collectionVariables.set('rbac_ot_diagnosing_id', diag.id); }); })",
+                  "        .then(function () { return createReceived(); })",
+                  "        .then(function (prog) {",
+                  "            return patchChain(prog.id, ['DIAGNOSING', 'QUOTE_PENDING', 'QUOTE_APPROVED', 'IN_PROGRESS']).then(function () {",
+                  "                pm.collectionVariables.set('rbac_ot_inprogress_id', prog.id);",
+                  "            });",
+                  "        })",
+                  "        .then(function () { return createReceived(); })",
+                  "        .then(function (progForbidden) {",
+                  "            return patchChain(progForbidden.id, ['DIAGNOSING', 'QUOTE_PENDING', 'QUOTE_APPROVED', 'IN_PROGRESS']).then(function () {",
+                  "                pm.collectionVariables.set('rbac_ot_inprogress_forbidden_id', progForbidden.id);",
+                  "            });",
+                  "        })",
+                  "        .then(function () { return createReceived(); })",
+                  "        .then(function (ready) {",
+                  "            return patchChain(ready.id, ['DIAGNOSING', 'QUOTE_PENDING', 'QUOTE_APPROVED', 'IN_PROGRESS', 'QC_PENDING', 'QC_DONE', 'READY']).then(function () {",
+                  "                pm.collectionVariables.set('rbac_ot_ready_id', ready.id);",
+                  "            });",
+                  "        })",
+                  "        .then(function () { return createReceived(); })",
+                  "        .then(function (readyForbidden) {",
+                  "            return patchChain(readyForbidden.id, ['DIAGNOSING', 'QUOTE_PENDING', 'QUOTE_APPROVED', 'IN_PROGRESS', 'QC_PENDING', 'QC_DONE', 'READY']).then(function () {",
+                  "                pm.collectionVariables.set('rbac_ot_ready_forbidden_id', readyForbidden.id);",
+                  "            });",
+                  "        });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13.1 — [401] Acces sans token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"401 sans token\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"RECEIVED\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{current_ot_id}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{current_ot_id}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13.2.1 — [200] RECEPTIONNISTE peut DRAFT->RECEIVED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"13.2.1 — [200] RECEPTIONNISTE peut DRAFT->RECEIVED → 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{recept_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"RECEIVED\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{rbac_ot_draft_id}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{rbac_ot_draft_id}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13.2.2 — [403] TECHNICIEN refuse DRAFT->RECEIVED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"13.2.2 — [403] TECHNICIEN refuse DRAFT->RECEIVED → 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tech_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"RECEIVED\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{rbac_ot_draft_forbidden_id}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{rbac_ot_draft_forbidden_id}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13.3.1 — [200] TECHNICIEN peut RECEIVED->DIAGNOSING",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"13.3.1 — [200] TECHNICIEN peut RECEIVED->DIAGNOSING → 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tech_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"DIAGNOSING\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{rbac_ot_received_id}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{rbac_ot_received_id}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13.3.2 — [403] CAISSIER refuse RECEIVED->DIAGNOSING",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"13.3.2 — [403] CAISSIER refuse RECEIVED->DIAGNOSING → 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{caissier_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"DIAGNOSING\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{rbac_ot_received_forbidden_id}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{rbac_ot_received_forbidden_id}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13.4.1 — [403] TECHNICIEN refuse DIAGNOSING->QUOTE_PENDING",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"13.4.1 — [403] TECHNICIEN refuse DIAGNOSING->QUOTE_PENDING → 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tech_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"QUOTE_PENDING\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{rbac_ot_diagnosing_id}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{rbac_ot_diagnosing_id}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13.4.2 — [403] CAISSIER refuse DIAGNOSING->QUOTE_PENDING",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"13.4.2 — [403] CAISSIER refuse DIAGNOSING->QUOTE_PENDING → 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{caissier_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"QUOTE_PENDING\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{rbac_ot_diagnosing_id}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{rbac_ot_diagnosing_id}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13.4.3 — [403] RECEPTIONNISTE refuse DIAGNOSING->QUOTE_PENDING",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"13.4.3 — [403] RECEPTIONNISTE refuse DIAGNOSING->QUOTE_PENDING → 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{recept_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"QUOTE_PENDING\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{rbac_ot_diagnosing_id}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{rbac_ot_diagnosing_id}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13.5.1 — [200] TECHNICIEN peut IN_PROGRESS->QC_PENDING",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"13.5.1 — [200] TECHNICIEN peut IN_PROGRESS->QC_PENDING → 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tech_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"QC_PENDING\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{rbac_ot_inprogress_id}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{rbac_ot_inprogress_id}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13.5.2 — [403] CAISSIER refuse IN_PROGRESS->QC_PENDING",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"13.5.2 — [403] CAISSIER refuse IN_PROGRESS->QC_PENDING → 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{caissier_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"QC_PENDING\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{rbac_ot_inprogress_forbidden_id}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{rbac_ot_inprogress_forbidden_id}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13.6.1 — [200] CAISSIER peut READY->INVOICED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"13.6.1 — [200] CAISSIER peut READY->INVOICED → 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{caissier_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"INVOICED\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{rbac_ot_ready_id}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{rbac_ot_ready_id}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13.6.2 — [403] TECHNICIEN refuse READY->INVOICED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"13.6.2 — [403] TECHNICIEN refuse READY->INVOICED → 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tech_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"status\":\"INVOICED\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/workshop/ot/{{rbac_ot_ready_forbidden_id}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "workshop",
+                "ot",
+                "{{rbac_ot_ready_forbidden_id}}",
+                "status"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
