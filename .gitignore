@@ -27,6 +27,9 @@ Thumbs.db
 test-results/
 playwright/.auth/
 reports/playwright/
+coverage-*.txt
+tsconfig.tsbuildinfo
+metadata.json
 
 # Postman — généré au dev / après run Newman (peut contenir tokens)
 postman/env_dynamic.json
