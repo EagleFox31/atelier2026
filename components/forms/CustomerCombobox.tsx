@@ -1,6 +1,7 @@
 'use client';
 
 import { Combobox } from '@/components/ui/combobox';
+import { InlineCustomerCreate } from '@/components/reception/InlineCustomerCreate';
 import { customersApi } from '@/lib/api';
 
 interface CustomerComboboxProps {
@@ -33,12 +34,19 @@ export function CustomerCombobox({ value, onChange, disabled, initialLabel, init
 
   return (
     <Combobox
-      placeholder="Rechercher un client..."
+      placeholder="Téléphone ou nom du client…"
       value={value}
       disabled={disabled}
       fetchOptions={fetchOptions}
       initialOption={initialOption}
+      minSearchLength={2}
       onChange={(id, opt) => onChange?.(id, (opt as any)?._raw ?? null)}
+      renderNoResults={(search) => (
+        <InlineCustomerCreate
+          searchHint={search}
+          onCreated={(c) => onChange?.(c.id, c.raw)}
+        />
+      )}
     />
   );
 }

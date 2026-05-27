@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DataTable, type DataTableColumn } from '@/components/ui/data-table';
-import { CustomerForm } from '@/components/forms/CustomerForm';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CustomerForm, CUSTOMER_FORM_DIALOG_CLASS } from '@/components/forms/CustomerForm';
 import { customersApi, handleApiError } from '@/lib/api';
 import { UserPlus, Search, Mail, Phone, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -110,6 +111,85 @@ function makeColumns(router: AppRouterInstance): DataTableColumn[] {
 
 type TypeFilter = 'ALL' | 'INDIVIDUAL' | 'COMPANY';
 
+function CustomerMobileList({
+  customers,
+  loading,
+  search,
+  onSelect,
+}: {
+  customers: any[];
+  loading: boolean;
+  search: string;
+  onSelect: (id: string) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="md:hidden p-4 space-y-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-28 w-full rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+
+  if (customers.length === 0) {
+    return (
+      <div className="md:hidden flex flex-col items-center gap-3 py-16 text-muted-foreground px-4 text-center">
+        <UserPlus size={40} strokeWidth={1} />
+        <p>{search ? `Aucun client pour « ${search} »` : 'Aucun client enregistré'}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="md:hidden p-4 space-y-3">
+      {customers.map(c => (
+        <Card
+          key={c.id}
+          className="border-border shadow-sm cursor-pointer active:scale-[0.99] transition-transform overflow-hidden"
+          onClick={() => onSelect(c.id)}
+        >
+          <CardContent className="p-0">
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="w-11 h-11 rounded-full bg-brand/10 text-brand flex items-center justify-center font-bold text-sm shrink-0">
+                {customerInitials(c)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-sm truncate">{customerName(c)}</p>
+                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 border-none">
+                    {c.customerType === 'COMPANY' ? 'Entreprise' : 'Particulier'}
+                  </Badge>
+                  {c.isVip && (
+                    <Badge className="text-[10px] px-1.5 py-0 bg-amber-500/10 text-amber-600 border-none">VIP</Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="px-4 pb-3 space-y-1.5 border-t border-border/60 pt-2.5">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Phone size={14} className="shrink-0" />
+                <span className="font-mono truncate">{c.phonePrimary}</span>
+              </div>
+              {(c.city || c.email) && (
+                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  {c.city && <span className="truncate">{c.city}</span>}
+                  {c.email && (
+                    <span className="truncate flex items-center gap-1">
+                      <Mail size={12} className="shrink-0" />
+                      {c.email}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function CustomersPage() {
@@ -166,11 +246,13 @@ export default function CustomersPage() {
               Nouveau Client
             </Button>
           } />
-          <DialogContent className="sm:max-w-[600px] bg-card border-border">
-            <DialogHeader>
+          <DialogContent className={CUSTOMER_FORM_DIALOG_CLASS}>
+            <DialogHeader className="px-4 pt-4 sm:px-0 sm:pt-0 shrink-0">
               <DialogTitle>Ajouter un nouveau client</DialogTitle>
             </DialogHeader>
-            <CustomerForm onSuccess={() => { setIsModalOpen(false); load(); }} />
+            <div className="px-4 pb-4 sm:px-0 sm:pb-0 min-h-0 flex-1 overflow-hidden flex flex-col max-sm:max-h-[calc(92dvh-5.5rem)]">
+              <CustomerForm onSuccess={() => { setIsModalOpen(false); load(); }} />
+            </div>
           </DialogContent>
         </Dialog>
       </div>
@@ -213,17 +295,25 @@ export default function CustomersPage() {
         </CardContent>
       </Card>
 
-      {/* Tableau */}
-      <Card className="border-border shadow-sm">
+      {/* Liste */}
+      <Card className="border-border shadow-sm overflow-hidden">
         <CardContent className="p-0">
-          <DataTable
-            columns={columns}
-            data={filtered}
+          <CustomerMobileList
+            customers={filtered}
             loading={loading}
-            keyExtractor={(c) => c.id}
-            onRowClick={(c) => router.push(`/customers/${c.id}`)}
-            emptyMessage={emptyMessage}
+            search={search}
+            onSelect={(id) => router.push(`/customers/${id}`)}
           />
+          <div className="hidden md:block">
+            <DataTable
+              columns={columns}
+              data={filtered}
+              loading={loading}
+              keyExtractor={(c) => c.id}
+              onRowClick={(c) => router.push(`/customers/${c.id}`)}
+              emptyMessage={emptyMessage}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

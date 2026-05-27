@@ -164,6 +164,9 @@ export const billingApi = {
   createInvoiceFromQuote: (quoteId: string) =>
     post(`/billing/invoice/from-quote/${quoteId}`),
   recordPayment:        (body: unknown) => post('/billing/payment', body),
+  cashClosureSummary:   (params?: { date?: string }) =>
+    get(`/billing/cash-closure/summary${toQuery(params)}`),
+  closeCashDay:         (body: unknown) => post('/billing/cash-closure', body),
 };
 
 // ─── Team ──────────────────────────────────────────────────────────────────

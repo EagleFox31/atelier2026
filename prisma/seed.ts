@@ -9,12 +9,12 @@ const prisma = new PrismaClient({ adapter });
 
 // ─── Permission matrix par rôle ───────────────────────────────────────────────
 const ROLE_PERMISSIONS: Record<string, string[]> = {
-  SUPER_ADMIN:    ['VEH_VIEW', 'VEH_CREATE', 'ORD_VIEW', 'ORD_CREATE', 'STK_VIEW', 'STK_CREATE', 'FAC_CREATE'],
-  ADMIN:          ['VEH_VIEW', 'VEH_CREATE', 'ORD_VIEW', 'ORD_CREATE', 'STK_VIEW', 'STK_CREATE', 'FAC_CREATE'],
-  CHEF_ATELIER:   ['VEH_VIEW', 'VEH_CREATE', 'ORD_VIEW', 'ORD_CREATE', 'STK_VIEW', 'STK_CREATE', 'FAC_CREATE'],
+  SUPER_ADMIN:    ['VEH_VIEW', 'VEH_CREATE', 'ORD_VIEW', 'ORD_CREATE', 'STK_VIEW', 'STK_CREATE', 'FAC_CREATE', 'FAC_VIEW', 'FAC_PAY'],
+  ADMIN:          ['VEH_VIEW', 'VEH_CREATE', 'ORD_VIEW', 'ORD_CREATE', 'STK_VIEW', 'STK_CREATE', 'FAC_CREATE', 'FAC_VIEW', 'FAC_PAY'],
+  CHEF_ATELIER:   ['VEH_VIEW', 'VEH_CREATE', 'ORD_VIEW', 'ORD_CREATE', 'STK_VIEW', 'STK_CREATE', 'FAC_CREATE', 'FAC_VIEW'],
   TECHNICIEN:     ['VEH_VIEW', 'ORD_VIEW', 'STK_VIEW'],
-  RECEPTIONNISTE: ['VEH_VIEW', 'VEH_CREATE', 'ORD_VIEW', 'ORD_CREATE'],
-  CAISSIER:       ['VEH_VIEW', 'ORD_VIEW', 'FAC_CREATE', 'STK_VIEW'],
+  RECEPTIONNISTE: ['VEH_VIEW', 'VEH_CREATE', 'ORD_VIEW', 'ORD_CREATE', 'FAC_VIEW'],
+  CAISSIER:       ['VEH_VIEW', 'ORD_VIEW', 'STK_VIEW', 'FAC_VIEW', 'FAC_PAY'],
   SYSTEM:         ['VEH_VIEW', 'VEH_CREATE', 'ORD_VIEW', 'ORD_CREATE', 'STK_VIEW', 'STK_CREATE', 'FAC_CREATE'],
 };
 
@@ -39,8 +39,8 @@ async function main() {
     { code: 'ADMIN',          label: 'Administrateur',        description: 'Accès total au système', isSystem: true },
     { code: 'CHEF_ATELIER',   label: "Chef d'Atelier",        description: "Gestion des OT et de l'équipe", isSystem: true },
     { code: 'TECHNICIEN',     label: 'Technicien',            description: 'Réalisation des travaux', isSystem: true },
-    { code: 'RECEPTIONNISTE', label: 'Réceptionniste',        description: 'Accueil client et ouverture OT', isSystem: true },
-    { code: 'CAISSIER',       label: 'Caissier',              description: 'Facturation et encaissement', isSystem: true },
+    { code: 'RECEPTIONNISTE', label: 'Réceptionniste',        description: 'Accueil client, suivi OT, consultation devis/factures', isSystem: true },
+    { code: 'CAISSIER',       label: 'Caissier',              description: 'Encaissement et clôture des OT', isSystem: true },
     { code: 'SYSTEM',         label: 'Compte Système',        description: 'Processus automatisés', isSystem: true },
   ];
   for (const role of roles) {
@@ -57,7 +57,9 @@ async function main() {
     { code: 'ORD_CREATE', module: 'WORKSHOP', action: 'CREATE', description: 'Créer/modifier les ordres de travail' },
     { code: 'STK_VIEW',   module: 'STOCK',    action: 'VIEW',   description: 'Voir le stock et les niveaux de réserve' },
     { code: 'STK_CREATE', module: 'STOCK',    action: 'CREATE', description: 'Créer/modifier le catalogue stock, enregistrer mouvements et ASP' },
-    { code: 'FAC_CREATE', module: 'BILLING',  action: 'CREATE', description: 'Créer devis, factures et enregistrer paiements' },
+    { code: 'FAC_CREATE', module: 'BILLING',  action: 'CREATE', description: 'Créer devis, factures et valider devis client' },
+    { code: 'FAC_VIEW',   module: 'BILLING',  action: 'VIEW',   description: 'Consulter devis et factures (lecture seule)' },
+    { code: 'FAC_PAY',    module: 'BILLING',  action: 'PAY',    description: 'Enregistrer paiements et ventes comptoir' },
   ];
   for (const perm of permissions) {
     await prisma.permission.upsert({ where: { code: perm.code }, update: {}, create: perm });

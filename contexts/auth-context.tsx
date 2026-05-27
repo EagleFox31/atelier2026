@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi, ApiUser } from '@/lib/api';
+import { permissionGranted } from '@/lib/permissions';
 
 interface AuthState {
   user: ApiUser | null;
@@ -82,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const hasPermission = useCallback((code: string) => {
-    return state.user?.permissions?.includes(code) ?? false;
+    return permissionGranted(state.user?.permissions, code);
   }, [state.user]);
 
   const hasRole = useCallback((code: string) => {

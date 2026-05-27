@@ -7,16 +7,25 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useApi } from '@/hooks/use-api';
-import { billingApi } from '@/lib/api';
+import { billingApi, handleApiError } from '@/lib/api';
 import { formatXAF } from '@/lib/utils';
 import { toast } from 'sonner';
 
-type InvoiceLike = {
-  payments?: Array<{
-    amountXaf?: number | string | null;
-    method?: string | null;
-    status?: string | null;
-    paidAt?: string | null;
+type CashClosureSummary = {
+  date: string;
+  totalsByMethod: Record<string, number>;
+  paymentCount: number;
+  totalCollected: number;
+  expectedCash: number;
+  closures: Array<{
+    id: string;
+    performedAt: string;
+    performedBy: string | null;
+    metadata?: {
+      countedCash?: number | null;
+      variance?: number | null;
+      notes?: string | null;
+    };
   }>;
 };
 
@@ -31,53 +40,37 @@ const METHOD_LABELS: Record<string, string> = {
 export default function CashierClosingPage() {
   const [countedCash, setCountedCash] = useState('');
   const [notes, setNotes] = useState('');
+  const [closing, setClosing] = useState(false);
   const today = new Date().toISOString().split('T')[0];
 
   const { data, loading, refetch } = useApi(
-    () => billingApi.listInvoices() as Promise<InvoiceLike[]>,
-    [],
+    () => billingApi.cashClosureSummary({ date: today }) as Promise<CashClosureSummary>,
+    [today],
   );
 
-  const confirmedToday = useMemo(() => {
-    const invoices = Array.isArray(data) ? data : [];
-    return invoices.flatMap((inv) =>
-      (inv.payments ?? []).filter((p) => {
-        if (p.status !== 'CONFIRMED' || !p.paidAt) return false;
-        return new Date(p.paidAt).toISOString().split('T')[0] === today;
-      }),
-    );
-  }, [data, today]);
-
-  const totalsByMethod = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const p of confirmedToday) {
-      const key = p.method ?? 'AUTRE';
-      map.set(key, (map.get(key) ?? 0) + Number(p.amountXaf || 0));
-    }
-    return map;
-  }, [confirmedToday]);
-
-  const totalCollected = useMemo(
-    () => [...totalsByMethod.values()].reduce((a, b) => a + b, 0),
-    [totalsByMethod],
-  );
-
-  const expectedCash = totalsByMethod.get('CASH') ?? 0;
+  const totalsByMethod = useMemo(() => Object.entries(data?.totalsByMethod ?? {}), [data]);
+  const totalCollected = Number(data?.totalCollected ?? 0);
+  const expectedCash = Number(data?.expectedCash ?? 0);
   const countedCashNum = Number(countedCash || 0);
   const variance = countedCash ? countedCashNum - expectedCash : 0;
 
-  function handleCloseDay() {
-    const payload = {
-      date: today,
-      totalCollected,
-      expectedCash,
-      countedCash: countedCash ? countedCashNum : null,
-      variance: countedCash ? variance : null,
-      notes: notes.trim() || null,
-      closedAt: new Date().toISOString(),
-    };
-    localStorage.setItem(`cashier-closure-${today}`, JSON.stringify(payload));
-    toast.success('Clôture de caisse enregistrée localement');
+  async function handleCloseDay() {
+    setClosing(true);
+    try {
+      await billingApi.closeCashDay({
+        date: today,
+        countedCash: countedCash ? countedCashNum : undefined,
+        notes: notes.trim() || undefined,
+      });
+      toast.success('Clôture de caisse enregistrée');
+      setNotes('');
+      setCountedCash('');
+      await refetch();
+    } catch (err: unknown) {
+      handleApiError(err, 'Impossible de clôturer la caisse');
+    } finally {
+      setClosing(false);
+    }
   }
 
   return (
@@ -100,13 +93,13 @@ export default function CashierClosingPage() {
               Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-8 rounded-md" />)
             ) : (
               <>
-                {[...totalsByMethod.entries()].map(([method, amount]) => (
+                {totalsByMethod.map(([method, amount]) => (
                   <div key={method} className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">{METHOD_LABELS[method] ?? method}</span>
                     <span className="font-mono font-bold">{formatXAF(amount)}</span>
                   </div>
                 ))}
-                {totalsByMethod.size === 0 && (
+                {totalsByMethod.length === 0 && (
                   <p className="text-sm text-muted-foreground py-4 text-center">Aucun paiement confirmé aujourd&apos;hui</p>
                 )}
               </>
@@ -158,13 +151,47 @@ export default function CashierClosingPage() {
               <Button variant="outline" className="flex-1 rounded-xl" onClick={() => refetch()}>
                 Recharger
               </Button>
-              <Button className="flex-1 rounded-xl bg-brand hover:bg-brand-hover" onClick={handleCloseDay}>
-                Clôturer
+              <Button className="flex-1 rounded-xl bg-brand hover:bg-brand-hover" onClick={handleCloseDay} disabled={closing}>
+                {closing ? 'Clôture…' : 'Clôturer'}
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-border ring-1 ring-border/50">
+        <CardHeader>
+          <CardTitle>Historique des clôtures</CardTitle>
+          <CardDescription>Dernières clôtures enregistrées pour la journée</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)
+          ) : (data?.closures?.length ?? 0) === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">Aucune clôture enregistrée pour cette date</p>
+          ) : (
+            data?.closures.map((closure) => {
+              const meta = closure.metadata ?? {};
+              const cVariance = Number(meta.variance ?? 0);
+              return (
+                <div key={closure.id} className="rounded-lg border border-border p-3 bg-card/60">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold">{closure.performedBy || 'Utilisateur'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(closure.performedAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Compté: {meta.countedCash != null ? formatXAF(Number(meta.countedCash)) : '—'} ·
+                    Ecart: {meta.variance != null ? ` ${formatXAF(Math.abs(cVariance))} ${cVariance === 0 ? '(OK)' : cVariance > 0 ? '(Surplus)' : '(Manque)'}` : ' —'}
+                  </p>
+                  {meta.notes ? <p className="text-xs text-muted-foreground mt-1">Note: {meta.notes}</p> : null}
+                </div>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

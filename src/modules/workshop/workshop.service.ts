@@ -62,7 +62,8 @@ export const TRANSITION_ROLES: Record<string, string[]> = {
   [`${OTStatus.QC_REJECTED}->${OTStatus.IN_PROGRESS}`]: ['TECHNICIEN', 'CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN'],
   [`${OTStatus.QC_DONE}->${OTStatus.READY}`]: ['CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN'],
   [`${OTStatus.READY}->${OTStatus.INVOICED}`]: ['CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN', 'SYSTEM'],
-  [`${OTStatus.INVOICED}->${OTStatus.CLOSED}`]: ['CAISSIER', 'ADMIN', 'SUPER_ADMIN'],
+  [`${OTStatus.READY}->${OTStatus.CLOSED}`]: ['CAISSIER', 'ADMIN', 'SUPER_ADMIN', 'SYSTEM'],
+  [`${OTStatus.INVOICED}->${OTStatus.CLOSED}`]: ['CAISSIER', 'ADMIN', 'SUPER_ADMIN', 'SYSTEM'],
   [`*->${OTStatus.CANCELLED}`]: ['CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN'],
 };
 
@@ -403,6 +404,41 @@ export class WorkshopService {
     });
   }
 
+  /**
+   * Clôture OT après encaissement total (billing).
+   * Seuls READY et INVOICED peuvent passer à CLOSED — les autres statuts indiquent
+   * un dossier pas encore prêt côté atelier (transition refusée, fail-fast).
+   */
+  async closeServiceOrderAfterFullPayment(
+    otId: string,
+    performedByUserId: string,
+    data: { reason?: string } = {},
+  ): Promise<{ closed: boolean; finalStatus: OTStatus }> {
+    const ot = await this.prisma.serviceOrder.findUnique({
+      where: { id: otId },
+      select: { id: true, status: true },
+    });
+    if (!ot) throw new NotFoundException('Ordre de travail introuvable');
+
+    if (ot.status === OTStatus.CLOSED) {
+      return { closed: true, finalStatus: OTStatus.CLOSED };
+    }
+    if (ot.status === OTStatus.CANCELLED) {
+      return { closed: false, finalStatus: OTStatus.CANCELLED };
+    }
+
+    const closableFrom: OTStatus[] = [OTStatus.READY, OTStatus.INVOICED];
+    if (!closableFrom.includes(ot.status)) {
+      throw new BadRequestException(
+        `Clôture auto impossible : l'OT est en ${ot.status} (requis : Prêt ou Facturé)`,
+      );
+    }
+
+    const reason = data.reason ?? 'Soldé automatiquement — clôture OT';
+    const result = await this.updateStatusBySystem(otId, OTStatus.CLOSED, performedByUserId, { reason });
+    return { closed: true, finalStatus: result.status as OTStatus };
+  }
+
   private async applyStatusChange(
     otId: string,
     targetStatus: OTStatus,
@@ -637,6 +673,38 @@ export class WorkshopService {
           });
         } catch (err) {
           this.logger.error(`Échec notification INVOICED pour OT ${otId}`, err);
+        }
+      });
+    }
+
+    // OT clôturé (manuel ou auto) → informer réception, chef, admin + technicien assigné
+    if (targetStatus === OTStatus.CLOSED) {
+      setImmediate(async () => {
+        try {
+          const byRoleIds = await this.notifications.getUserIdsByRoles([
+            'RECEPTIONNISTE',
+            'CHEF_ATELIER',
+            'ADMIN',
+            'SUPER_ADMIN',
+          ]);
+          const recipientIds = [
+            ...byRoleIds,
+            ...(ot.assignedChef ? [ot.assignedChef] : []),
+          ]
+            .filter((id, index, arr) => arr.indexOf(id) === index)
+            .filter((id) => id !== performedByUserId);
+          if (recipientIds.length === 0) return;
+
+          const plate = ot.vehicle?.plateNumber ?? ot.vehicleId;
+          await this.notifications.createInApp({
+            recipientIds,
+            title: 'OT clôturé',
+            body: `${plate} — dossier clôturé après encaissement total.`,
+            link: `/workshop/${otId}`,
+            serviceOrderId: otId,
+          });
+        } catch (err) {
+          this.logger.error(`Échec notification CLOSED pour OT ${otId}`, err);
         }
       });
     }

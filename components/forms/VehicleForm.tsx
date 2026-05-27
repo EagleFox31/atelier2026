@@ -13,6 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { vehiclesApi, handleApiError } from "@/lib/api";
 
 const FUEL_OPTIONS = [
@@ -40,10 +41,11 @@ interface VehicleFormProps {
   customerId?: string;
   vehicleId?: string;
   initialData?: Partial<FormValues>;
-  onSuccess?: () => void;
+  onSuccess?: (vehicle?: { id: string }) => void;
 }
 
 export function VehicleForm({ customerId, vehicleId, initialData, onSuccess }: VehicleFormProps) {
+  const router = useRouter();
   const isEdit = !!vehicleId;
   const [makes, setMakes]     = useState<{ id: string; name: string }[]>([]);
   const [models, setModels]   = useState<{ id: string; name: string }[]>([]);
@@ -96,7 +98,7 @@ export function VehicleForm({ customerId, vehicleId, initialData, onSuccess }: V
         })
         .then(() => {
           toast.success('Véhicule modifié avec succès');
-          onSuccess?.();
+          onSuccess?.({ id: vehicleId });
         })
         .catch((err: unknown) => handleApiError(err, 'Impossible de modifier le véhicule'));
       return;
@@ -118,9 +120,11 @@ export function VehicleForm({ customerId, vehicleId, initialData, onSuccess }: V
         vin:            values.vin || undefined,
         currentMileage: values.currentMileage,
       })
-      .then(() => {
+      .then((created: unknown) => {
+        const vehicle = created as { id: string };
         toast.success('Véhicule enregistré avec succès');
-        onSuccess?.();
+        onSuccess?.(vehicle);
+        if (vehicle?.id) router.push(`/vehicles/${vehicle.id}`);
       })
       .catch((err: unknown) => handleApiError(err, 'Impossible d\'enregistrer le véhicule'));
   }
@@ -145,7 +149,7 @@ export function VehicleForm({ customerId, vehicleId, initialData, onSuccess }: V
         />
 
         {/* Marque + Modèle */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="makeId"
@@ -154,7 +158,7 @@ export function VehicleForm({ customerId, vehicleId, initialData, onSuccess }: V
                 <FormLabel>Marque <span className="text-red-500">*</span></FormLabel>
                 <Select value={field.value} onValueChange={(v) => v && field.onChange(v)}>
                   <FormControl>
-                    <SelectTrigger className="bg-muted border-border">
+                    <SelectTrigger className="w-full bg-muted border-border">
                       <SelectValue placeholder="Sélectionner…">
                         {makes.find(m => m.id === field.value)?.name}
                       </SelectValue>
@@ -183,7 +187,7 @@ export function VehicleForm({ customerId, vehicleId, initialData, onSuccess }: V
                   disabled={!selectedMakeId || modelsLoading}
                 >
                   <FormControl>
-                    <SelectTrigger className="bg-muted border-border">
+                    <SelectTrigger className="w-full bg-muted border-border">
                       <SelectValue placeholder={
                         !selectedMakeId ? 'Choisir la marque d\'abord'
                         : modelsLoading ? 'Chargement…'
@@ -207,7 +211,7 @@ export function VehicleForm({ customerId, vehicleId, initialData, onSuccess }: V
         </div>
 
         {/* Année + Carburant */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="year"
@@ -230,7 +234,7 @@ export function VehicleForm({ customerId, vehicleId, initialData, onSuccess }: V
                 <FormLabel>Carburant</FormLabel>
                 <Select value={field.value ?? ''} onValueChange={(v) => field.onChange(v)}>
                   <FormControl>
-                    <SelectTrigger className="bg-muted border-border">
+                    <SelectTrigger className="w-full bg-muted border-border">
                       <SelectValue placeholder="Sélectionner…">
                         {FUEL_OPTIONS.find(f => f.value === field.value)?.label}
                       </SelectValue>
@@ -249,7 +253,7 @@ export function VehicleForm({ customerId, vehicleId, initialData, onSuccess }: V
         </div>
 
         {/* Kilométrage + VIN */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="currentMileage"
@@ -280,7 +284,7 @@ export function VehicleForm({ customerId, vehicleId, initialData, onSuccess }: V
         </div>
 
         <div className="flex justify-end gap-3 pt-4">
-          <Button type="submit" className="bg-brand hover:bg-brand-hover">
+          <Button type="submit" className="bg-brand hover:bg-brand-hover w-full sm:w-auto">
             {isEdit ? 'Enregistrer les modifications' : 'Enregistrer le véhicule'}
           </Button>
         </div>

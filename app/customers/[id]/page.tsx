@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { User, Mail, Phone, MapPin, History, ArrowLeft, Car, FileText, Plus, MessageSquare, CreditCard, Building2, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { VehicleForm } from "@/components/forms/VehicleForm";
-import { CustomerForm } from "@/components/forms/CustomerForm";
+import { CustomerForm, CUSTOMER_FORM_DIALOG_CLASS } from "@/components/forms/CustomerForm";
 import { customersApi } from "@/lib/api";
 import { useApi } from "@/hooks/use-api";
 import { useAuth } from "@/contexts/auth-context";
@@ -73,20 +73,20 @@ export default function CustomerDetailPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-center gap-4 min-w-0">
+          <Button variant="ghost" size="icon" onClick={() => router.back()} className="shrink-0">
             <ArrowLeft size={20} />
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{name}</h1>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-foreground truncate">{name}</h1>
             <p className="text-muted-foreground text-sm">
               Client depuis le {new Date(customer.createdAt).toLocaleDateString('fr-FR')}
             </p>
           </div>
         </div>
-        <div className="flex gap-3">
-          <Button variant="outline" className="gap-2 border-border" onClick={() => toast.info(`SMS à ${customer.phonePrimary}`)}>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+          <Button variant="outline" className="gap-2 border-border w-full sm:w-auto" onClick={() => toast.info(`SMS à ${customer.phonePrimary}`)}>
             <MessageSquare size={18} />
             Contacter
           </Button>
@@ -94,36 +94,38 @@ export default function CustomerDetailPage() {
           {/* Modifier le client — visible ADMIN / CHEF_ATELIER / RECEPTIONNISTE */}
           {canEdit && <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
             <DialogTrigger render={
-              <Button variant="outline" className="gap-2 border-border">
+              <Button variant="outline" className="gap-2 border-border w-full sm:w-auto">
                 <Pencil size={18} />
                 Modifier
               </Button>
             } />
-            <DialogContent className="sm:max-w-[600px] bg-card border-border">
-              <DialogHeader>
+            <DialogContent className={CUSTOMER_FORM_DIALOG_CLASS}>
+              <DialogHeader className="px-4 pt-4 sm:px-0 sm:pt-0 shrink-0">
                 <DialogTitle>Modifier le client</DialogTitle>
               </DialogHeader>
-              <CustomerForm
-                customerId={id}
-                initialData={{
-                  customerType: customer.customerType,
-                  firstName:    customer.firstName,
-                  lastName:     customer.lastName,
-                  companyName:  customer.companyName,
-                  email:        customer.email ?? '',
-                  phonePrimary: customer.phonePrimary,
-                  address:      customer.address,
-                  city:         customer.city,
-                  isVip:        customer.isVip ?? false,
-                }}
-                onSuccess={() => { setIsEditOpen(false); refetch(); }}
-              />
+              <div className="px-4 pb-4 sm:px-0 sm:pb-0 min-h-0 flex-1 overflow-hidden flex flex-col max-sm:max-h-[calc(92dvh-5.5rem)]">
+                <CustomerForm
+                  customerId={id}
+                  initialData={{
+                    customerType: customer.customerType,
+                    firstName:    customer.firstName,
+                    lastName:     customer.lastName,
+                    companyName:  customer.companyName,
+                    email:        customer.email ?? '',
+                    phonePrimary: customer.phonePrimary,
+                    address:      customer.address,
+                    city:         customer.city,
+                    isVip:        customer.isVip ?? false,
+                  }}
+                  onSuccess={() => { setIsEditOpen(false); refetch(); }}
+                />
+              </div>
             </DialogContent>
           </Dialog>}
 
           <Dialog open={isVehicleModalOpen} onOpenChange={setIsVehicleModalOpen}>
             <DialogTrigger render={
-              <Button className="bg-brand hover:bg-brand-hover gap-2">
+              <Button className="bg-brand hover:bg-brand-hover gap-2 w-full sm:w-auto">
                 <Plus size={18} />
                 Nouveau Véhicule
               </Button>

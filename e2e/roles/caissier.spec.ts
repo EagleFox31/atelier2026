@@ -31,17 +31,16 @@ test.describe('Profil Caissier', () => {
     await expectForbiddenTransition(page, 'Reçu');
   });
 
-  test('peut facturer (READY → Facturé)', async ({ page, request }) => {
-    const ctx = await prepareOtAtStatus(request, 'READY', `caisse-inv-${Date.now()}`);
+  test('ne facture pas — pas de bouton Facturer sur OT prêt', async ({ page, request }) => {
+    const ctx = await prepareOtAtStatus(request, 'READY', `caisse-deny-inv-${Date.now()}`);
     await gotoOtDetail(page, ctx.otId);
-    await clickOtTransition(page, 'Facturé');
-    await expectSuccessTransition(page, 'Facturé');
+    await expect(page.getByRole('button', { name: 'Facturer' })).not.toBeVisible();
   });
 
   test('peut clôturer (INVOICED → Clôturé)', async ({ page, request }) => {
     const ctx = await prepareOtAtStatus(request, 'INVOICED', `caisse-close-${Date.now()}`);
     await gotoOtDetail(page, ctx.otId);
-    await clickOtTransition(page, 'Clôturé');
+    await clickOtTransition(page, "Clôturer l'OT");
     await expectSuccessTransition(page, 'Clôturé');
   });
 });

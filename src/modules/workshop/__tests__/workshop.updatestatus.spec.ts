@@ -481,6 +481,36 @@ describe('WorkshopService.updateStatusBySystem()', () => {
   });
 });
 
+describe('WorkshopService.closeServiceOrderAfterFullPayment()', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('INVOICED → CLOSED après encaissement total', async () => {
+    const { service, prismaMock } = makeDeps();
+    prismaMock.serviceOrder.findUnique
+      .mockResolvedValueOnce({ id: 'ot-1', status: OTStatus.INVOICED })
+      .mockResolvedValue(makeOT({ status: OTStatus.INVOICED }));
+
+    const result = await service.closeServiceOrderAfterFullPayment('ot-1', 'user-caisse', {
+      reason: 'Soldé automatiquement',
+    });
+
+    expect(result).toEqual({ closed: true, finalStatus: OTStatus.CLOSED });
+    expect(prismaMock.$executeRaw).toHaveBeenCalled();
+  });
+
+  it('refuse la clôture auto si OT encore en travaux', async () => {
+    const { service, prismaMock } = makeDeps();
+    prismaMock.serviceOrder.findUnique.mockResolvedValue({
+      id: 'ot-1',
+      status: OTStatus.IN_PROGRESS,
+    });
+
+    await expect(
+      service.closeServiceOrderAfterFullPayment('ot-1', 'user-caisse', {}),
+    ).rejects.toThrow(BadRequestException);
+  });
+});
+
 describe('WorkshopService — flux QC', () => {
   beforeEach(() => jest.clearAllMocks());
 

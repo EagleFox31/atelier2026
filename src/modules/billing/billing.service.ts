@@ -1,6 +1,6 @@
 
 import { Injectable, BadRequestException, Logger, NotFoundException } from '@nestjs/common';
-import { PaymentMethod, OTStatus } from '@prisma/client';
+import { PaymentMethod, OTStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { WorkshopService } from '../workshop/workshop.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -366,7 +366,15 @@ export class BillingService {
 
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: data.invoiceId },
-      select: { id: true, totalXaf: true, status: true, serviceOrderId: true },
+      select: {
+        id: true,
+        reference: true,
+        totalXaf: true,
+        status: true,
+        serviceOrderId: true,
+        serviceOrder: { select: { reference: true } },
+        customer: { select: { firstName: true, lastName: true, companyName: true, customerType: true } },
+      },
     });
     if (!invoice) throw new NotFoundException('Facture introuvable');
 
@@ -383,23 +391,153 @@ export class BillingService {
       },
     });
 
-    const autoInvoicedOtId =
+    const autoClosedOtId =
       balance <= 0 && invoice.serviceOrderId ? invoice.serviceOrderId : null;
 
-    if (autoInvoicedOtId) {
+    if (autoClosedOtId) {
       try {
-        await this.workshopService.updateStatusBySystem(
-          autoInvoicedOtId,
-          OTStatus.INVOICED,
+        const { closed } = await this.workshopService.closeServiceOrderAfterFullPayment(
+          autoClosedOtId,
           data.userId,
-          { reason: `Soldé automatiquement — facture ${data.invoiceId}` },
+          { reason: `Soldé automatiquement — clôture OT (facture ${invoice.reference ?? data.invoiceId})` },
         );
-        this.logger.log(`OT ${autoInvoicedOtId} → INVOICED automatiquement`);
+        if (closed) {
+          this.logger.log(`OT ${autoClosedOtId} → CLOSED automatiquement`);
+        }
       } catch (err) {
-        this.logger.warn(`Auto-INVOICED ignoré pour OT ${autoInvoicedOtId}: ${(err as Error).message}`);
+        this.logger.warn(`Auto-CLOSED ignoré pour OT ${autoClosedOtId}: ${(err as Error).message}`);
       }
     }
 
+    setImmediate(async () => {
+      try {
+        const recipientIds = await this.notifications.getUserIdsByRoles(['CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN']);
+        if (recipientIds.length === 0) return;
+
+        const customerName = invoice.customer?.customerType === 'COMPANY'
+          ? (invoice.customer.companyName ?? 'Client')
+          : [invoice.customer?.firstName, invoice.customer?.lastName].filter(Boolean).join(' ') || 'Client';
+
+        const paymentLabel = newStatus === 'PAID' ? 'Paiement total encaissé' : 'Paiement partiel encaissé';
+        const amountLabel = Number(data.amount).toLocaleString('fr-FR');
+        const remainingLabel = balance.toLocaleString('fr-FR');
+        const otRef = invoice.serviceOrder?.reference ? `OT ${invoice.serviceOrder.reference}` : 'OT';
+
+        await this.notifications.createInApp({
+          recipientIds,
+          title: paymentLabel,
+          body: `${invoice.reference} · ${customerName} · ${amountLabel} XAF encaissés · Reste: ${remainingLabel} XAF`,
+          link: invoice.serviceOrderId ? `/workshop/${invoice.serviceOrderId}` : '/billing',
+          serviceOrderId: invoice.serviceOrderId ?? undefined,
+        });
+        this.logger.log(`Notification encaissement envoyée (${invoice.id}) pour ${otRef}`);
+      } catch (err) {
+        this.logger.warn(`Notification encaissement échouée (${invoice.id}): ${(err as Error).message}`);
+      }
+    });
+
     return payment;
+  }
+
+  async getCashClosureSummary(dateIso?: string) {
+    const target = dateIso ? new Date(dateIso) : new Date();
+    if (Number.isNaN(target.getTime())) {
+      throw new BadRequestException('Date de clôture invalide');
+    }
+
+    const start = new Date(target);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(target);
+    end.setHours(23, 59, 59, 999);
+
+    const payments = await this.prisma.payment.findMany({
+      where: {
+        status: 'CONFIRMED',
+        paidAt: { gte: start, lte: end },
+      },
+      select: {
+        id: true,
+        method: true,
+        amountXaf: true,
+        paidAt: true,
+      },
+    });
+
+    const totalsByMethod = payments.reduce<Record<string, number>>((acc, p) => {
+      const key = p.method;
+      acc[key] = (acc[key] ?? 0) + Number(p.amountXaf);
+      return acc;
+    }, {});
+
+    const totalCollected = Object.values(totalsByMethod).reduce((sum, n) => sum + n, 0);
+    const expectedCash = totalsByMethod.CASH ?? 0;
+
+    const closures = await this.prisma.auditLog.findMany({
+      where: {
+        entityType: 'CashClosure',
+        action: 'CLOSE_DAY',
+        metadata: {
+          path: ['date'],
+          equals: start.toISOString().split('T')[0],
+        },
+      },
+      select: {
+        id: true,
+        metadata: true,
+        performedAt: true,
+        performer: { select: { firstName: true, lastName: true } },
+      },
+      orderBy: { performedAt: 'desc' },
+      take: 20,
+    });
+
+    return {
+      date: start.toISOString().split('T')[0],
+      totalsByMethod,
+      paymentCount: payments.length,
+      totalCollected,
+      expectedCash,
+      closures: closures.map((c) => ({
+        id: c.id,
+        performedAt: c.performedAt,
+        performedBy: c.performer ? `${c.performer.firstName ?? ''} ${c.performer.lastName ?? ''}`.trim() : null,
+        metadata: c.metadata,
+      })),
+    };
+  }
+
+  async closeCashDay(data: { userId: string; dateIso?: string; countedCash?: number; notes?: string }) {
+    const summary = await this.getCashClosureSummary(data.dateIso);
+    const countedCash = data.countedCash ?? null;
+    const variance = countedCash != null ? countedCash - summary.expectedCash : null;
+
+    const metadata = {
+      date: summary.date,
+      totalCollected: summary.totalCollected,
+      expectedCash: summary.expectedCash,
+      countedCash,
+      variance,
+      paymentCount: summary.paymentCount,
+      totalsByMethod: summary.totalsByMethod,
+      notes: data.notes?.trim() || null,
+    };
+
+    const created = await this.prisma.auditLog.create({
+      data: {
+        entityType: 'CashClosure',
+        entityId: data.userId,
+        action: 'CLOSE_DAY',
+        performedBy: data.userId,
+        metadata: metadata as any,
+        fieldChanges: Prisma.JsonNull,
+      },
+      select: { id: true, performedAt: true, metadata: true },
+    });
+
+    return {
+      id: created.id,
+      performedAt: created.performedAt,
+      ...metadata,
+    };
   }
 }

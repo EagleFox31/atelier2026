@@ -71,6 +71,15 @@ const STEPS_BY_ROLE: Record<string, Step[]> = {
         'Dans "Planning", vous pouvez réserver une heure pour un client qui appellera. Le jour J, quand il arrive, tout est déjà noté — vous n\'avez plus qu\'à confirmer.',
       hint: '→ Planning',
     },
+    {
+      icon: FileText,
+      color: 'text-brand',
+      bg: 'bg-brand/10',
+      title: 'Devis et factures — consultation',
+      description:
+        'Vous appelez le client pour valider le devis, vous lui annoncez que sa voiture est prête, vous imprimez la facture et le conduisez à la caisse. Vous consultez les montants dans "Facturation" ou sur l\'OT, sans les modifier.',
+      hint: '→ Facturation / Fiche OT',
+    },
   ],
 
   TECHNICIEN: [
@@ -164,18 +173,18 @@ const STEPS_BY_ROLE: Record<string, Step[]> = {
       icon: Banknote,
       color: 'text-green-500',
       bg: 'bg-green-500/10',
-      title: 'C\'est vous qui clôturez la réparation',
+      title: 'Le chef a facturé — vous encaissez',
       description:
-        'La voiture est prête, le chef a vérifié. Maintenant c\'est votre tour : faire la facture, encaisser le paiement, et laisser le client repartir. Simple et rapide.',
+        'Quand le véhicule est prêt, le chef d\'atelier émet la facture depuis l\'OT. Votre rôle : enregistrer le paiement du client et clôturer l\'ordre de travail.',
     },
     {
       icon: FileText,
       color: 'text-brand',
       bg: 'bg-brand/10',
-      title: 'Créer la facture',
+      title: 'Retrouver la facture à encaisser',
       description:
-        'Dans "Facturation", les voitures prêtes à facturer apparaissent en tête de liste. Cliquez sur "Créer la facture" — tous les montants sont déjà calculés depuis le devis approuvé par le client.',
-      hint: '→ Facturation',
+        'Dans "Facturation", onglet Factures : les factures en attente de paiement (Émise ou Partiel) sont listées. Ouvrez la facture liée à l\'OT concerné.',
+      hint: '→ Facturation › Factures',
     },
     {
       icon: Banknote,

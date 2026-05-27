@@ -1,8 +1,8 @@
 import { Controller, Post, Body, Param, Get, Query, HttpCode } from '@nestjs/common';
 import { BillingService } from './billing.service';
-import { CurrentUser, RequirePermission } from '../../decorators/auth.decorator';
+import { CurrentUser, RequirePermission, RequireRole } from '../../decorators/auth.decorator';
 import { randomUUID } from 'crypto';
-import { CreateQuoteDto, RecordPaymentDto } from './dto/billing.dto';
+import { CloseCashDayDto, CreateQuoteDto, RecordPaymentDto } from './dto/billing.dto';
 
 @Controller('billing')
 export class BillingController {
@@ -15,7 +15,7 @@ export class BillingController {
   }
 
   @Get('quotes')
-  @RequirePermission('FAC_CREATE')
+  @RequirePermission('FAC_VIEW')
   listQuotes(@Query('serviceOrderId') serviceOrderId?: string) {
     return this.billingService.listQuotes(serviceOrderId);
   }
@@ -45,7 +45,7 @@ export class BillingController {
   }
 
   @Get('invoices')
-  @RequirePermission('FAC_CREATE')
+  @RequirePermission('FAC_VIEW')
   listInvoices(
     @Query('customerId') customerId?: string,
     @Query('status') status?: string,
@@ -55,6 +55,7 @@ export class BillingController {
 
   @Post('invoice/from-quote/:quoteId')
   @RequirePermission('FAC_CREATE')
+  @RequireRole('CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN')
   createInvoiceFromQuote(
     @Param('quoteId') quoteId: string,
     @CurrentUser() user: { id: string },
@@ -63,7 +64,7 @@ export class BillingController {
   }
 
   @Post('payment')
-  @RequirePermission('FAC_CREATE')
+  @RequirePermission('FAC_PAY')
   recordPayment(@CurrentUser() user: { id: string }, @Body() body: RecordPaymentDto) {
     return this.billingService.recordPayment({
       invoiceId: body.invoiceId,
@@ -75,14 +76,31 @@ export class BillingController {
   }
 
   @Get('quotes/:id')
-  @RequirePermission('FAC_CREATE')
+  @RequirePermission('FAC_VIEW')
   getQuote(@Param('id') id: string) {
     return this.billingService.getQuote(id);
   }
 
   @Get('invoices/:id')
-  @RequirePermission('FAC_CREATE')
+  @RequirePermission('FAC_VIEW')
   getInvoice(@Param('id') id: string) {
     return this.billingService.getInvoice(id);
+  }
+
+  @Get('cash-closure/summary')
+  @RequirePermission('FAC_VIEW')
+  getCashClosureSummary(@Query('date') date?: string) {
+    return this.billingService.getCashClosureSummary(date);
+  }
+
+  @Post('cash-closure')
+  @RequirePermission('FAC_PAY')
+  closeCashDay(@CurrentUser() user: { id: string }, @Body() body: CloseCashDayDto) {
+    return this.billingService.closeCashDay({
+      userId: user.id,
+      dateIso: body.date,
+      countedCash: body.countedCash,
+      notes: body.notes,
+    });
   }
 }

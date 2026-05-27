@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search, FileText, Download, CreditCard, MoreVertical, ArrowUpRight, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { billingApi, handleApiError } from "@/lib/api";
+import { useAuth } from "@/contexts/auth-context";
 import { formatXAF, cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -40,8 +41,206 @@ function customerName(c: any) {
     : [c.firstName, c.lastName].filter(Boolean).join(' ');
 }
 
+function InvoiceMobileList({
+  invoices,
+  loading,
+  search,
+  onSelect,
+  onPay,
+}: {
+  invoices: any[];
+  loading: boolean;
+  search: string;
+  onSelect: (id: string) => void;
+  onPay: (id: string) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="md:hidden p-4 space-y-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-36 w-full rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+
+  if (invoices.length === 0) {
+    return (
+      <div className="md:hidden flex flex-col items-center gap-3 py-16 text-muted-foreground px-4 text-center">
+        <CreditCard size={40} strokeWidth={1} />
+        <p>Aucune facture{search ? ` pour « ${search} »` : ''}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="md:hidden p-4 space-y-3">
+      {invoices.map(inv => {
+        const st = INVOICE_STATUS[inv.status] ?? { label: inv.status, color: '' };
+        const isLate = inv.status === 'ISSUED' && inv.dueDate && new Date(inv.dueDate) < new Date();
+        const balance = Number(inv.balanceXaf);
+        const canPay = inv.status !== 'PAID' && inv.status !== 'CANCELLED';
+
+        return (
+          <Card
+            key={inv.id}
+            className="border-border shadow-sm cursor-pointer active:scale-[0.99] transition-transform overflow-hidden"
+            onClick={() => onSelect(inv.id)}
+          >
+            <CardContent className="p-0">
+              <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border/60 bg-muted/20">
+                <span className="font-mono text-xs font-bold text-foreground truncate">{inv.reference}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Badge className={cn('text-[10px] border-none', st.color)}>{st.label}</Badge>
+                  {isLate && (
+                    <Badge className="text-[10px] border-none bg-red-50 text-red-600">Retard</Badge>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-4 space-y-3">
+                <div>
+                  <p className="font-semibold text-sm text-foreground truncate">{customerName(inv.customer)}</p>
+                  {inv.serviceOrder?.reference && (
+                    <p className="text-xs font-mono text-muted-foreground mt-0.5">{inv.serviceOrder.reference}</p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Total</p>
+                    <p className="font-mono text-sm font-bold mt-0.5">{formatXAF(inv.totalXaf)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Reste</p>
+                    <p className={cn(
+                      'font-mono text-sm font-bold mt-0.5',
+                      balance > 0 ? 'text-amber-600' : 'text-green-600',
+                    )}>
+                      {formatXAF(inv.balanceXaf)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <span className="text-xs text-muted-foreground">
+                    {inv.issuedAt
+                      ? new Date(inv.issuedAt).toLocaleDateString('fr-FR')
+                      : '—'}
+                  </span>
+                  {canPay && (
+                    <Button
+                      size="sm"
+                      className="h-8 px-3 text-xs bg-brand hover:bg-brand-hover gap-1.5 shrink-0"
+                      onClick={e => { e.stopPropagation(); onPay(inv.id); }}
+                    >
+                      <CreditCard size={13} /> Encaisser
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+function QuoteMobileList({
+  quotes,
+  loading,
+  search,
+  canInvoice,
+  onSelect,
+}: {
+  quotes: any[];
+  loading: boolean;
+  search: string;
+  canInvoice: boolean;
+  onSelect: (id: string) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="md:hidden p-4 space-y-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-32 w-full rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+
+  if (quotes.length === 0) {
+    return (
+      <div className="md:hidden flex flex-col items-center gap-3 py-16 text-muted-foreground px-4 text-center">
+        <FileText size={40} strokeWidth={1} />
+        <p>Aucun devis{search ? ` pour « ${search} »` : ''}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="md:hidden p-4 space-y-3">
+      {quotes.map(q => {
+        const st = QUOTE_STATUS[q.status] ?? { label: q.status, color: '' };
+        const showFacturer = q.status === 'APPROVED' && canInvoice;
+
+        return (
+          <Card
+            key={q.id}
+            className="border-border shadow-sm cursor-pointer active:scale-[0.99] transition-transform overflow-hidden"
+            onClick={() => onSelect(q.id)}
+          >
+            <CardContent className="p-0">
+              <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border/60 bg-muted/20">
+                <span className="font-mono text-xs font-bold text-foreground truncate">{q.reference}</span>
+                <Badge className={cn('text-[10px] border-none shrink-0', st.color)}>{st.label}</Badge>
+              </div>
+
+              <div className="p-4 space-y-3">
+                <div>
+                  <p className="font-semibold text-sm text-foreground truncate">{customerName(q.customer)}</p>
+                  {q.serviceOrder?.reference && (
+                    <p className="text-xs font-mono text-muted-foreground mt-0.5">{q.serviceOrder.reference}</p>
+                  )}
+                </div>
+
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Total TTC</p>
+                    <p className="font-mono text-sm font-bold text-brand mt-0.5">{formatXAF(q.totalXaf)}</p>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(q.createdAt).toLocaleDateString('fr-FR')}
+                  </span>
+                </div>
+
+                {showFacturer && (
+                  <div className="flex justify-end pt-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-3 text-xs border-brand text-brand hover:bg-brand hover:text-white gap-1.5 shrink-0"
+                      onClick={e => { e.stopPropagation(); onSelect(q.id); }}
+                    >
+                      <ArrowUpRight size={13} /> Facturer
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function BillingPage() {
   const router = useRouter();
+  const { hasRole, hasPermission } = useAuth();
+  const canInvoice = hasRole('ADMIN') || hasRole('CHEF_ATELIER') || hasRole('SUPER_ADMIN');
+  const canModifyBilling = hasPermission('FAC_CREATE');
   const [invoices, setInvoices] = useState<any[]>([]);
   const [quotes, setQuotes]   = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,10 +291,12 @@ export default function BillingPage() {
           <h1 className="text-2xl font-bold text-foreground">Facturation & Devis</h1>
           <p className="text-muted-foreground">Gérez vos documents financiers et paiements</p>
         </div>
-        <Button className="bg-brand hover:bg-brand-hover gap-2" onClick={() => router.push('/workshop')}>
-          <Plus size={18} />
-          Devis depuis OT
-        </Button>
+        {canModifyBilling && (
+          <Button className="bg-brand hover:bg-brand-hover gap-2 w-full sm:w-auto" onClick={() => router.push('/workshop')}>
+            <Plus size={18} />
+            Devis depuis OT
+          </Button>
+        )}
       </div>
 
       {/* KPIs */}
@@ -149,20 +350,20 @@ export default function BillingPage() {
 
       {/* Tabs Factures / Devis */}
       <Tabs defaultValue="invoices" className="w-full">
-        <div className="flex items-center justify-between mb-4">
-          <TabsList className="bg-muted p-1">
-            <TabsTrigger value="invoices">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <TabsList className="bg-muted p-1 w-full sm:w-auto grid grid-cols-2 h-auto">
+            <TabsTrigger value="invoices" className="text-xs sm:text-sm py-2">
               Factures ({invoices.length})
             </TabsTrigger>
-            <TabsTrigger value="quotes">
+            <TabsTrigger value="quotes" className="text-xs sm:text-sm py-2">
               Devis ({quotes.length})
             </TabsTrigger>
           </TabsList>
-          <div className="relative w-64">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
             <Input
               placeholder="Rechercher..."
-              className="pl-9 h-9 bg-muted border-border text-sm"
+              className="pl-9 h-10 sm:h-9 bg-muted border-border text-sm"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -170,8 +371,15 @@ export default function BillingPage() {
         </div>
 
         {/* Factures */}
-        <TabsContent value="invoices">
-          <Card className="border-border shadow-sm">
+        <TabsContent value="invoices" className="mt-0">
+          <InvoiceMobileList
+            invoices={filteredInvoices}
+            loading={loading}
+            search={search}
+            onSelect={id => router.push(`/billing/invoices/${id}`)}
+            onPay={id => router.push(`/billing/invoices/${id}`)}
+          />
+          <Card className="border-border shadow-sm hidden md:block">
             <CardContent className="p-0">
               <Table>
                 <TableHeader className="bg-muted/50">
@@ -258,8 +466,15 @@ export default function BillingPage() {
         </TabsContent>
 
         {/* Devis */}
-        <TabsContent value="quotes">
-          <Card className="border-border shadow-sm">
+        <TabsContent value="quotes" className="mt-0">
+          <QuoteMobileList
+            quotes={filteredQuotes}
+            loading={loading}
+            search={search}
+            canInvoice={canInvoice}
+            onSelect={id => router.push(`/billing/quotes/${id}`)}
+          />
+          <Card className="border-border shadow-sm hidden md:block">
             <CardContent className="p-0">
               <Table>
                 <TableHeader className="bg-muted/50">
@@ -303,7 +518,7 @@ export default function BillingPage() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-1">
-                              {q.status === 'APPROVED' && (
+                              {q.status === 'APPROVED' && canInvoice && (
                                 <Button
                                   variant="outline"
                                   size="sm"

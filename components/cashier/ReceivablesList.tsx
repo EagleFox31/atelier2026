@@ -91,7 +91,7 @@ export function ReceivablesList({ invoices, loading, onOpenInvoice }: Receivable
                         <Badge className="text-[9px] border-none bg-red-500/20 text-red-700">En retard</Badge>
                       )}
                       <Badge className="text-[9px] border-none bg-amber-500/20 text-amber-700">
-                        {inv.status === 'PARTIAL' ? 'Partielle' : 'Emise'}
+                        {inv.status === 'PARTIAL' ? 'Paiement partiel' : 'À encaisser'}
                       </Badge>
                     </div>
                   </div>

@@ -25,7 +25,11 @@ function makePrismaMock() {
 
 function makeDeps() {
   const prismaMock = makePrismaMock();
-  const workshopMock = { updateStatus: jest.fn(), updateStatusBySystem: jest.fn() };
+  const workshopMock = {
+    updateStatus: jest.fn(),
+    updateStatusBySystem: jest.fn(),
+    closeServiceOrderAfterFullPayment: jest.fn(),
+  };
   const partsFlowMock = { onQuoteApproved: jest.fn() };
   const service = new BillingService(prismaMock as any, workshopMock as any, {} as any, partsFlowMock as any);
   return { service, prismaMock, workshopMock };
@@ -98,7 +102,10 @@ describe('BillingService.recordPayment()', () => {
       serviceOrderId: 'ot-1',
     });
     prismaMock.invoice.update.mockResolvedValue({});
-    workshopMock.updateStatusBySystem.mockResolvedValue({ id: 'ot-1', status: 'INVOICED' });
+    workshopMock.closeServiceOrderAfterFullPayment.mockResolvedValue({
+      closed: true,
+      finalStatus: 'CLOSED',
+    });
 
     await service.recordPayment({ ...basePayload, amount: 24850 });
 
@@ -108,16 +115,15 @@ describe('BillingService.recordPayment()', () => {
       }),
     );
     expect(prismaMock.invoice.update.mock.calls[0][0].data).not.toHaveProperty('balanceXaf');
-    expect(workshopMock.updateStatusBySystem).toHaveBeenCalledWith(
+    expect(workshopMock.closeServiceOrderAfterFullPayment).toHaveBeenCalledWith(
       'ot-1',
-      'INVOICED',
       'user-1',
       { reason: expect.stringContaining('Soldé automatiquement') },
     );
     expect(workshopMock.updateStatus).not.toHaveBeenCalled();
   });
 
-  it('ne déclenche pas auto-INVOICED si paiement partiel', async () => {
+  it('ne déclenche pas auto-CLOSED si paiement partiel', async () => {
     const { service, prismaMock, workshopMock } = makeDeps();
     prismaMock.payment.create.mockResolvedValue({ id: 'pay-1' });
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 5000 } });
@@ -131,10 +137,10 @@ describe('BillingService.recordPayment()', () => {
 
     await service.recordPayment({ ...basePayload, amount: 5000 });
 
-    expect(workshopMock.updateStatusBySystem).not.toHaveBeenCalled();
+    expect(workshopMock.closeServiceOrderAfterFullPayment).not.toHaveBeenCalled();
   });
 
-  it('ne déclenche pas auto-INVOICED si facture sans OT lié', async () => {
+  it('ne déclenche pas auto-CLOSED si facture sans OT lié', async () => {
     const { service, prismaMock, workshopMock } = makeDeps();
     prismaMock.payment.create.mockResolvedValue({ id: 'pay-1' });
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 24850 } });
@@ -148,10 +154,10 @@ describe('BillingService.recordPayment()', () => {
 
     await service.recordPayment({ ...basePayload, amount: 24850 });
 
-    expect(workshopMock.updateStatusBySystem).not.toHaveBeenCalled();
+    expect(workshopMock.closeServiceOrderAfterFullPayment).not.toHaveBeenCalled();
   });
 
-  it('conserve le paiement si auto-INVOICED échoue (OT état incompatible)', async () => {
+  it('conserve le paiement si auto-CLOSED échoue (OT état incompatible)', async () => {
     const { service, prismaMock, workshopMock } = makeDeps();
     const createdPayment = { id: 'pay-1', amountXaf: 24850 };
     prismaMock.payment.create.mockResolvedValue(createdPayment);
@@ -163,12 +169,14 @@ describe('BillingService.recordPayment()', () => {
       serviceOrderId: 'ot-1',
     });
     prismaMock.invoice.update.mockResolvedValue({});
-    workshopMock.updateStatusBySystem.mockRejectedValue(new Error('Transition non autorisée'));
+    workshopMock.closeServiceOrderAfterFullPayment.mockRejectedValue(
+      new Error('Clôture auto impossible'),
+    );
 
     const result = await service.recordPayment({ ...basePayload, amount: 24850 });
 
     expect(result).toEqual(createdPayment);
-    expect(workshopMock.updateStatusBySystem).toHaveBeenCalled();
+    expect(workshopMock.closeServiceOrderAfterFullPayment).toHaveBeenCalled();
   });
 
   it('le solde ne descend jamais en négatif (surpaiement → 0)', async () => {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Package, List, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MOBILE_BOTTOM_NAV_OFFSET } from '@/lib/constants';
 import { resolveTechMobilePrimary } from '@/lib/workshop-tech-mobile';
 
 interface TechMobileBarProps {
@@ -39,7 +40,7 @@ export function TechMobileBar({
   return (
     <div
       className="md:hidden fixed left-0 right-0 z-[90] border-t border-border bg-card/95 backdrop-blur-xl px-3 py-2 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]"
-      style={{ bottom: 'calc(68px + env(safe-area-inset-bottom, 0px))' }}
+      style={{ bottom: MOBILE_BOTTOM_NAV_OFFSET }}
     >
       <div className="flex items-center gap-2 max-w-lg mx-auto">
         <Button

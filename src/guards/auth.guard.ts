@@ -9,6 +9,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { IS_PUBLIC_KEY, PERMISSIONS_KEY, ROLES_KEY } from '../decorators/auth.decorator';
+import { permissionGranted } from '../shared/rbac/permissions';
 import { PrismaService } from '../shared/prisma/prisma.service';
 import { JwtSecretsService } from '../modules/auth/jwt-secrets.service';
 
@@ -105,8 +106,8 @@ export class PermissionsGuard implements CanActivate {
         ur.role.permissions.map((rp: any) => rp.permission.code)
       );
       
-      const hasPermission = requiredPermissions.every((permission) => 
-        userPermissions.includes(permission)
+      const hasPermission = requiredPermissions.every((permission) =>
+        permissionGranted(userPermissions, permission),
       );
       
       if (hasPermission) return true;

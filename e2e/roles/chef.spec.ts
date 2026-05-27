@@ -43,10 +43,9 @@ test.describe('Profil Chef d\'atelier', () => {
     await expectSuccessTransition(page, 'Prêt');
   });
 
-  test('ne peut pas facturer (READY → Facturé)', async ({ page, request }) => {
-    const ctx = await prepareOtAtStatus(request, 'READY', `chef-deny-inv-${Date.now()}`);
+  test('peut facturer depuis l\'OT prêt (bouton Facturer visible)', async ({ page, request }) => {
+    const ctx = await prepareOtAtStatus(request, 'READY', `chef-inv-${Date.now()}`);
     await gotoOtDetail(page, ctx.otId);
-    await clickOtTransition(page, 'Facturé');
-    await expectForbiddenTransition(page, 'Prêt');
+    await expect(page.getByRole('button', { name: 'Facturer' })).toBeVisible();
   });
 });

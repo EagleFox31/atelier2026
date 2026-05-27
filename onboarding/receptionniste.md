@@ -13,14 +13,15 @@ Votre email + mot de passe vous ont été fournis par l'administrateur.
 
 ## Flux quotidien type
 
-### 1. Un client arrive sans rendez-vous
+### 1. Un client arrive sans rendez-vous (recommandé)
 
-1. **Clients** → Recherchez le client par nom ou téléphone
-2. Pas trouvé ? **→ Nouveau client** : remplissez prénom, nom, téléphone (obligatoire), ville
-3. Sur la fiche client → onglet **Véhicules** → vérifiez si le véhicule est déjà enregistré
-4. Véhicule absent ? **→ Ajouter un véhicule** : plaque, marque, modèle, année
-5. **Ordres de Travail** → **Nouvel OT** : sélectionnez client + véhicule, saisissez la plainte client, choisissez la priorité
-6. Validez → l'OT passe en statut **REÇU**
+1. **Réception express** (dashboard ou barre mobile **Réception**)
+2. **Étape Client** : recherchez par téléphone ou nom — si absent, le formulaire de création s'affiche sous la recherche
+3. **Étape Véhicule** : recherchez la plaque — si absent, créez le véhicule sur place (marque, modèle)
+4. **Étape Réception** : plainte, kilométrage, checklist (même écran qu'avant)
+5. Validez → fiche OT ouverte, statut **REÇU**
+
+**Alternative (fiches séparées)** : Clients → Véhicule sur fiche client → **Réceptionner** sur la fiche véhicule.
 
 ### 2. Un client a un rendez-vous
 
@@ -49,6 +50,7 @@ Votre email + mot de passe vous ont été fournis par l'administrateur.
 | Page | Accès |
 |------|-------|
 | `/` | Dashboard — vue du jour |
+| `/reception` | **Réception express** (client + véhicule + contrôle) |
 | `/customers` | Liste et création de clients |
 | `/customers/[id]` | Fiche client + ses véhicules |
 | `/vehicles` | Tous les véhicules |

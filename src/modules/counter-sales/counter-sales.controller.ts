@@ -8,13 +8,13 @@ export class CounterSalesController {
   constructor(private readonly counterSalesService: CounterSalesService) {}
 
   @Get()
-  @RequirePermission('FAC_CREATE')
+  @RequirePermission('FAC_VIEW')
   findAll(@Query('search') search?: string) {
     return this.counterSalesService.findAll(search);
   }
 
   @Post()
-  @RequirePermission('FAC_CREATE')
+  @RequirePermission('FAC_PAY')
   create(@Body() body: CreateCounterSaleDto, @CurrentUser() user: { id: string }) {
     return this.counterSalesService.create(body, user.id);
   }

@@ -12,7 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/auth-context';
-import { isTechnicianProfile, TECH_MOBILE_NAV } from '@/lib/role-routing';
+import { isTechnicianProfile, isReceptionnisteProfile, isCaissierProfile, RECEPTION_MOBILE_NAV, TECH_MOBILE_NAV, CASHIER_MOBILE_NAV } from '@/lib/role-routing';
 import { countActiveOrders, scopeOrdersForUser } from '@/lib/workshop-orders';
 import { workshopApi, notificationsApi } from '@/lib/api';
 
@@ -108,18 +108,23 @@ export function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const { user } = useAuth();
+  const isCashier = isCaissierProfile(user);
   const { otCount, notifCount } = useSidebarBadges();
 
   const visibleNav = useVisibleItems(NAV_ITEMS);
   const visibleSettings = useVisibleItems(SETTINGS_ITEMS);
 
-  const principal = visibleNav.slice(0, visibleNav.findIndex(i => i.href === '/vehicles') === -1
-    ? 4
-    : visibleNav.findIndex(i => i.href === '/vehicles'));
-  const gestion = visibleNav.filter(i =>
-    ['/vehicles','/stock','/stock/movements','/billing','/customers','/history','/audit','/reports']
-      .includes(i.href)
-  );
+  const principal = isCashier
+    ? visibleNav.filter(i => ['/', ...CASHIER_MOBILE_NAV.map(t => t.href)].includes(i.href))
+    : visibleNav.slice(0, visibleNav.findIndex(i => i.href === '/vehicles') === -1
+      ? 4
+      : visibleNav.findIndex(i => i.href === '/vehicles'));
+  const gestion = isCashier
+    ? visibleNav.filter(i => ['/customers', '/cashier/history'].includes(i.href))
+    : visibleNav.filter(i =>
+      ['/vehicles','/stock','/stock/movements','/billing','/customers','/history','/audit','/reports']
+        .includes(i.href)
+    );
 
   const initials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || '?'
@@ -250,18 +255,23 @@ export function Sidebar() {
 export function MobileSidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const isCashier = isCaissierProfile(user);
   const { otCount, notifCount } = useSidebarBadges();
 
   const visibleNav = useVisibleItems(NAV_ITEMS);
   const visibleSettings = useVisibleItems(SETTINGS_ITEMS);
 
-  const principal = visibleNav.filter(i =>
-    ['/', '/planning', '/team', '/workshop'].includes(i.href)
-  );
-  const gestion = visibleNav.filter(i =>
-    ['/vehicles','/stock','/stock/movements','/billing','/customers','/history','/audit','/reports']
-      .includes(i.href)
-  );
+  const principal = isCashier
+    ? visibleNav.filter(i => ['/', ...CASHIER_MOBILE_NAV.map(t => t.href)].includes(i.href))
+    : visibleNav.filter(i =>
+      ['/', '/planning', '/team', '/workshop'].includes(i.href)
+    );
+  const gestion = isCashier
+    ? visibleNav.filter(i => ['/customers', '/cashier/history'].includes(i.href))
+    : visibleNav.filter(i =>
+      ['/vehicles','/stock','/stock/movements','/billing','/customers','/history','/audit','/reports']
+        .includes(i.href)
+    );
 
   const initials = user
     ? `${user.firstName?.[0] ?? ''}${user.lastName?.[0] ?? ''}`.toUpperCase() || '?'
@@ -333,6 +343,8 @@ export function BottomNav({ onOpenMenu }: { onOpenMenu: () => void }) {
   const { user } = useAuth();
   const visibleNav = useVisibleItems(NAV_ITEMS);
   const isTechnician = isTechnicianProfile(user);
+  const isReception = isReceptionnisteProfile(user);
+  const isCashier = isCaissierProfile(user);
 
   const navs = isTechnician
     ? visibleNav
@@ -342,18 +354,39 @@ export function BottomNav({ onOpenMenu }: { onOpenMenu: () => void }) {
           ...i,
           title: TECH_MOBILE_NAV.find(t => t.href === i.href)?.label ?? i.title,
         }))
-    : visibleNav
-        .filter(i => ['/', '/planning', '/workshop'].includes(i.href))
-        .sort((a, b) => ['/', '/planning', '/workshop'].indexOf(a.href) - ['/', '/planning', '/workshop'].indexOf(b.href));
+    : isReception
+      ? visibleNav
+          .filter(i => RECEPTION_MOBILE_NAV.some(t => t.href === i.href))
+          .sort((a, b) => RECEPTION_MOBILE_NAV.findIndex(t => t.href === a.href) - RECEPTION_MOBILE_NAV.findIndex(t => t.href === b.href))
+          .map(i => {
+            const meta = RECEPTION_MOBILE_NAV.find(t => t.href === i.href);
+            return {
+              ...i,
+              title: meta?.label ?? i.title,
+              linkHref: meta?.search ? `${i.href}${meta.search}` : i.href,
+            };
+          })
+      : isCashier
+        ? visibleNav
+            .filter(i => CASHIER_MOBILE_NAV.some(t => t.href === i.href))
+            .sort((a, b) => CASHIER_MOBILE_NAV.findIndex(t => t.href === a.href) - CASHIER_MOBILE_NAV.findIndex(t => t.href === b.href))
+            .map(i => ({
+              ...i,
+              title: CASHIER_MOBILE_NAV.find(t => t.href === i.href)?.label ?? i.title,
+            }))
+        : visibleNav
+          .filter(i => ['/', '/planning', '/workshop'].includes(i.href))
+          .sort((a, b) => ['/', '/planning', '/workshop'].indexOf(a.href) - ['/', '/planning', '/workshop'].indexOf(b.href));
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card/90 backdrop-blur-xl border-t border-border flex items-center justify-around z-[100] px-2 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]" style={{ height: 'calc(68px + env(safe-area-inset-bottom, 0px))', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       {navs.map(item => {
+        const href = 'linkHref' in item && item.linkHref ? item.linkHref : item.href;
         const isActive = item.href === '/'
           ? pathname === '/'
           : pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
-          <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center w-16 h-full relative group">
+          <Link key={item.href} href={href} className="flex flex-col items-center justify-center w-16 h-full relative group">
             <item.icon size={22} className={cn("mb-1 transition-colors", isActive ? "text-brand" : "text-muted-foreground group-hover:text-foreground")} />
             <span className={cn("text-[10px] font-medium transition-colors", isActive ? "text-brand font-bold" : "text-muted-foreground group-hover:text-foreground")}>
               {item.title}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Check, Search, Loader2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -21,6 +21,10 @@ interface ComboboxProps {
   initialOption?: ComboboxOption;            // affiche le label sans fetch
   debounce?:     number;
   className?:    string;
+  /** Longueur minimale avant recherche / état vide (défaut 2). */
+  minSearchLength?: number;
+  /** Panneau affiché sous le champ quand la recherche ne retourne aucun résultat. */
+  renderNoResults?: (search: string) => React.ReactNode;
 }
 
 export function Combobox({
@@ -32,12 +36,15 @@ export function Combobox({
   initialOption,
   debounce = 300,
   className,
+  minSearchLength = 2,
+  renderNoResults,
 }: ComboboxProps) {
   const [search, setSearch]         = useState('');
   const [options, setOptions]       = useState<ComboboxOption[]>([]);
   const [selected, setSelected]     = useState<ComboboxOption | null>(initialOption ?? null);
   const [open, setOpen]             = useState(false);
   const [loading, setLoading]       = useState(false);
+  const [noResults, setNoResults]   = useState(false);
   const ref                         = useRef<HTMLDivElement>(null);
 
   // Sync selected depuis value externe
@@ -56,19 +63,34 @@ export function Combobox({
 
   // Fetch avec debounce
   useEffect(() => {
-    if (!search) { setOptions([]); return; }
+    if (!search || search.length < minSearchLength) {
+      setOptions([]);
+      setNoResults(false);
+      return;
+    }
     const t = setTimeout(async () => {
       setLoading(true);
-      try { setOptions(await fetchOptions(search)); }
-      catch {} finally { setLoading(false); }
+      setNoResults(false);
+      try {
+        const data = await fetchOptions(search);
+        setOptions(data);
+        setNoResults(data.length === 0);
+        setOpen(true);
+      } catch {
+        setOptions([]);
+        setNoResults(false);
+      } finally {
+        setLoading(false);
+      }
     }, debounce);
     return () => clearTimeout(t);
-  }, [search, fetchOptions, debounce]);
+  }, [search, fetchOptions, debounce, minSearchLength]);
 
   function select(opt: ComboboxOption) {
     setSelected(opt);
     setSearch('');
     setOpen(false);
+    setNoResults(false);
     onChange?.(opt.id, opt);
   }
 
@@ -77,8 +99,16 @@ export function Combobox({
     setSelected(null);
     setSearch('');
     setOptions([]);
+    setNoResults(false);
     onChange?.(null, null);
   }
+
+  const showNoResultsPanel =
+    !selected &&
+    !loading &&
+    noResults &&
+    search.length >= minSearchLength &&
+    !!renderNoResults;
 
   return (
     <div ref={ref} className={cn('relative', className)}>
@@ -118,7 +148,7 @@ export function Combobox({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.12 }}
-            className="absolute z-50 w-full mt-1 bg-card border border-border rounded-xl shadow-xl max-h-52 overflow-auto"
+            className="absolute z-[120] w-full mt-1 bg-card border border-border rounded-xl shadow-xl max-h-52 overflow-auto"
           >
             {options.map(opt => (
               <li key={opt.id}
@@ -135,6 +165,15 @@ export function Combobox({
           </motion.ul>
         )}
       </AnimatePresence>
+
+      {showNoResultsPanel && (
+        <div className="mt-3 rounded-xl border border-dashed border-brand/40 bg-brand/5 p-4">
+          <p className="text-xs text-muted-foreground mb-3">
+            Aucun résultat pour « <span className="font-medium text-foreground">{search}</span> »
+          </p>
+          {renderNoResults(search)}
+        </div>
+      )}
     </div>
   );
 }

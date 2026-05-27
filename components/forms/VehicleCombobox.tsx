@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react';
 import { Combobox } from '@/components/ui/combobox';
+import { InlineVehicleCreate } from '@/components/reception/InlineVehicleCreate';
 import { vehiclesApi } from '@/lib/api';
 
 interface VehicleComboboxProps {
@@ -34,12 +35,20 @@ export function VehicleCombobox({ customerId, value, onChange, disabled, initial
 
   return (
     <Combobox
-      placeholder={customerId ? "Rechercher un véhicule..." : "Sélectionnez d'abord un client"}
+      placeholder={customerId ? "Plaque ou modèle…" : "Sélectionnez d'abord un client"}
       value={value}
       disabled={disabled || !customerId}
       fetchOptions={fetchOptions}
       initialOption={initialOption}
+      minSearchLength={2}
       onChange={(id, opt) => onChange?.(id, (opt as any)?._raw ?? null)}
+      renderNoResults={customerId ? (search) => (
+        <InlineVehicleCreate
+          customerId={customerId}
+          searchHint={search}
+          onCreated={(v) => onChange?.(v.id, v.raw)}
+        />
+      ) : undefined}
     />
   );
 }

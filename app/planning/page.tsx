@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -37,11 +38,18 @@ function fmtTime(dt: string) {
 
 export default function PlanningPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [date, setDate]             = useState<Date | undefined>(new Date());
   const [appointments, setApts]     = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [creatingOT, setCreatingOT] = useState<string | null>(null); // id de l'apt en cours
+
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setIsModalOpen(true);
+    }
+  }, [searchParams]);
 
   const load = useCallback(async (d?: Date) => {
     const target = d ?? date;

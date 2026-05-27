@@ -86,3 +86,18 @@ export class RecordPaymentDto {
   @IsOptional()
   idempotencyKey?: string;
 }
+
+export class CloseCashDayDto {
+  @IsDateString()
+  @IsOptional()
+  date?: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  countedCash?: number;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}

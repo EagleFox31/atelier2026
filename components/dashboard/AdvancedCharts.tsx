@@ -15,7 +15,7 @@ import {
   PieChart,
   Pie,
 } from 'recharts';
-import { billingApi, workshopApi, teamApi, reportsApi } from "@/lib/api";
+import { billingApi, workshopApi, reportsApi } from "@/lib/api";
 
 export function RevenueChart() {
   const [data, setData] = useState<{ day: string; amount: number }[]>([]);
@@ -203,44 +203,41 @@ export function StatusDistributionChart() {
 }
 
 export function TechEfficiencyChart() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<{ name: string; efficiency: number; estimatedHours: number; actualHours: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unavailableReason, setUnavailableReason] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
       try {
-        let performance: Record<string, { estimatedHours: number; actualHours: number }> = {};
-        try {
-          performance = await reportsApi.performance() as any;
-        } catch (e) {
-          console.warn("Reports API error (probably lack of permissions):", e);
+        const performance = await reportsApi.performance() as Record<string, { estimatedHours: number; actualHours: number }>;
+
+        const chartData = Object.entries(performance)
+          .map(([fullName, perf]) => {
+            const estimatedHours = Number(perf?.estimatedHours ?? 0);
+            const actualHours = Number(perf?.actualHours ?? 0);
+            if (actualHours <= 0) return null;
+            const efficiency = Math.round((estimatedHours / actualHours) * 100);
+            return {
+              name: fullName,
+              efficiency,
+              estimatedHours,
+              actualHours,
+            };
+          })
+          .filter((row): row is { name: string; efficiency: number; estimatedHours: number; actualHours: number } => !!row)
+          .sort((a, b) => b.actualHours - a.actualHours)
+          .slice(0, 6);
+
+        if (chartData.length === 0) {
+          setUnavailableReason('Aucune donnée d’efficacité disponible sur la période.');
+        } else {
+          setUnavailableReason(null);
         }
-        
-        const team = await teamApi.list() as any[];
-        
-        const chartData = team.slice(0, 6).map(m => {
-          const fullName = `${m.firstName} ${m.lastName}`;
-          const perf = performance[fullName] || { estimatedHours: 0, actualHours: 0 };
-          
-          let efficiency = 100;
-          if (perf.actualHours > 0) {
-            efficiency = Math.round((perf.estimatedHours / perf.actualHours) * 100);
-          } else if (m.status === 'ACTIVE') {
-            efficiency = 100; // default for active tech with no tasks
-          } else {
-            efficiency = 0;
-          }
-          
-          return {
-            name: m.firstName,
-            efficiency,
-            jobs: m.workItems?.length ?? 0,
-          };
-        });
-        
         setData(chartData);
       } catch (err) {
-        console.error("Error loading technician efficiency data:", err);
+        setData([]);
+        setUnavailableReason("Données non disponibles pour ce profil.");
       } finally {
         setLoading(false);
       }
@@ -252,6 +249,14 @@ export function TechEfficiencyChart() {
     return (
       <div className="h-[200px] w-full flex items-center justify-center text-muted-foreground text-sm">
         Chargement...
+      </div>
+    );
+  }
+
+  if (unavailableReason) {
+    return (
+      <div className="h-[200px] w-full flex items-center justify-center text-center text-muted-foreground text-sm px-4">
+        {unavailableReason}
       </div>
     );
   }
@@ -278,6 +283,10 @@ export function TechEfficiencyChart() {
               color: 'var(--foreground)'
             }}
             itemStyle={{ color: 'var(--foreground)' }}
+            formatter={((value: number, _name: string, payload: { payload: { estimatedHours: number; actualHours: number } }) => {
+              const p = payload.payload;
+              return [`${value}% (estimé ${p.estimatedHours.toFixed(1)}h / réel ${p.actualHours.toFixed(1)}h)`, 'Efficacité'];
+            }) as any}
           />
           <Bar 
             dataKey="efficiency" 

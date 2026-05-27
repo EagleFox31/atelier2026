@@ -34,14 +34,16 @@ test.describe('Profil Admin — RBAC OT', () => {
     await expectSuccessTransition(page, 'En diagnostic');
   });
 
-  test('peut facturer et clôturer (READY → Facturé → Clôturé)', async ({ page, request }) => {
+  test('peut facturer depuis OT prêt (bouton Facturer visible)', async ({ page, request }) => {
     const ctx = await prepareOtAtStatus(request, 'READY', `admin-bill-${Date.now()}`);
     await gotoOtDetail(page, ctx.otId);
+    await expect(page.getByRole('button', { name: 'Facturer' })).toBeVisible();
+  });
 
-    await clickOtTransition(page, 'Facturé');
-    await expectSuccessTransition(page, 'Facturé');
-
-    await clickOtTransition(page, 'Clôturé');
+  test('peut clôturer OT facturé (INVOICED → Clôturé)', async ({ page, request }) => {
+    const ctx = await prepareOtAtStatus(request, 'INVOICED', `admin-close-${Date.now()}`);
+    await gotoOtDetail(page, ctx.otId);
+    await clickOtTransition(page, "Clôturer l'OT");
     await expectSuccessTransition(page, 'Clôturé');
   });
 });

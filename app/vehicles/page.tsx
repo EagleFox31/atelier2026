@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Search, Filter, MoreVertical, Car, History, ExternalLink, Wrench } from "lucide-react";
+import { Plus, Search, Filter, MoreVertical, Car, History, ExternalLink, Wrench, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { VehicleForm } from "@/components/forms/VehicleForm";
 import { vehiclesApi, handleApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 function vehicleName(v: any): string {
@@ -124,6 +125,106 @@ function makeColumns(router: AppRouterInstance): DataTableColumn[] {
   ];
 }
 
+function VehicleMobileList({
+  vehicles,
+  loading,
+  search,
+  onSelect,
+  onReception,
+  onCustomer,
+}: {
+  vehicles: any[];
+  loading: boolean;
+  search: string;
+  onSelect: (id: string) => void;
+  onReception: (id: string) => void;
+  onCustomer: (customerId: string) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="md:hidden p-4 space-y-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-36 w-full rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+
+  if (vehicles.length === 0) {
+    return (
+      <div className="md:hidden flex flex-col items-center gap-3 py-16 text-muted-foreground px-4 text-center">
+        <Car size={40} strokeWidth={1} />
+        <p>{search ? `Aucun véhicule pour « ${search} »` : 'Aucun véhicule enregistré'}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="md:hidden p-4 space-y-3">
+      {vehicles.map(v => (
+        <Card
+          key={v.id}
+          className="border-border shadow-sm overflow-hidden active:scale-[0.99] transition-transform"
+        >
+          <CardContent className="p-0">
+            <div
+              className="flex items-center gap-3 px-4 py-3 cursor-pointer"
+              onClick={() => onSelect(v.id)}
+            >
+              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground shrink-0">
+                <Car size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className="font-mono border-border text-xs">{v.plateNumber}</Badge>
+                  {v.year && <span className="text-[10px] text-muted-foreground">Année {v.year}</span>}
+                </div>
+                <p className="font-bold text-sm truncate mt-1">{vehicleName(v)}</p>
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground hover:text-brand truncate flex items-center gap-1 mt-0.5"
+                  onClick={e => { e.stopPropagation(); onCustomer(v.customerId); }}
+                >
+                  <User size={11} className="shrink-0" />
+                  {ownerName(v)}
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-t border-border/60 bg-muted/20 text-xs text-muted-foreground">
+              <span className="tabular-nums">
+                {v.currentMileage ? `${v.currentMileage.toLocaleString()} km` : '—'}
+              </span>
+              <span className="flex items-center gap-1">
+                <History size={12} />
+                {v.lastServiceAt ? new Date(v.lastServiceAt).toLocaleDateString('fr-FR') : 'Jamais'}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 p-3 border-t border-border/60">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 border-border text-xs h-9"
+                onClick={() => onSelect(v.id)}
+              >
+                <ExternalLink size={14} />
+                Fiche
+              </Button>
+              <Button
+                size="sm"
+                className="gap-1.5 bg-brand hover:bg-brand-hover text-xs h-9"
+                onClick={() => onReception(v.id)}
+              >
+                <Wrench size={14} />
+                Réception
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 export default function VehiclesPage() {
   const router  = useRouter();
   const { hasPermission } = useAuth();
@@ -196,16 +297,26 @@ export default function VehiclesPage() {
           </div>
         </CardHeader>
         <CardContent className="pt-4 px-0 pb-0">
-          <DataTable
-            columns={columns}
-            data={vehicles}
+          <VehicleMobileList
+            vehicles={vehicles}
             loading={loading}
-            skeletonRows={8}
-            keyExtractor={(v) => v.id}
-            onRowClick={(v) => router.push(`/vehicles/${v.id}`)}
-            emptyMessage={search ? `Aucun véhicule pour "${search}"` : 'Aucun véhicule enregistré'}
-            emptyIcon={<Car size={40} strokeWidth={1} />}
+            search={search}
+            onSelect={(id) => router.push(`/vehicles/${id}`)}
+            onReception={(id) => router.push(`/vehicles/${id}/reception`)}
+            onCustomer={(customerId) => router.push(`/customers/${customerId}`)}
           />
+          <div className="hidden md:block">
+            <DataTable
+              columns={columns}
+              data={vehicles}
+              loading={loading}
+              skeletonRows={8}
+              keyExtractor={(v) => v.id}
+              onRowClick={(v) => router.push(`/vehicles/${v.id}`)}
+              emptyMessage={search ? `Aucun véhicule pour "${search}"` : 'Aucun véhicule enregistré'}
+              emptyIcon={<Car size={40} strokeWidth={1} />}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>

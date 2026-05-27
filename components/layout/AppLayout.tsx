@@ -100,7 +100,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden pb-16 md:pb-0">
         {/* Header */}
-        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 md:px-8 shrink-0 z-40">
+        <header className="sticky top-0 h-16 bg-card/95 supports-[backdrop-filter]:bg-card/80 backdrop-blur border-b border-border flex items-center justify-between px-4 md:px-8 shrink-0 z-[101]">
           <div className="flex items-center gap-2 md:gap-4 flex-1 max-w-xl">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetContent side="left" className="p-0 w-[280px] bg-sidebar-bg border-none">

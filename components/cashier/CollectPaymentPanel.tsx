@@ -75,6 +75,8 @@ export function CollectPaymentPanel({ preselectedInvoiceId, onPaymentSuccess }: 
   const selected = collectible.find((inv) => inv.id === selectedId) ?? null;
   const balance = selected ? invoiceBalance(selected) : 0;
   const needsMobileRef = ['ORANGE_MONEY', 'MTN_MOBILE_MONEY'].includes(paymentMethod);
+  const selectedPaymentMethodLabel =
+    CASHIER_PAYMENT_METHODS.find((m) => m.value === paymentMethod)?.label ?? 'Choisir un mode';
 
   useEffect(() => {
     if (selected) setPaymentAmount(String(Math.round(balance)));
@@ -156,7 +158,7 @@ export function CollectPaymentPanel({ preselectedInvoiceId, onPaymentSuccess }: 
                         'text-[9px] border-none',
                         inv.status === 'PARTIAL' ? 'bg-amber-500/20 text-amber-700' : 'bg-violet-500/20 text-violet-700',
                       )}>
-                        {inv.status === 'PARTIAL' ? 'Partielle' : 'Emise'}
+                        {inv.status === 'PARTIAL' ? 'Paiement partiel' : 'À encaisser'}
                       </Badge>
                     </div>
                     <p className="text-sm font-bold text-foreground truncate mt-1">{customerDisplayName(inv.customer)}</p>
@@ -196,7 +198,7 @@ export function CollectPaymentPanel({ preselectedInvoiceId, onPaymentSuccess }: 
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mode</label>
               <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v ?? 'CASH')}>
                 <SelectTrigger className="h-11 rounded-xl w-full">
-                  <SelectValue />
+                  <SelectValue>{selectedPaymentMethodLabel}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {CASHIER_PAYMENT_METHODS.map((m) => (

@@ -191,6 +191,10 @@ Workshop, Stock, Billing, Vehicles, Counter-Sales, Dashboard stats réelles.
 8. **Prisma `include` superficiel** — `include: { lines: true }` ne charge pas les relations imbriquées. Si on a besoin de `line.part`, il faut `lines: { include: { part: true } }`. Vérifier la profondeur nécessaire avant d'écrire le service.
 9. **Chargement async dans les dialogs** — séparer l'ouverture du dialog (`setIsOpen(true)`) du chargement des données (via `useEffect` qui watch `isOpen`). Si le fetch est dans le handler du bouton et échoue silencieusement, le bouton semble ne rien faire.
 10. **Le linter/IDE peut modifier les fichiers entre deux éditions** — toujours relire un fichier avant d'éditer si du temps s'est écoulé, pour ne pas écraser des changements automatiques (imports ajoutés, strings corrigées, etc.).
+11. **Redirection après création** — client → `/customers/[id]`, véhicule → `/vehicles/[id]`, OT → `/workshop/[id]`. Implémenter dans le `*Form` (pas seulement fermer la modale). Voir `CustomerForm`, `VehicleForm`, `OrderForm`.
+12. **Z-index mobile** — BottomNav 100, Dialog 105, barre d'action formulaire 110, Select/Dropdown/Popover portés **120**. Ne jamais laisser un popup à z-50 dans une modale z-105.
+13. **Formulaires modale mobile** — bottom sheet + scroll + `MobileFormActionBar` au-dessus de la navbar (`MOBILE_BOTTOM_NAV_OFFSET`). Réf. `mobile-form-action-bar.tsx`, `CUSTOMER_FORM_DIALOG_CLASS`.
+14. **Listes mobile** — cartes `md:hidden` + tableau desktop ; profil réception : BottomNav Clients/OT/Nouveau RDV.
 
 ---
 
