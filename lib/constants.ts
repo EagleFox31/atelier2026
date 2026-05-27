@@ -10,6 +10,7 @@ import {
   Bell,
   UsersRound,
   Calendar,
+  ClipboardList,
   type LucideIcon,
 } from "lucide-react";
 
@@ -34,13 +35,20 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/planning",
     icon: Calendar,
     permission: "ORD_VIEW",
-    hideForRoles: ["TECHNICIEN"],
+    hideForRoles: ["TECHNICIEN", "CAISSIER"],
   },
   {
     title: "Équipe",
     href: "/team",
     icon: UsersRound,
     roles: ["ADMIN", "CHEF_ATELIER", "SUPER_ADMIN"],
+  },
+  {
+    title: "Réception express",
+    href: "/reception",
+    icon: ClipboardList,
+    permission: "ORD_CREATE",
+    hideForRoles: ["TECHNICIEN", "CAISSIER"],
   },
   {
     title: "Ordres de Travail",
@@ -53,6 +61,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/vehicles",
     icon: Car,
     permission: "VEH_VIEW",
+    hideForRoles: ["CAISSIER"],
   },
   {
     title: "Stock & Pièces",
@@ -70,7 +79,32 @@ export const NAV_ITEMS: NavItem[] = [
     title: "Facturation",
     href: "/billing",
     icon: FileText,
-    permission: "FAC_CREATE",
+    permission: "FAC_VIEW",
+  },
+  {
+    title: "Encaisser",
+    href: "/cashier/collect",
+    icon: FileText,
+    roles: ["CAISSIER"],
+  },
+  {
+    title: "Impayés",
+    href: "/cashier/receivables",
+    icon: Bell,
+    roles: ["CAISSIER"],
+  },
+  {
+    title: "Historique caisse",
+    href: "/cashier/history",
+    icon: History,
+    roles: ["CAISSIER"],
+    hideForRoles: ["TECHNICIEN"],
+  },
+  {
+    title: "Clôture caisse",
+    href: "/cashier/closing",
+    icon: FileText,
+    roles: ["CAISSIER"],
   },
   {
     title: "Clients",
@@ -84,7 +118,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/history",
     icon: History,
     permission: "ORD_VIEW",
-    hideForRoles: ["TECHNICIEN"],
+    hideForRoles: ["TECHNICIEN", "CAISSIER"],
   },
   {
     title: "Journal d'Audit",
@@ -134,10 +168,36 @@ export const WORKSHOP_STATUS: Record<string, { label: string; color: string; dot
 export const QUOTE_STATUS: Record<string, { label: string; color: string }> = {
   DRAFT:    { label: 'Brouillon', color: 'bg-slate-100 text-slate-600' },
   SENT:     { label: 'Envoyé',    color: 'bg-blue-50 text-blue-700'    },
-  APPROVED: { label: 'Approuvé', color: 'bg-green-50 text-green-700'  },
-  REJECTED: { label: 'Refusé',   color: 'bg-red-50 text-red-700'      },
-  REVISED:  { label: 'Révisé',   color: 'bg-amber-50 text-amber-700'  },
+  APPROVED: { label: 'Approuvé',  color: 'bg-green-50 text-green-700'  },
+  REJECTED: { label: 'Refusé',    color: 'bg-red-50 text-red-700'      },
+  REVISED:  { label: 'Révisé',    color: 'bg-amber-50 text-amber-700'  },
+  BILLED:   { label: 'Facturé',   color: 'bg-slate-100 text-slate-600' },
 };
+
+export function quoteStatusDisplay(status: string) {
+  return QUOTE_STATUS[status] ?? { label: status, color: 'bg-muted text-muted-foreground' };
+}
+
+/** Mode de validation client (codes SQL → libellés affichés) */
+export const QUOTE_APPROVAL_METHOD_LABELS: Record<string, string> = {
+  PHYSICAL:     'Bon de devis signé',
+  DIGITAL:      'Validation SMS ou email',
+  VERBAL_NOTED: 'Accord verbal noté',
+};
+
+export function quoteApprovalMethodLabel(method: string | null | undefined): string {
+  if (!method) return '';
+  return QUOTE_APPROVAL_METHOD_LABELS[method] ?? method.replace(/_/g, ' ').toLowerCase();
+}
+
+/** Offset vertical pour barres d'action au-dessus de la BottomNav mobile (68px + safe area). */
+export const MOBILE_BOTTOM_NAV_OFFSET = 'calc(68px + env(safe-area-inset-bottom, 0px))';
+
+/** Empilement z-index — popups portés > modales > barre formulaire > bottom nav. */
+export const Z_BOTTOM_NAV = 100;
+export const Z_DIALOG = 105;
+export const Z_MOBILE_FORM_BAR = 110;
+export const Z_POPOVER = 120;
 
 /** Statuts sans action atelier possible — exclus des listes « actives ». */
 export const OT_TERMINAL_STATUSES = ['CLOSED', 'CANCELLED'] as const;

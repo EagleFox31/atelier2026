@@ -12,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { CustomerCombobox } from '@/components/forms/CustomerCombobox';
 import { VehicleCombobox } from '@/components/forms/VehicleCombobox';
 import { workshopApi } from '@/lib/api';
+import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -26,47 +27,69 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 interface OrderFormProps {
-  onSuccess?: () => void;
-  initialCustomerId?:    string;
-  initialCustomerLabel?: string;
-  initialCustomerPhone?: string;
-  initialVehicleId?:     string;
-  initialVehicleLabel?:  string;
-  initialVehicleSub?:    string;
+  onSuccess?: (ot?: { id: string }) => void;
+  initialCustomerId?:      string;
+  initialCustomerLabel?:   string;
+  initialCustomerPhone?:   string;
+  initialVehicleId?:       string;
+  initialVehicleLabel?:    string;
+  initialVehicleSub?:      string;
+  initialClientComplaint?: string;
+  initialPriority?:        'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  initialMileageIn?:       number;
+  editId?:                 string;
 }
 
 export function OrderForm({
   onSuccess,
   initialCustomerId, initialCustomerLabel, initialCustomerPhone,
   initialVehicleId, initialVehicleLabel, initialVehicleSub,
+  initialClientComplaint, initialPriority, initialMileageIn,
+  editId,
 }: OrderFormProps) {
+  const router = useRouter();
   const [customerId, setCustomerId] = useState<string | null>(initialCustomerId ?? null);
   const [submitting, setSubmitting] = useState(false);
+  const isEdit = !!editId;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as any,
     defaultValues: {
-      customerId:      initialCustomerId  ?? '',
-      vehicleId:       initialVehicleId   ?? '',
-      clientComplaint: '',
-      priority:        'NORMAL',
+      customerId:      initialCustomerId      ?? '',
+      vehicleId:       initialVehicleId       ?? '',
+      clientComplaint: initialClientComplaint ?? '',
+      priority:        initialPriority        ?? 'NORMAL',
+      mileageIn:       initialMileageIn,
     },
   });
 
   async function onSubmit(values: FormValues) {
     setSubmitting(true);
     try {
-      await workshopApi.createOT({
-        customerId:      values.customerId,
-        vehicleId:       values.vehicleId,
-        clientComplaint: values.clientComplaint,
-        priority:        values.priority,
-        mileageIn:       values.mileageIn,
-      });
-      toast.success('Ordre de travail ouvert avec succès');
-      onSuccess?.();
+      if (isEdit) {
+        await workshopApi.updateOT(editId, {
+          customerId:      values.customerId,
+          vehicleId:       values.vehicleId,
+          clientComplaint: values.clientComplaint,
+          priority:        values.priority,
+          mileageIn:       values.mileageIn,
+        });
+        toast.success('OT mis à jour');
+        router.push(`/workshop/${editId}`);
+      } else {
+        const ot = await workshopApi.createOT({
+          customerId:      values.customerId,
+          vehicleId:       values.vehicleId,
+          clientComplaint: values.clientComplaint,
+          priority:        values.priority,
+          mileageIn:       values.mileageIn,
+        }) as { id: string };
+        toast.success('Ordre de travail ouvert avec succès');
+        onSuccess?.(ot);
+        if (ot?.id) router.push(`/workshop/${ot.id}`);
+      }
     } catch (err: any) {
-      toast.error(err?.message || 'Erreur lors de la création');
+      toast.error(err?.message || (isEdit ? 'Erreur lors de la modification' : 'Erreur lors de la création'));
     } finally { setSubmitting(false); }
   }
 
@@ -144,7 +167,10 @@ export function OrderForm({
         )} />
 
         <Button type="submit" className="w-full bg-brand hover:bg-brand-hover" disabled={submitting}>
-          {submitting ? <><Loader2 size={16} className="animate-spin mr-2" />Création...</> : "Ouvrir l'Ordre de Travail"}
+          {submitting
+            ? <><Loader2 size={16} className="animate-spin mr-2" />{isEdit ? 'Mise à jour...' : 'Création...'}</>
+            : isEdit ? 'Enregistrer les modifications' : "Ouvrir l'Ordre de Travail"
+          }
         </Button>
       </form>
     </Form>

@@ -15,12 +15,12 @@ import Link from 'next/link';
 import {
   Wrench, Clock, FileText, AlertCircle, User, Car, Loader2, ArrowLeft,
   ShieldAlert, PlusCircle, Stethoscope, ArrowRight, Gauge, Phone, Calendar, Package, CheckCircle2,
-  ChevronRight, Receipt,
+  ChevronRight, Receipt, Pencil,
 } from "lucide-react";
 import { workshopApi, teamApi, billingApi } from "@/lib/api";
 import { useApi } from "@/hooks/use-api";
 import { useAuth } from "@/contexts/auth-context";
-import { WORKSHOP_STATUS, QUOTE_STATUS } from "@/lib/constants";
+import { WORKSHOP_STATUS, quoteStatusDisplay } from "@/lib/constants";
 import { cn, formatXAF } from "@/lib/utils";
 import { toast } from "sonner";
 import { handleApiError } from "@/lib/api";
@@ -170,7 +170,7 @@ export default function OrderDetailPage() {
   const params  = useParams();
   const router  = useRouter();
   const id      = params.id as string;
-  const { user, hasRole } = useAuth();
+  const { user, hasRole, hasPermission } = useAuth();
   const [statusLoading, setStatusLoading] = useState(false);
   const [cancelReason, setCancelReason]   = useState('');
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
@@ -381,12 +381,7 @@ export default function OrderDetailPage() {
 
   function openQcDialog(partLines: any[]) {
     const items = partLines
-      .filter((l) =>
-        l.lineType === 'PART'
-        && (l.partStatus === 'CONSUMED'
-          || l.partStatus === 'ASP_ORDERED'
-          || l.partStatus === 'STOCK_RESERVED'),
-      )
+      .filter((l) => l.lineType === 'PART')
       .map((l) => ({
         quoteLineId: l.id,
         label: l.part?.nameFr ?? l.description ?? 'Pièce',
@@ -514,8 +509,9 @@ export default function OrderDetailPage() {
   const isClosed    = order.status === 'CLOSED';
   const isCancelled = order.status === 'CANCELLED';
 
-  const isAdmin    = hasRole('ADMIN');
-  const isChef     = hasRole('CHEF_ATELIER');
+  const isAdmin          = hasRole('ADMIN');
+  const isChef           = hasRole('CHEF_ATELIER');
+  const isReceptionniste = hasRole('RECEPTIONNISTE');
   const isAssigned = !!user?.id && user.id === order.assignedChef;
   const canDiagnose = isAdmin || isChef || isAssigned;
   const canSubmitQuote = isAdmin || isChef;
@@ -529,18 +525,45 @@ export default function OrderDetailPage() {
   const showReworkBanner = order.status === 'QC_REJECTED' && (isAssigned || isAdmin || isChef);
   const canResumeWork = isAssigned || isAdmin || isChef;
   const canInvoice    = isAdmin || isChef || hasRole('SUPER_ADMIN');
+  const isCaissier    = hasRole('CAISSIER');
+  const canClose      = isAdmin || isCaissier || hasRole('SUPER_ADMIN');
+  const canViewBilling = hasPermission('FAC_VIEW');
+  const canModifyBilling = hasPermission('FAC_CREATE');
 
   async function handleFacturer() {
     const approvedQuote = quotes.find((q: any) => q.status === 'APPROVED');
+    const billedQuote = quotes.find((q: any) => q.status === 'BILLED');
+
+    // Déjà facturé (devis BILLED + facture sur l'OT) mais OT encore READY — resync
+    if (!approvedQuote && billedQuote && invoices.length > 0) {
+      setStatusLoading(true);
+      try {
+        if (order.status !== 'INVOICED') {
+          await workshopApi.updateStatus(id, { status: 'INVOICED' });
+        }
+        const inv = invoices[0];
+        toast.success(`Facture ${inv.reference} déjà émise — OT synchronisé`);
+        router.push(`/billing/invoices/${inv.id}`);
+        refetch();
+      } catch (err: unknown) {
+        handleApiError(err, 'Erreur lors de la synchronisation facture');
+      } finally {
+        setStatusLoading(false);
+      }
+      return;
+    }
+
     if (!approvedQuote) {
       toast.error('Aucun devis approuvé trouvé sur cet OT');
       return;
     }
+
     setStatusLoading(true);
     try {
-      await billingApi.createInvoiceFromQuote(approvedQuote.id);
+      const invoice = await billingApi.createInvoiceFromQuote(approvedQuote.id) as { id: string; reference?: string };
       await workshopApi.updateStatus(id, { status: 'INVOICED' });
-      toast.success('Facture émise — OT marqué comme facturé');
+      toast.success(`Facture ${invoice.reference ?? ''} émise — OT marqué comme facturé`.trim());
+      router.push(`/billing/invoices/${invoice.id}`);
       refetch();
     } catch (err: unknown) {
       handleApiError(err, 'Erreur lors de la facturation');
@@ -672,6 +695,17 @@ export default function OrderDetailPage() {
             <div className="flex flex-wrap items-center gap-2 pl-12 sm:pl-0 shrink-0">
               {statusLoading && <Loader2 size={15} className="animate-spin text-muted-foreground" />}
 
+              {order.status === 'DRAFT' && (isAdmin || isReceptionniste) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 font-bold rounded-xl"
+                  onClick={() => router.push(`/workshop/${id}/edit`)}
+                >
+                  <Pencil size={14} /> Modifier
+                </Button>
+              )}
+
               {order.status === 'QUOTE_PENDING' && quotes.length === 0 && (isAdmin || isChef) && (
                 <Button size="sm" className="bg-brand hover:bg-brand-hover gap-1.5 font-bold rounded-xl"
                   disabled={statusLoading}
@@ -722,6 +756,7 @@ export default function OrderDetailPage() {
                   && !canValidateQc
                 ) return null;
                 if (order.status === 'QC_REJECTED' && s === 'IN_PROGRESS' && !canResumeWork) return null;
+                if (order.status === 'INVOICED' && s === 'CLOSED' && !canClose) return null;
                 const hideStatusOnMobile = isTechnician
                   && techMobilePrimary?.kind === 'status'
                   && techMobilePrimary.targetStatus === s;
@@ -734,7 +769,6 @@ export default function OrderDetailPage() {
                     )}
                     disabled={statusLoading}
                     onClick={() => {
-                      if (isReceptionTransition) return openReceptionDialog();
                       if (isDiagnosisTransition) return handleGenerateQuote();
                       handleStatusClick(s, partLines, order.status);
                     }}>
@@ -1002,8 +1036,8 @@ export default function OrderDetailPage() {
             );
           })()}
 
-          {/* Devis */}
-          {quotes.length > 0 && (
+          {/* Devis — consultation (FAC_VIEW) */}
+          {canViewBilling && quotes.length > 0 && (
             <Card className="rounded-2xl border-border shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-bold flex items-center gap-2 text-muted-foreground uppercase tracking-widest">
@@ -1011,33 +1045,53 @@ export default function OrderDetailPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {quotes.map(q => (
+                {quotes.map(q => {
+                  const qst = quoteStatusDisplay(q.status);
+                  return (
                   <div key={q.id}
-                    className="flex items-center justify-between p-3.5 rounded-xl bg-muted/30 border border-border cursor-pointer hover:border-brand/40 hover:bg-brand/5 transition-all group"
-                    onClick={() => router.push(`/billing/quotes/${q.id}`)}>
-                    <div>
-                      <span className="text-sm font-mono font-bold text-foreground group-hover:text-brand transition-colors">
+                    className={cn(
+                      'flex items-center justify-between p-3.5 rounded-xl bg-muted/30 border border-border transition-all',
+                      canViewBilling && 'cursor-pointer hover:border-brand/40 hover:bg-brand/5 group',
+                    )}
+                    {...(canViewBilling ? { onClick: () => router.push(`/billing/quotes/${q.id}`) } : {})}
+                    role={canViewBilling ? 'button' : undefined}
+                    tabIndex={canViewBilling ? 0 : undefined}
+                    onKeyDown={canViewBilling ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        router.push(`/billing/quotes/${q.id}`);
+                      }
+                    } : undefined}
+                  >
+                    <div className="min-w-0">
+                      <span className={cn(
+                        'text-sm font-mono font-bold text-foreground transition-colors',
+                        canViewBilling && 'group-hover:text-brand',
+                      )}>
                         {q.reference}
                       </span>
-                      <span className="text-xs text-muted-foreground ml-3">
+                      <span className="text-xs text-muted-foreground ml-2 sm:ml-3">
                         {new Date(q.createdAt).toLocaleDateString('fr-FR')}
                       </span>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                       <span className="text-sm font-bold font-mono tabular-nums">{formatXAF(q.totalXaf)}</span>
-                      <Badge className={cn("text-[10px] border-none rounded-full", (QUOTE_STATUS[q.status] ?? QUOTE_STATUS.DRAFT).color)}>
-                        {(QUOTE_STATUS[q.status] ?? { label: q.status }).label}
+                      <Badge className={cn('text-[10px] border-none rounded-full', qst.color)}>
+                        {qst.label}
                       </Badge>
-                      <ArrowRight size={14} className="text-muted-foreground group-hover:text-brand transition-colors" />
+                      {canViewBilling && (
+                        <ArrowRight size={14} className="text-muted-foreground group-hover:text-brand transition-colors" />
+                      )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </CardContent>
             </Card>
           )}
 
-          {/* Factures */}
-          {invoices.length > 0 && (
+          {/* Factures — consultation (FAC_VIEW) */}
+          {canViewBilling && invoices.length > 0 && (
             <Card className="rounded-2xl border-border shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-[10px] font-bold flex items-center gap-2 text-muted-foreground uppercase tracking-widest">
@@ -1050,23 +1104,39 @@ export default function OrderDetailPage() {
                   return (
                     <div
                       key={inv.id}
-                      className="flex items-center justify-between p-3.5 rounded-xl bg-muted/30 border border-border cursor-pointer hover:border-brand/40 hover:bg-brand/5 transition-all group"
-                      onClick={() => router.push(`/billing/invoices/${inv.id}`)}
+                      className={cn(
+                        'flex items-center justify-between p-3.5 rounded-xl bg-muted/30 border border-border transition-all',
+                        canViewBilling && 'cursor-pointer hover:border-brand/40 hover:bg-brand/5 group',
+                      )}
+                      {...(canViewBilling ? { onClick: () => router.push(`/billing/invoices/${inv.id}`) } : {})}
+                      role={canViewBilling ? 'button' : undefined}
+                      tabIndex={canViewBilling ? 0 : undefined}
+                      onKeyDown={canViewBilling ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          router.push(`/billing/invoices/${inv.id}`);
+                        }
+                      } : undefined}
                     >
-                      <div>
-                        <span className="text-sm font-mono font-bold text-foreground group-hover:text-brand transition-colors">
+                      <div className="min-w-0">
+                        <span className={cn(
+                          'text-sm font-mono font-bold text-foreground transition-colors',
+                          canViewBilling && 'group-hover:text-brand',
+                        )}>
                           {inv.reference}
                         </span>
-                        <span className="text-xs text-muted-foreground ml-3">
+                        <span className="text-xs text-muted-foreground ml-2 sm:ml-3">
                           {inv.issuedAt ? new Date(inv.issuedAt).toLocaleDateString('fr-FR') : '—'}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                         <span className="text-sm font-bold font-mono tabular-nums">{formatXAF(inv.totalXaf)}</span>
                         <Badge className={cn('text-[10px] border-none rounded-full', ist.color)}>
                           {ist.label}
                         </Badge>
-                        <ArrowRight size={14} className="text-muted-foreground group-hover:text-brand transition-colors" />
+                        {canViewBilling && (
+                          <ArrowRight size={14} className="text-muted-foreground group-hover:text-brand transition-colors" />
+                        )}
                       </div>
                     </div>
                   );

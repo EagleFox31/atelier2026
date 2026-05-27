@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import { getQueueToken } from '@nestjs/bullmq';
 import { StockController } from '../../modules/stock/stock.controller';
 import { StockService } from '../../modules/stock/stock.service';
+import { NotificationsService } from '../../modules/notifications/notifications.service';
 import {
   createTestApp,
   makeDbUser,
@@ -65,6 +66,7 @@ describe('Stock — intégration HTTP', () => {
       extraProviders: [
         StockService,
         { provide: getQueueToken('stock-alerts'), useValue: { add: jest.fn() } },
+        { provide: NotificationsService, useValue: { getUserIdsByRoles: jest.fn().mockResolvedValue([]), createInApp: jest.fn().mockResolvedValue([]) } },
       ],
       prismaOverride: prisma,
     }));

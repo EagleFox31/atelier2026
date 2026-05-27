@@ -134,12 +134,17 @@ describe('PermissionsGuard', () => {
       { role: 'TECHNICIEN', perms: ['VEH_VIEW', 'ORD_VIEW', 'STK_VIEW'], required: 'VEH_VIEW', allowed: true },
       { role: 'TECHNICIEN', perms: ['VEH_VIEW', 'ORD_VIEW', 'STK_VIEW'], required: 'FAC_CREATE', allowed: false },
       { role: 'TECHNICIEN', perms: ['VEH_VIEW', 'ORD_VIEW', 'STK_VIEW'], required: 'STK_CREATE', allowed: false },
-      // CAISSIER — peut facturer, pas créer véhicule
-      { role: 'CAISSIER', perms: ['VEH_VIEW', 'ORD_VIEW', 'FAC_CREATE', 'STK_VIEW'], required: 'FAC_CREATE', allowed: true },
-      { role: 'CAISSIER', perms: ['VEH_VIEW', 'ORD_VIEW', 'FAC_CREATE', 'STK_VIEW'], required: 'VEH_CREATE', allowed: false },
-      // RECEPTIONNISTE — peut créer véhicule et OT, pas facturer
-      { role: 'RECEPTIONNISTE', perms: ['VEH_VIEW', 'VEH_CREATE', 'ORD_VIEW', 'ORD_CREATE'], required: 'ORD_CREATE', allowed: true },
-      { role: 'RECEPTIONNISTE', perms: ['VEH_VIEW', 'VEH_CREATE', 'ORD_VIEW', 'ORD_CREATE'], required: 'FAC_CREATE', allowed: false },
+      // CAISSIER — voir + encaisser, pas créer devis/factures
+      { role: 'CAISSIER', perms: ['VEH_VIEW', 'ORD_VIEW', 'FAC_VIEW', 'FAC_PAY', 'STK_VIEW'], required: 'FAC_VIEW', allowed: true },
+      { role: 'CAISSIER', perms: ['VEH_VIEW', 'ORD_VIEW', 'FAC_VIEW', 'FAC_PAY', 'STK_VIEW'], required: 'FAC_PAY', allowed: true },
+      { role: 'CAISSIER', perms: ['VEH_VIEW', 'ORD_VIEW', 'FAC_VIEW', 'FAC_PAY', 'STK_VIEW'], required: 'FAC_CREATE', allowed: false },
+      // RECEPTIONNISTE — accueil + consultation devis/factures, pas modifier
+      { role: 'RECEPTIONNISTE', perms: ['VEH_VIEW', 'VEH_CREATE', 'ORD_VIEW', 'ORD_CREATE', 'FAC_VIEW'], required: 'ORD_CREATE', allowed: true },
+      { role: 'RECEPTIONNISTE', perms: ['VEH_VIEW', 'VEH_CREATE', 'ORD_VIEW', 'ORD_CREATE', 'FAC_VIEW'], required: 'FAC_VIEW', allowed: true },
+      { role: 'RECEPTIONNISTE', perms: ['VEH_VIEW', 'VEH_CREATE', 'ORD_VIEW', 'ORD_CREATE', 'FAC_VIEW'], required: 'FAC_CREATE', allowed: false },
+      { role: 'CAISSIER', perms: ['VEH_VIEW', 'ORD_VIEW', 'FAC_VIEW', 'FAC_PAY', 'STK_VIEW'], required: 'VEH_CREATE', allowed: false },
+      // FAC_CREATE inclut FAC_VIEW
+      { role: 'CHEF_ATELIER', perms: ['FAC_CREATE'], required: 'FAC_VIEW', allowed: true },
     ];
 
     cases.forEach(({ role, perms, required, allowed }) => {

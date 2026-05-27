@@ -4,6 +4,8 @@ import { Prisma } from '@prisma/client';
 import { BillingController } from '../../modules/billing/billing.controller';
 import { BillingService } from '../../modules/billing/billing.service';
 import { WorkshopService } from '../../modules/workshop/workshop.service';
+import { NotificationsService } from '../../modules/notifications/notifications.service';
+import { PartsFlowService } from '../../modules/stock/parts-flow.service';
 import {
   createTestApp,
   makeDbUser,
@@ -11,9 +13,13 @@ import {
   signTestToken,
 } from './helpers/app.helper';
 
-const CAISSIER_PERMS = ['VEH_VIEW', 'ORD_VIEW', 'FAC_CREATE', 'STK_VIEW'];
+const CAISSIER_PERMS = ['VEH_VIEW', 'ORD_VIEW', 'FAC_VIEW', 'FAC_PAY', 'STK_VIEW'];
 const CAISSIER_USER = makeDbUser('caisse-1', ['CAISSIER'], CAISSIER_PERMS);
 const CAISSIER_TOKEN = signTestToken('caisse-1', 1);
+
+const CHEF_PERMS = ['VEH_VIEW', 'VEH_CREATE', 'ORD_VIEW', 'ORD_CREATE', 'STK_VIEW', 'STK_CREATE', 'FAC_CREATE', 'FAC_VIEW'];
+const CHEF_USER = makeDbUser('chef-1', ['CHEF_ATELIER'], CHEF_PERMS);
+const CHEF_TOKEN = signTestToken('chef-1', 1);
 
 const OT_ID = '11111111-1111-4111-8111-111111111111';
 const CUST_ID = '22222222-2222-4222-8222-222222222222';
@@ -49,6 +55,11 @@ function makeBillingPrismaMock() {
       findMany: jest.fn().mockResolvedValue([]),
       findUnique: jest.fn(),
       create: jest.fn(),
+      update: jest.fn().mockResolvedValue({}),
+    },
+    payment: {
+      create: jest.fn(),
+      aggregate: jest.fn().mockResolvedValue({ _sum: { amountXaf: 0 } }),
     },
     $transaction: jest.fn().mockImplementation(async (fn: (tx: typeof txMock) => unknown) => fn(txMock)),
     _txMock: txMock,
@@ -66,6 +77,7 @@ describe('Billing — intégration HTTP', () => {
 
     prisma.user.findUnique.mockImplementation(({ where }: { where: { id: string } }) => {
       if (where.id === 'caisse-1') return Promise.resolve(CAISSIER_USER);
+      if (where.id === 'chef-1') return Promise.resolve(CHEF_USER);
       return Promise.resolve(null);
     });
 
@@ -74,6 +86,8 @@ describe('Billing — intégration HTTP', () => {
       extraProviders: [
         BillingService,
         { provide: WorkshopService, useValue: workshopMock },
+        { provide: NotificationsService, useValue: { getUserIdsByRoles: jest.fn().mockResolvedValue([]), createInApp: jest.fn().mockResolvedValue([]) } },
+        { provide: PartsFlowService, useValue: { onQuoteApproved: jest.fn(), consumeReservedParts: jest.fn(), releaseReservationsForOrder: jest.fn(), reconcilePartsAtQc: jest.fn() } },
       ],
       prismaOverride: prisma,
     }));
@@ -87,6 +101,7 @@ describe('Billing — intégration HTTP', () => {
     jest.clearAllMocks();
     prisma.user.findUnique.mockImplementation(({ where }: { where: { id: string } }) => {
       if (where.id === 'caisse-1') return Promise.resolve(CAISSIER_USER);
+      if (where.id === 'chef-1') return Promise.resolve(CHEF_USER);
       return Promise.resolve(null);
     });
   });
@@ -95,7 +110,7 @@ describe('Billing — intégration HTTP', () => {
     it('200 — calcule TVA + timbre pour 20000 XAF', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/billing/quote/compute')
-        .set('Authorization', `Bearer ${CAISSIER_TOKEN}`)
+        .set('Authorization', `Bearer ${CHEF_TOKEN}`)
         .send({ subtotal: 20000 });
 
       expect(res.status).toBe(200);
@@ -123,7 +138,7 @@ describe('Billing — intégration HTTP', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/billing/quotes')
-        .set('Authorization', `Bearer ${CAISSIER_TOKEN}`)
+        .set('Authorization', `Bearer ${CHEF_TOKEN}`)
         .send({
           serviceOrderId: OT_ID,
           customerId: CUST_ID,
@@ -143,7 +158,7 @@ describe('Billing — intégration HTTP', () => {
           data: expect.objectContaining({
             status: 'DRAFT',
             totalXaf: 24850,
-            createdBy: 'caisse-1',
+            createdBy: 'chef-1',
           }),
         }),
       );
@@ -152,7 +167,7 @@ describe('Billing — intégration HTTP', () => {
     it('400 — body invalide (subtotal manquant)', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/billing/quotes')
-        .set('Authorization', `Bearer ${CAISSIER_TOKEN}`)
+        .set('Authorization', `Bearer ${CHEF_TOKEN}`)
         .send({ serviceOrderId: OT_ID, customerId: CUST_ID, lines: [] });
 
       expect(res.status).toBe(400);
@@ -165,7 +180,7 @@ describe('Billing — intégration HTTP', () => {
 
       const res = await request(app.getHttpServer())
         .post(`/api/billing/quotes/${QUOTE_ID}/approve`)
-        .set('Authorization', `Bearer ${CAISSIER_TOKEN}`)
+        .set('Authorization', `Bearer ${CHEF_TOKEN}`)
         .send({ clientApprovalMethod: 'VERBAL_NOTED' });
 
       expect(res.status).toBe(200);
@@ -178,7 +193,7 @@ describe('Billing — intégration HTTP', () => {
   });
 
   describe('POST /api/billing/payment', () => {
-    it('403 — TECHNICIEN sans FAC_CREATE', async () => {
+    it('403 — TECHNICIEN sans FAC_PAY', async () => {
       const techUser = makeDbUser('tech-1', ['TECHNICIEN'], ['VEH_VIEW', 'ORD_VIEW', 'STK_VIEW']);
       prisma.user.findUnique.mockResolvedValue(techUser);
       const techToken = signTestToken('tech-1', 1);
@@ -211,7 +226,7 @@ describe('Billing — intégration HTTP', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/billing/quotes')
-        .set('Authorization', `Bearer ${CAISSIER_TOKEN}`)
+        .set('Authorization', `Bearer ${CHEF_TOKEN}`)
         .send({
           serviceOrderId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
           customerId: CUST_ID,
@@ -228,7 +243,7 @@ describe('Billing — intégration HTTP', () => {
 
       const res = await request(app.getHttpServer())
         .post(`/api/billing/quotes/${QUOTE_ID}/approve`)
-        .set('Authorization', `Bearer ${CAISSIER_TOKEN}`)
+        .set('Authorization', `Bearer ${CHEF_TOKEN}`)
         .send({});
 
       expect(res.status).toBe(404);
@@ -237,7 +252,7 @@ describe('Billing — intégration HTTP', () => {
 
     it('P2002 — paiement doublon (idempotence) → 400 + message explicite', async () => {
       const p2002 = makePrismaError('P2002');
-      prisma._txMock.payment.create.mockRejectedValue(p2002);
+      prisma.payment.create.mockRejectedValue(p2002);
 
       const res = await request(app.getHttpServer())
         .post('/api/billing/payment')

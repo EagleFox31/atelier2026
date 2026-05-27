@@ -70,17 +70,19 @@ describe('PartsFlowService.onQuoteApproved()', () => {
 
   it('crée un ASP si stock insuffisant', async () => {
     const { service, prismaMock, notifMock } = makeDeps();
-    prismaMock.quoteLine.findMany.mockResolvedValue([
-      {
-        id: 'line-2',
-        partId: 'part-2',
-        quantity: 5,
-        unitPriceXaf: 20000,
-        description: 'Plaquettes',
-        partStatus: PartStatus.PENDING,
-        part: { id: 'part-2', reference: 'BRK-01', nameFr: 'Plaquettes', qtyInStock: 1, qtyReserved: 0, purchasePriceXaf: null },
-      },
-    ]);
+    prismaMock.quoteLine.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 'line-2',
+          partId: 'part-2',
+          quantity: 5,
+          unitPriceXaf: 20000,
+          description: 'Plaquettes',
+          partStatus: PartStatus.PENDING,
+          part: { id: 'part-2', reference: 'BRK-01', nameFr: 'Plaquettes', qtyInStock: 1, qtyReserved: 0, purchasePriceXaf: null },
+        },
+      ])
+      .mockResolvedValueOnce([]);
 
     const result = await service.onQuoteApproved({
       quoteId: 'q-1',

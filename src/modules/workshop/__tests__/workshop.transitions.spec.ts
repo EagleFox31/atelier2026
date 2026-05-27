@@ -108,9 +108,10 @@ describe('TRANSITION_ROLES — contrôle d\'accès par rôle', () => {
     expect(TRANSITION_ROLES[key]).toContain('ADMIN');
   });
 
-  it('READY → INVOICED : CAISSIER peut facturer', () => {
+  it('READY → INVOICED : CHEF_ATELIER facture, pas le CAISSIER (encaissement seulement)', () => {
     const key = `${OTStatus.READY}->${OTStatus.INVOICED}`;
-    expect(TRANSITION_ROLES[key]).toContain('CAISSIER');
+    expect(TRANSITION_ROLES[key]).toContain('CHEF_ATELIER');
+    expect(TRANSITION_ROLES[key]).not.toContain('CAISSIER');
   });
 
   it('INVOICED → CLOSED : CAISSIER peut clôturer', () => {

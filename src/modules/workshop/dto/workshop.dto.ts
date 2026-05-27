@@ -36,6 +36,33 @@ export class CreateServiceOrderDto {
   appointmentId?: string;
 }
 
+export class UpdateOTDto {
+  @IsString()
+  @IsOptional()
+  clientComplaint?: string;
+
+  @IsIn(['LOW', 'NORMAL', 'HIGH', 'URGENT'])
+  @IsOptional()
+  priority?: string;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  mileageIn?: number;
+
+  @IsDateString()
+  @IsOptional()
+  promisedAt?: string;
+
+  @IsUUID()
+  @IsOptional()
+  vehicleId?: string;
+
+  @IsUUID()
+  @IsOptional()
+  customerId?: string;
+}
+
 export class PartReconciliationItemDto {
   @IsUUID()
   quoteLineId!: string;

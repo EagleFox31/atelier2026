@@ -10,6 +10,7 @@ import { Queue } from 'bullmq';
 import { OTStatus, PartStatus } from '@prisma/client';
 import {
   CreateServiceOrderDto,
+  UpdateOTDto,
   CreateObservationDto,
   CreateWorkItemDto,
   CreateReceptionCheckDto,
@@ -60,7 +61,7 @@ export const TRANSITION_ROLES: Record<string, string[]> = {
   [`${OTStatus.QC_PENDING}->${OTStatus.QC_REJECTED}`]: ['CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN'],
   [`${OTStatus.QC_REJECTED}->${OTStatus.IN_PROGRESS}`]: ['TECHNICIEN', 'CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN'],
   [`${OTStatus.QC_DONE}->${OTStatus.READY}`]: ['CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN'],
-  [`${OTStatus.READY}->${OTStatus.INVOICED}`]: ['SYSTEM', 'CAISSIER', 'ADMIN', 'SUPER_ADMIN'],
+  [`${OTStatus.READY}->${OTStatus.INVOICED}`]: ['CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN', 'SYSTEM'],
   [`${OTStatus.INVOICED}->${OTStatus.CLOSED}`]: ['CAISSIER', 'ADMIN', 'SUPER_ADMIN'],
   [`*->${OTStatus.CANCELLED}`]: ['CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN'],
 };
@@ -804,5 +805,23 @@ export class WorkshopService {
     }
 
     return updatedOT;
+  }
+
+  async updateOT(id: string, data: UpdateOTDto) {
+    const ot = await this.getOT(id);
+    if (ot.status !== OTStatus.DRAFT) {
+      throw new BadRequestException('Seuls les OT en brouillon peuvent être modifiés (ORD-007)');
+    }
+    return this.prisma.serviceOrder.update({
+      where: { id },
+      data: {
+        ...(data.clientComplaint !== undefined && { clientComplaint: data.clientComplaint }),
+        ...(data.priority        !== undefined && { priority: data.priority as any }),
+        ...(data.mileageIn       !== undefined && { mileageIn: data.mileageIn }),
+        ...(data.promisedAt      !== undefined && { promisedAt: new Date(data.promisedAt) }),
+        ...(data.vehicleId       !== undefined && { vehicleId: data.vehicleId }),
+        ...(data.customerId      !== undefined && { customerId: data.customerId }),
+      },
+    });
   }
 }

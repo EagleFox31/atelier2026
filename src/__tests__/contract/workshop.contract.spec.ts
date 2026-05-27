@@ -5,6 +5,8 @@ import { OTStatus, Prisma } from '@prisma/client';
 import { WorkshopController } from '../../modules/workshop/workshop.controller';
 import { WorkshopService } from '../../modules/workshop/workshop.service';
 import { AuditService } from '../../shared/audit/audit.service';
+import { NotificationsService } from '../../modules/notifications/notifications.service';
+import { PartsFlowService } from '../../modules/stock/parts-flow.service';
 import {
   createTestApp,
   makeDbUser,
@@ -82,8 +84,10 @@ function makeWorkshopPrismaMock() {
     laborCatalog: { findMany: jest.fn().mockResolvedValue([]) },
     qualityControl: {
       create: jest.fn(),
-      aggregate: jest.fn().mockResolvedValue({ _max: { round: 0 } }),
+      aggregate: jest.fn().mockResolvedValue({ _max: { round: 1 } }),
     },
+    $queryRaw: jest.fn().mockResolvedValue([{ max_round: 1 }]),
+    $executeRaw: jest.fn().mockResolvedValue(1),
     $transaction: jest.fn().mockImplementation(async (fn: (tx: typeof txMock) => unknown) => fn(txMock)),
     _txMock: txMock,
   };
@@ -110,6 +114,8 @@ describe('Workshop — contrats de réponse HTTP', () => {
         WorkshopService,
         { provide: AuditService, useValue: { log: jest.fn() } },
         { provide: getQueueToken('sms-notifications'), useValue: { add: jest.fn() } },
+        { provide: NotificationsService, useValue: { getUserIdsByRoles: jest.fn().mockResolvedValue([]), createInApp: jest.fn().mockResolvedValue([]) } },
+        { provide: PartsFlowService, useValue: { onQuoteApproved: jest.fn(), consumeReservedParts: jest.fn(), releaseReservationsForOrder: jest.fn(), reconcilePartsAtQc: jest.fn() } },
       ],
       prismaOverride: prisma,
     }));

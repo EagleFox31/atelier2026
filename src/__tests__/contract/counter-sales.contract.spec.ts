@@ -11,7 +11,7 @@ import {
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
-const CAISSIER_PERMS = ['VEH_VIEW', 'ORD_VIEW', 'FAC_CREATE', 'STK_VIEW'];
+const CAISSIER_PERMS = ['VEH_VIEW', 'ORD_VIEW', 'FAC_VIEW', 'FAC_PAY', 'STK_VIEW'];
 const TECH_PERMS     = ['VEH_VIEW', 'ORD_VIEW', 'STK_VIEW'];
 
 const CAISSIER_USER  = makeDbUser('caisse-1', ['CAISSIER'],   CAISSIER_PERMS);

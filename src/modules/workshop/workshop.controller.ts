@@ -4,6 +4,7 @@ import { CurrentUser, RequirePermission } from '../../decorators/auth.decorator'
 import { OTStatus } from '@prisma/client';
 import {
   CreateServiceOrderDto,
+  UpdateOTDto,
   UpdateOTStatusDto,
   CreateObservationDto,
   CreateWorkItemDto,
@@ -36,6 +37,12 @@ export class WorkshopController {
   @RequirePermission('ORD_CREATE')
   createOT(@CurrentUser() user: { id: string }, @Body() body: CreateServiceOrderDto) {
     return this.workshopService.createOT(body, user.id);
+  }
+
+  @Patch('ot/:id')
+  @RequirePermission('ORD_CREATE')
+  updateOT(@Param('id') id: string, @Body() body: UpdateOTDto) {
+    return this.workshopService.updateOT(id, body);
   }
 
   @Patch('ot/:id/status')

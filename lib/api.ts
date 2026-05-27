@@ -100,6 +100,7 @@ export const workshopApi = {
     get(`/workshop/ot${toQuery(params)}`),
   getOT:           (id: string) => get(`/workshop/ot/${id}`),
   createOT:        (body: unknown) => post('/workshop/ot', body),
+  updateOT:        (id: string, body: unknown) => patch(`/workshop/ot/${id}`, body),
   updateStatus:    (id: string, body: unknown) => patch(`/workshop/ot/${id}/status`, body),
   assign:          (id: string, body: unknown) => patch(`/workshop/ot/${id}/assign`, body),
   addObservation:  (id: string, body: unknown) => post(`/workshop/ot/${id}/observation`, body),

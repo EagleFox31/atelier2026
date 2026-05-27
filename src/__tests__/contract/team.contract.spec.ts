@@ -48,6 +48,7 @@ function makeTeamPrismaMock() {
       create:     jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
+    $queryRaw: jest.fn().mockResolvedValue([]),
   };
 }
 

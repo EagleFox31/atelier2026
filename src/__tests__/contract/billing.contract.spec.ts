@@ -4,6 +4,8 @@ import { Prisma } from '@prisma/client';
 import { BillingController } from '../../modules/billing/billing.controller';
 import { BillingService } from '../../modules/billing/billing.service';
 import { WorkshopService } from '../../modules/workshop/workshop.service';
+import { NotificationsService } from '../../modules/notifications/notifications.service';
+import { PartsFlowService } from '../../modules/stock/parts-flow.service';
 import {
   createTestApp,
   makeDbUser,
@@ -13,7 +15,7 @@ import {
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
-const CAISSIER_PERMS = ['VEH_VIEW', 'ORD_VIEW', 'FAC_CREATE', 'STK_VIEW'];
+const CAISSIER_PERMS = ['VEH_VIEW', 'ORD_VIEW', 'FAC_VIEW', 'FAC_PAY', 'STK_VIEW'];
 const TECH_PERMS     = ['VEH_VIEW', 'ORD_VIEW', 'STK_VIEW'];
 
 const CAISSIER_USER  = makeDbUser('caisse-1', ['CAISSIER'],    CAISSIER_PERMS);
@@ -56,6 +58,11 @@ function makeBillingPrismaMock() {
       findMany: jest.fn().mockResolvedValue([]),
       findUnique: jest.fn(),
       create: jest.fn(),
+      update: jest.fn().mockResolvedValue({}),
+    },
+    payment: {
+      create: jest.fn(),
+      aggregate: jest.fn().mockResolvedValue({ _sum: { amountXaf: 0 } }),
     },
     $transaction: jest.fn().mockImplementation(async (fn: (tx: typeof txMock) => unknown) => fn(txMock)),
     _txMock: txMock,
@@ -84,6 +91,8 @@ describe('Billing — contrats de réponse HTTP', () => {
       extraProviders: [
         BillingService,
         { provide: WorkshopService, useValue: workshopMock },
+        { provide: NotificationsService, useValue: { getUserIdsByRoles: jest.fn().mockResolvedValue([]), createInApp: jest.fn().mockResolvedValue([]) } },
+        { provide: PartsFlowService, useValue: { onQuoteApproved: jest.fn(), consumeReservedParts: jest.fn(), releaseReservationsForOrder: jest.fn(), reconcilePartsAtQc: jest.fn() } },
       ],
       prismaOverride: prisma,
     }));
@@ -98,9 +107,9 @@ describe('Billing — contrats de réponse HTTP', () => {
       if (where.id === 'tech-1')   return Promise.resolve(TECH_USER);
       return Promise.resolve(null);
     });
-    prisma._txMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 0 } });
-    prisma._txMock.invoice.findUnique.mockResolvedValue(null);
-    prisma._txMock.invoice.update.mockResolvedValue({});
+    prisma.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 0 } });
+    prisma.invoice.findUnique.mockResolvedValue(null);
+    prisma.invoice.update.mockResolvedValue({});
   });
 
   // ── POST /api/billing/quote/compute ───────────────────────────────────────
@@ -292,9 +301,9 @@ describe('Billing — contrats de réponse HTTP', () => {
         paidAt: new Date().toISOString(),
       };
 
-      prisma._txMock.payment.create.mockResolvedValue(paymentStub);
-      prisma._txMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 17888 } });
-      prisma._txMock.invoice.findUnique.mockResolvedValue({
+      prisma.payment.create.mockResolvedValue(paymentStub);
+      prisma.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 17888 } });
+      prisma.invoice.findUnique.mockResolvedValue({
         id: INV_ID, totalXaf: 17888, status: 'ISSUED', serviceOrderId: null,
       });
 
@@ -318,7 +327,7 @@ describe('Billing — contrats de réponse HTTP', () => {
     });
 
     it('400 — paiement idempotent (P2002) → errorCode "Bad Request", message mentionne idempotence', async () => {
-      prisma._txMock.payment.create.mockRejectedValue(
+      prisma.payment.create.mockRejectedValue(
         new Prisma.PrismaClientKnownRequestError('Unique constraint', {
           code: 'P2002', clientVersion: '7.7.0', meta: { target: ['idempotencyKey'] },
         }),
