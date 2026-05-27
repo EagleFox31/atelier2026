@@ -18,6 +18,7 @@ import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.
 import { useAuth } from "@/contexts/auth-context";
 import { isTechnicianProfile } from "@/lib/role-routing";
 import { scopeOrdersForUser } from "@/lib/workshop-orders";
+import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -273,6 +274,8 @@ export default function WorkshopPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useRealtimeEvents({ onOtCreated: load, onOtStatusChanged: load });
 
   const myOrders = scopeOrdersForUser(orders, user);
 

@@ -1,5 +1,5 @@
 
-import { Injectable, BadRequestException, ConflictException, Logger, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, Logger, ForbiddenException, NotFoundException, Optional } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { AuditService } from '../../shared/audit/audit.service';
 import { NotificationsService, OT_CREATED_NOTIFY_ROLES } from '../notifications/notifications.service';
@@ -23,6 +23,7 @@ import {
   technicianAssignmentFilter,
   type WorkshopUser,
 } from './workshop-access.helpers';
+import { EventsService } from '../events/events.service';
 
 /** Statuts où un technicien assigné peut saisir un constat */
 const TECH_OBSERVATION_STATUSES: OTStatus[] = [
@@ -77,6 +78,7 @@ export class WorkshopService {
     private notifications: NotificationsService,
     private partsFlow: PartsFlowService,
     @InjectQueue('sms-notifications') private smsQueue: Queue,
+    @Optional() private events?: EventsService,
   ) {}
 
   listOTs(status?: OTStatus, search?: string, user?: WorkshopUser) {
@@ -195,6 +197,11 @@ export class WorkshopService {
       } catch (err) {
         this.logger.error(`Échec notification OT créé pour ${ot.id}`, err);
       }
+    });
+
+    this.events?.emitToRoles(['CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN'], {
+      type: 'ot.created',
+      otId: ot.id,
     });
 
     return ot;
@@ -871,6 +878,11 @@ export class WorkshopService {
         }
       });
     }
+
+    this.events?.emitToRoles(
+      ['CHEF_ATELIER', 'TECHNICIEN', 'RECEPTIONNISTE', 'CAISSIER', 'ADMIN', 'SUPER_ADMIN'],
+      { type: 'ot.status_changed', otId, status: targetStatus },
+    );
 
     return updatedOT;
   }

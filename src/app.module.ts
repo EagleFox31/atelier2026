@@ -18,6 +18,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { ReportsModule } from './modules/reports/reports.module';
 import { CounterSalesModule } from './modules/counter-sales/counter-sales.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { EventsModule } from './modules/events/events.module';
 import { SchedulerService } from './workers/scheduler.service';
 import { SmsProcessor } from './workers/sms.processor';
 import { JwtAuthGuard, PermissionsGuard } from './guards/auth.guard';
@@ -58,6 +59,7 @@ import { AppController } from './app.controller';
     ReportsModule,
     CounterSalesModule,
     SettingsModule,
+    EventsModule,
 
     // 4. Background Jobs (Workers & Schedulers)
     BullModule.registerQueue(

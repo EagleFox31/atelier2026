@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { isTechnicianProfile, isReceptionnisteProfile, isCaissierProfile, RECEPTION_MOBILE_NAV, TECH_MOBILE_NAV, CASHIER_MOBILE_NAV } from '@/lib/role-routing';
 import { countActiveOrders, scopeOrdersForUser } from '@/lib/workshop-orders';
 import { workshopApi, notificationsApi } from '@/lib/api';
+import { useRealtimeEvents } from '@/hooks/use-realtime-events';
 
 const ROLE_DISPLAY: Record<string, string> = {
   ADMIN:          'Administrateur',
@@ -30,12 +31,16 @@ function useSidebarBadges() {
   const [notifCount, setNotifCount] = React.useState(0);
   const { user } = useAuth();
 
-  React.useEffect(() => {
+  const loadOtCount = React.useCallback(() => {
     workshopApi.listOTs()
       .then((ots: unknown) => {
         setOtCount(countActiveOrders(scopeOrdersForUser(ots as any[], user)));
       })
       .catch(() => {});
+  }, [user]);
+
+  React.useEffect(() => {
+    loadOtCount();
 
     if (user?.roles?.includes('ADMIN')) {
       notificationsApi.smsHistory()
@@ -46,7 +51,17 @@ function useSidebarBadges() {
     } else {
       setNotifCount(0);
     }
-  }, [user]);
+  }, [user, loadOtCount]);
+
+  useRealtimeEvents({
+    onOtCreated: loadOtCount,
+    onOtStatusChanged: loadOtCount,
+    onNotificationNew: () => {
+      notificationsApi.unreadCount()
+        .then((res: unknown) => setNotifCount((res as any)?.count ?? 0))
+        .catch(() => {});
+    },
+  });
 
   return { otCount, notifCount };
 }

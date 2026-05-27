@@ -1,15 +1,17 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException, Optional } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { SendSmsDto } from './dto/notifications.dto';
 import { resolveSmsMessage } from './sms-templates';
+import { EventsService } from '../events/events.service';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue('sms-notifications') private readonly smsQueue: Queue,
+    @Optional() private readonly events?: EventsService,
   ) {}
 
   // ─── SMS ────────────────────────────────────────────────────────────────────
@@ -71,7 +73,7 @@ export class NotificationsService {
   }) {
     if (data.recipientIds.length === 0) return [];
 
-    return this.prisma.$transaction(
+    const created = await this.prisma.$transaction(
       data.recipientIds.map((recipientId) =>
         this.prisma.inAppNotification.create({
           data: {
@@ -84,6 +86,13 @@ export class NotificationsService {
         }),
       ),
     );
+
+    this.events?.emitToUsers(data.recipientIds, {
+      type: 'notification.new',
+      title: data.title,
+    });
+
+    return created;
   }
 
   /** Notifications non-lues du destinataire (50 max, les plus récentes). */
