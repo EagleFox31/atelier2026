@@ -17,11 +17,14 @@ import {
 
 const CAISSIER_PERMS = ['VEH_VIEW', 'ORD_VIEW', 'FAC_VIEW', 'FAC_PAY', 'STK_VIEW'];
 const TECH_PERMS     = ['VEH_VIEW', 'ORD_VIEW', 'STK_VIEW'];
+const CHEF_PERMS     = ['VEH_VIEW', 'VEH_CREATE', 'ORD_VIEW', 'ORD_CREATE', 'STK_VIEW', 'STK_CREATE', 'FAC_CREATE'];
 
 const CAISSIER_USER  = makeDbUser('caisse-1', ['CAISSIER'],    CAISSIER_PERMS);
 const TECH_USER      = makeDbUser('tech-1',   ['TECHNICIEN'],  TECH_PERMS);
+const CHEF_USER      = makeDbUser('chef-1',   ['CHEF_ATELIER'], CHEF_PERMS);
 const CAISSIER_TOKEN = signTestToken('caisse-1', 1);
 const TECH_TOKEN     = signTestToken('tech-1', 1);
+const CHEF_TOKEN     = signTestToken('chef-1', 1);
 
 const OT_ID    = '11111111-1111-4111-8111-111111111111';
 const CUST_ID  = '22222222-2222-4222-8222-222222222222';
@@ -74,15 +77,19 @@ function makeBillingPrismaMock() {
 describe('Billing — contrats de réponse HTTP', () => {
   let app: INestApplication;
   let prisma: ReturnType<typeof makeBillingPrismaMock>;
-  let workshopMock: { updateStatusBySystem: jest.Mock };
+  let workshopMock: { updateStatusBySystem: jest.Mock; closeServiceOrderAfterFullPayment: jest.Mock };
 
   beforeAll(async () => {
     prisma = makeBillingPrismaMock();
-    workshopMock = { updateStatusBySystem: jest.fn() };
+    workshopMock = {
+      updateStatusBySystem: jest.fn(),
+      closeServiceOrderAfterFullPayment: jest.fn().mockResolvedValue({ closed: false }),
+    };
 
     prisma.user.findUnique.mockImplementation(({ where }: { where: { id: string } }) => {
       if (where.id === 'caisse-1') return Promise.resolve(CAISSIER_USER);
       if (where.id === 'tech-1')   return Promise.resolve(TECH_USER);
+      if (where.id === 'chef-1')   return Promise.resolve(CHEF_USER);
       return Promise.resolve(null);
     });
 
@@ -105,6 +112,7 @@ describe('Billing — contrats de réponse HTTP', () => {
     prisma.user.findUnique.mockImplementation(({ where }: { where: { id: string } }) => {
       if (where.id === 'caisse-1') return Promise.resolve(CAISSIER_USER);
       if (where.id === 'tech-1')   return Promise.resolve(TECH_USER);
+      if (where.id === 'chef-1')   return Promise.resolve(CHEF_USER);
       return Promise.resolve(null);
     });
     prisma.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 0 } });
@@ -201,7 +209,7 @@ describe('Billing — contrats de réponse HTTP', () => {
 
       const res = await request(app.getHttpServer())
         .post('/api/billing/quotes')
-        .set('Authorization', `Bearer ${CAISSIER_TOKEN}`)
+        .set('Authorization', `Bearer ${CHEF_TOKEN}`)
         .send({
           serviceOrderId: OT_ID,
           customerId: CUST_ID,
@@ -223,7 +231,7 @@ describe('Billing — contrats de réponse HTTP', () => {
     it('400 validation — subtotal manquant → message[] contient "subtotal"', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/billing/quotes')
-        .set('Authorization', `Bearer ${CAISSIER_TOKEN}`)
+        .set('Authorization', `Bearer ${CHEF_TOKEN}`)
         .send({ serviceOrderId: OT_ID, customerId: CUST_ID, lines: [] });
 
       expect(res.status).toBe(400);
@@ -245,7 +253,7 @@ describe('Billing — contrats de réponse HTTP', () => {
 
       const res = await request(app.getHttpServer())
         .post(`/api/billing/quotes/${QUOTE_ID}/approve`)
-        .set('Authorization', `Bearer ${CAISSIER_TOKEN}`)
+        .set('Authorization', `Bearer ${CHEF_TOKEN}`)
         .send({ clientApprovalMethod: 'VERBAL_NOTED' });
 
       expect(res.status).toBe(200);
@@ -264,7 +272,7 @@ describe('Billing — contrats de réponse HTTP', () => {
 
       const res = await request(app.getHttpServer())
         .post(`/api/billing/quotes/${QUOTE_ID}/approve`)
-        .set('Authorization', `Bearer ${CAISSIER_TOKEN}`)
+        .set('Authorization', `Bearer ${CHEF_TOKEN}`)
         .send({});
 
       expect(res.status).toBe(404);

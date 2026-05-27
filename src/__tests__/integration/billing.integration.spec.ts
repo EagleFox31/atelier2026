@@ -69,11 +69,14 @@ function makeBillingPrismaMock() {
 describe('Billing — intégration HTTP', () => {
   let app: INestApplication;
   let prisma: ReturnType<typeof makeBillingPrismaMock>;
-  let workshopMock: { updateStatusBySystem: jest.Mock };
+  let workshopMock: { updateStatusBySystem: jest.Mock; closeServiceOrderAfterFullPayment: jest.Mock };
 
   beforeAll(async () => {
     prisma = makeBillingPrismaMock();
-    workshopMock = { updateStatusBySystem: jest.fn() };
+    workshopMock = {
+      updateStatusBySystem: jest.fn(),
+      closeServiceOrderAfterFullPayment: jest.fn().mockResolvedValue({ closed: false }),
+    };
 
     prisma.user.findUnique.mockImplementation(({ where }: { where: { id: string } }) => {
       if (where.id === 'caisse-1') return Promise.resolve(CAISSIER_USER);
