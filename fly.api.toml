@@ -1,0 +1,23 @@
+# Fly.io — NestJS API
+# Remplacer 'atelier-api' par ton slug unique (fly apps create atelier-api-TON-SLUG)
+app = 'atelier-api'
+primary_region = 'cdg'
+
+[build]
+  dockerfile = 'deploy/docker/Dockerfile.api'
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = 'requests'
+    hard_limit = 200
+    soft_limit = 150
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '512mb'

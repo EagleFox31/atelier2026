@@ -1,0 +1,27 @@
+# Fly.io — Next.js frontend
+# Remplacer 'atelier-web' par ton slug unique (fly apps create atelier-web-TON-SLUG)
+app = 'atelier-web'
+primary_region = 'cdg'
+
+[build]
+  dockerfile = 'deploy/docker/Dockerfile.web'
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = 'requests'
+    hard_limit = 200
+    soft_limit = 150
+
+[env]
+  # Réseau privé Fly.io — l'app web parle à l'API sans passer par internet
+  BACKEND_URL = 'http://atelier-api.internal:3001'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '256mb'

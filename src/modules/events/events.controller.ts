@@ -1,5 +1,6 @@
 import { Controller, Get, Query, Req, Sse, UnauthorizedException } from '@nestjs/common';
-import { Observable, Subject } from 'rxjs';
+import { Observable, Subject, interval, merge } from 'rxjs';
+import { map, takeUntil } from 'rxjs/operators';
 import type { MessageEvent } from '@nestjs/common';
 import type { Request } from 'express';
 import { Public } from '../../decorators/auth.decorator';
@@ -7,6 +8,8 @@ import { EventsService } from './events.service';
 import { JwtService } from '@nestjs/jwt';
 import { JwtSecretsService } from '../auth/jwt-secrets.service';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+
+const HEARTBEAT_MS = 25_000;
 
 @Controller('events')
 export class EventsController {
@@ -45,14 +48,23 @@ export class EventsController {
 
     const roles = user.roles.map((ur: any) => ur.role.code);
     const subject = new Subject<MessageEvent>();
+    const disconnect$ = new Subject<void>();
     const remove = this.events.addClient({ userId: user.id, roles, subject });
 
     req.on('close', () => {
+      disconnect$.next();
+      disconnect$.complete();
       remove();
       subject.complete();
     });
 
+    // Heartbeat every 25s to keep Fly.io proxy alive (75s idle timeout)
+    const heartbeat$ = interval(HEARTBEAT_MS).pipe(
+      takeUntil(disconnect$),
+      map(() => ({ data: { type: 'ping' } }) as MessageEvent),
+    );
+
     subject.next({ data: { type: 'connected', userId: user.id } });
-    return subject.asObservable();
+    return merge(subject.asObservable(), heartbeat$);
   }
 }
