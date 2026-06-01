@@ -1,4 +1,4 @@
-# Plan Playwright — Atelier 2026
+# Plan Playwright — Atelier Maître
 
 > Intégration E2E navigateur **sans modifier** Newman (`test:e2e`) ni Jest (`npm test`).
 >

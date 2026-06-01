@@ -1,4 +1,4 @@
-# TASKS — Corrections Atelier 2026
+# TASKS — Corrections Atelier Maître
 
 > Généré le 2026-05-23 — Croisement Schéma Prisma × DTOs × Controllers × Postman × WORKFLOWS.md
 

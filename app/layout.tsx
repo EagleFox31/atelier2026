@@ -12,15 +12,15 @@ const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 const geistMono = Geist_Mono({subsets:['latin'],variable:'--font-mono'});
 
 export const metadata: Metadata = {
-  title: 'Atelier 2026 | Gestion Automobile',
+  title: 'Atelier Maître | Gestion Automobile',
   description: 'Système de gestion d\'atelier automobile moderne et intuitif.',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Atelier 2026',
+    title: 'Atelier Maître',
   },
-  applicationName: 'Atelier 2026',
+  applicationName: 'Atelier Maître',
   formatDetection: { telephone: false },
 };
 

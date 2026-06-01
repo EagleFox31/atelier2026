@@ -164,7 +164,7 @@ async function migrateWorkshopSettings() {
       default_labor_rate_xaf, tax_rate_pct
     ) VALUES (
       'default',
-      'ATELIER 2026',
+      'Atelier Maître',
       'Garage automobile — Yaoundé, Cameroun',
       'M012345678901X',
       'contact@atelier2026.cm',

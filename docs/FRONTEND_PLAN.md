@@ -1,5 +1,5 @@
 # Plan PERT — Migration Frontend → APIs réelles
-> Atelier 2026 · Remplacement de `lib/mock-data.ts` par des appels `lib/api.ts`
+> Atelier Maître · Remplacement de `lib/mock-data.ts` par des appels `lib/api.ts`
 
 ---
 

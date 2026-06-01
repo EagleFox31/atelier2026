@@ -1,6 +1,6 @@
 # Comprendre l'app 101
 
-Guide vivant du projet **Atelier 2026** : leçons apprises, pièges évités, astuces qui marchent vraiment sur ce stack (Next.js + NestJS + Supabase).
+Guide vivant du projet **Atelier Maître** : leçons apprises, pièges évités, astuces qui marchent vraiment sur ce stack (Next.js + NestJS + Supabase).
 
 > Ce fichier s'enrichit au fur et à mesure qu'on avance. Une leçon = un problème rencontré + la solution retenue.
 

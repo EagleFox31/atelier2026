@@ -1,4 +1,4 @@
-# Audit de Cohérence Backend — Atelier 2026
+# Audit de Cohérence Backend — Atelier Maître
 > Généré le 2026-05-21 · Base de données : Supabase (PostgreSQL 16)
 
 ---

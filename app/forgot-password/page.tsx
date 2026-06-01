@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
             <Wrench className="text-white" size={28} />
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Atelier 2026</h1>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Atelier Maître</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Gestion d&apos;atelier automobile</p>
           </div>
         </div>
@@ -136,7 +136,7 @@ export default function ForgotPasswordPage() {
         </Card>
 
         <p className="text-center text-[11px] text-muted-foreground">
-          Atelier 2026 · Système de gestion automobile · Cameroun
+          Atelier Maître · Système de gestion automobile · Cameroun
         </p>
       </div>
     </div>

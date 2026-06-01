@@ -1,4 +1,4 @@
-# Déploiement Fly.io — Atelier 2026
+# Déploiement Fly.io — Atelier Maître
 
 Deux apps Fly.io : `atelier-api` (NestJS 3001) + `atelier-web` (Next.js 3000).
 La BDD reste sur **Supabase**. Redis via **Upstash** (extension Fly.io gratuite).

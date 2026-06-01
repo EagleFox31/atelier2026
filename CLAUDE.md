@@ -1,4 +1,4 @@
-# Atelier 2026 — Contexte projet pour Claude
+# Atelier Maître — Contexte projet pour Claude
 
 Application de gestion d'atelier automobile pour le marché camerounais (XAF, TVA 19.25%, SMS Orange/MTN CM).
 

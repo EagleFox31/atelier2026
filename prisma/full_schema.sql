@@ -1,5 +1,5 @@
 -- =============================================================================
--- ATELIER 2026 — Schéma SQL post-Prisma (parité Supabase prod)
+-- ATELIER MAÎTRE — Schéma SQL post-Prisma (parité Supabase prod)
 -- Exécuter APRÈS `npx prisma db push` (boot API Docker ou init-prod-database.mjs)
 -- =============================================================================
 

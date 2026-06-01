@@ -1,4 +1,4 @@
-# 🧪 Scénario de test visuel — Atelier 2026
+# 🧪 Scénario de test visuel — Atelier Maître
 
 > **Avant de commencer** : nettoie la base avec `npm run reset:demo`, puis lance `npm run dev`.
 > Toutes les actions ci-dessous se font dans le navigateur sur `http://localhost:3000`.

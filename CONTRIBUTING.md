@@ -1,4 +1,4 @@
-# Guide de contribution — Atelier 2026
+# Guide de contribution — Atelier Maître
 
 Ce projet est propriétaire. Les contributions sont réservées aux collaborateurs autorisés.
 
