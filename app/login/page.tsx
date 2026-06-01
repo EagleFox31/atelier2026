@@ -42,6 +42,8 @@ export default function LoginPage() {
     }
   }
 
+  const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? 'dev';
+
   return (
     <div className="flex min-h-screen bg-white">
       {/* Colonne Gauche : Formulaire (Clair et épuré) */}
@@ -143,6 +145,11 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Version — bas droite */}
+      <span className="fixed bottom-3 right-4 font-mono text-[11px] text-slate-300 select-none pointer-events-none">
+        {appVersion}
+      </span>
 
       {/* Colonne Droite : Image/Gradient (Cachée sur mobile) */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-slate-50 items-center justify-center overflow-hidden">

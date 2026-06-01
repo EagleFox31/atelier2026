@@ -14,6 +14,11 @@ COPY . .
 
 # En prod, Caddy route /api/* vers l'API — pas besoin de BACKEND_URL au build
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Version injectée par le workflow CI (semantic-release tag)
+ARG NEXT_PUBLIC_APP_VERSION=dev
+ENV NEXT_PUBLIC_APP_VERSION=$NEXT_PUBLIC_APP_VERSION
+
 RUN npm run build
 
 FROM node:20-bookworm-slim AS runner

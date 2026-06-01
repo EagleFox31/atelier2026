@@ -10,9 +10,15 @@ jobs:
   test:
     name: Type-check & Tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: write       # semantic-release crée des tags git
+      issues: write         # semantic-release commente les issues
+      pull-requests: write  # semantic-release commente les PRs
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # historique complet nécessaire pour semantic-release
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -38,3 +44,11 @@ jobs:
           DATABASE_URL: postgresql://fake:fake@localhost:5432/fake
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+
+      # Versioning automatique — uniquement sur push main (pas les PRs)
+      # feat: → minor bump  |  fix: → patch  |  feat!: → major
+      - name: Semantic release
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: npx semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
