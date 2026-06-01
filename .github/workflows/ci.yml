@@ -36,6 +36,5 @@ jobs:
         run: npm test -- --ci --passWithNoTests
         env:
           DATABASE_URL: postgresql://fake:fake@localhost:5432/fake
-          JWT_SECRET: ci-test-secret
           REDIS_HOST: localhost
           REDIS_PORT: 6379
