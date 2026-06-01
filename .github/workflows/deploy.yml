@@ -37,7 +37,7 @@ jobs:
             --exclude=".stryker-tmp" \
             --exclude="deploy/.env.prod" \
             --exclude="atelier2026.tar.gz" \
-            .
+            . || [ $? -eq 1 ]
 
       - name: Upload archive
         run: |
@@ -73,4 +73,4 @@ jobs:
         if: always()
         run: |
           ssh -i ~/.ssh/deploy_key root@94.237.59.178 \
-            "cd /opt/atelier2026 && ./deploy/scripts/compose-prod.sh ps"
+            "cd /opt/atelier2026 && chmod +x deploy/scripts/compose-prod.sh && ./deploy/scripts/compose-prod.sh ps"
