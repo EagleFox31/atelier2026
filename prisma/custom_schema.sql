@@ -1,6 +1,8 @@
 -- ============================================================
 --  ATELIER-CM · Fonctions & Triggers (PostgreSQL 16)
---  À exécuter dans le SQL Editor de Supabase APRÈS prisma migrate
+--  DEPRECATED pour le déploiement : utiliser prisma/full_schema.sql
+--  (parité Supabase + audit_logs partitionné + toutes les vues).
+--  Ce fichier reste pour référence / exécution manuelle partielle.
 -- ============================================================
 
 -- Extensions (uuid-ossp est déjà activé sur Supabase par défaut)
