@@ -147,7 +147,7 @@ export default function LoginPage() {
       </div>
 
       {/* Version — bas droite */}
-      <span className="fixed bottom-3 right-4 font-mono text-[11px] text-slate-300 select-none pointer-events-none">
+      <span className="fixed bottom-3 right-4 font-mono text-[11px] text-slate-400 select-none pointer-events-none bg-white/60 px-1.5 py-0.5 rounded">
         {appVersion}
       </span>
 
