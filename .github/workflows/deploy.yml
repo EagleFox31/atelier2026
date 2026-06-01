@@ -1,0 +1,76 @@
+name: Deploy
+
+# Se déclenche quand le workflow CI réussit sur main
+# ou manuellement via l'UI GitHub (Actions → Deploy → Run workflow)
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    # Pour workflow_run : ne déployer que si CI a réussi
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H 94.237.59.178 >> ~/.ssh/known_hosts
+
+      - name: Create archive (sans node_modules / .next / dist / .git)
+        run: |
+          tar -czf atelier2026.tar.gz \
+            --exclude="node_modules" \
+            --exclude=".next" \
+            --exclude="dist" \
+            --exclude=".git" \
+            --exclude=".stryker-tmp" \
+            --exclude="deploy/.env.prod" \
+            --exclude="atelier2026.tar.gz" \
+            .
+
+      - name: Upload archive
+        run: |
+          scp -i ~/.ssh/deploy_key \
+            atelier2026.tar.gz \
+            root@94.237.59.178:/opt/atelier2026/atelier2026.tar.gz
+
+      - name: Write .env.prod on server (depuis GitHub Secret)
+        run: |
+          echo "${{ secrets.ENV_PROD }}" | \
+            ssh -i ~/.ssh/deploy_key root@94.237.59.178 \
+              "mkdir -p /opt/atelier2026/deploy && cat > /opt/atelier2026/deploy/.env.prod"
+
+      - name: Extract + docker compose up
+        run: |
+          ssh -i ~/.ssh/deploy_key root@94.237.59.178 << 'ENDSSH'
+            set -e
+            cd /opt/atelier2026
+            tar -xzf atelier2026.tar.gz
+            rm atelier2026.tar.gz
+            chmod +x deploy/scripts/compose-prod.sh
+            ./deploy/scripts/compose-prod.sh up -d --build
+          ENDSSH
+
+      - name: Check health
+        run: |
+          sleep 30
+          curl --fail --retry 5 --retry-delay 10 \
+            http://94.237.59.178/api/health \
+            && echo "✅ API healthy" || echo "⚠️  Health check failed"
+
+      - name: Container status
+        if: always()
+        run: |
+          ssh -i ~/.ssh/deploy_key root@94.237.59.178 \
+            "cd /opt/atelier2026 && ./deploy/scripts/compose-prod.sh ps"
