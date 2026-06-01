@@ -42,7 +42,7 @@ export default function LoginPage() {
     }
   }
 
-  const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? 'dev';
+  const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || 'dev';
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -147,7 +147,7 @@ export default function LoginPage() {
       </div>
 
       {/* Version — bas droite */}
-      <span className="fixed bottom-3 right-4 font-mono text-[11px] text-slate-400 select-none pointer-events-none bg-white/60 px-1.5 py-0.5 rounded">
+      <span className="fixed bottom-4 right-4 z-50 font-mono text-[11px] text-white bg-slate-800 px-2 py-1 rounded-md">
         {appVersion}
       </span>
 
