@@ -1,6 +1,6 @@
 name: Deploy
 
-# Déclenché après réussite du CI sur main, ou manuellement
+# Déclenché après réussite du CI sur main (qui inclut semantic-release), ou manuellement
 on:
   workflow_run:
     workflows: ['CI']
@@ -20,12 +20,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # nécessaire pour lire les tags git
 
-      - name: Set image names (lowercase — GHCR l'exige)
+      - name: Set image names + version (lowercase — GHCR l'exige)
         run: |
           OWNER="${{ github.repository_owner }}"
+          git fetch --tags --force
+          VERSION=$(git tag --sort=-version:refname | grep -E '^v[0-9]' | head -n1)
           echo "API_IMAGE=ghcr.io/${OWNER,,}/atelier2026-api" >> $GITHUB_ENV
           echo "WEB_IMAGE=ghcr.io/${OWNER,,}/atelier2026-web" >> $GITHUB_ENV
+          echo "APP_VERSION=${VERSION:-dev}" >> $GITHUB_ENV
+          echo "Version détectée : ${VERSION:-dev}"
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -44,7 +50,7 @@ jobs:
           file: deploy/docker/Dockerfile.api
           push: true
           tags: ${{ env.API_IMAGE }}:latest
-          cache-from: type=gha,scope=api   # réutilise les layers inchangés
+          cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
 
       - name: Build & push Web image
@@ -54,6 +60,7 @@ jobs:
           file: deploy/docker/Dockerfile.web
           push: true
           tags: ${{ env.WEB_IMAGE }}:latest
+          build-args: NEXT_PUBLIC_APP_VERSION=${{ env.APP_VERSION }}
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
 

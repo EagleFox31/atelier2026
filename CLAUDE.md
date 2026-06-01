@@ -147,6 +147,41 @@ Uniquement sur **User**, **Customer**, **Vehicle** (seuls modèles avec `deleted
 
 ---
 
+## CI/CD & Versioning (ajouté 2026-06-01)
+
+### Pipeline GitHub Actions
+
+```
+git push main → CI (tests + type-check + semantic-release) → Deploy (build GHCR + pull serveur)
+```
+
+- **CI** (`.github/workflows/ci.yml`) : type-check back + front, tests, puis `semantic-release` sur main
+- **Deploy** (`.github/workflows/deploy.yml`) : build images Docker sur runner GitHub → push GHCR → serveur fait `docker pull + up` (30 sec, pas de build sur le serveur)
+- **Cache Docker** (GitHub Actions Cache) : seules les layers modifiées sont reconstruites
+
+### Secrets GitHub Actions requis
+
+| Secret | Usage |
+|--------|-------|
+| `SSH_PRIVATE_KEY` | Clé Ed25519 sans passphrase (dédiée CI) |
+| `ENV_PROD` | Contenu de `deploy/.env.prod` |
+| `GHCR_TOKEN` | PAT `read:packages` pour `docker pull` sur le serveur |
+
+### Versioning automatique (semantic-release)
+
+Config : `.releaserc.json` — déclenché sur push `main` uniquement.
+
+| Commit | Bump semver |
+|--------|-------------|
+| `fix:` | PATCH `1.2.3 → 1.2.4` |
+| `feat:` | MINOR `1.2.3 → 1.3.0` |
+| `feat!:` ou `BREAKING CHANGE:` | MAJOR `1.2.3 → 2.0.0` |
+| `docs:`, `chore:`, `refactor:` | aucun bump |
+
+La version est injectée dans Next.js via `NEXT_PUBLIC_APP_VERSION` (build arg Docker) et affichée en bas à droite de la page `/login`.
+
+---
+
 ## État du projet (2026-06-01)
 
 ### Backend — audit complet et corrigé
