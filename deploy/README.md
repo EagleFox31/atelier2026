@@ -1,6 +1,6 @@
 # Deploiement MVP — Oracle Cloud (1 plateforme, $0 Always Free)
 
-Stack sur **une VM ARM** : Caddy (80/443) + Next.js + NestJS + Redis. PostgreSQL reste sur **Supabase**.
+Stack sur **une VM ARM** : Caddy (80/443) + Next.js + NestJS + Redis. PostgreSQL : **Supabase** (mode B) ou **conteneur `postgres` sur la VM** (mode A — recommandé si trial UpCloud sans ports 5432/6543 sortants).
 
 Concu pour eviter les pieges connus du projet :
 - migrations via `migrate-missing.mjs` + `DIRECT_URL` (pas `prisma migrate deploy`)
@@ -67,21 +67,45 @@ Remplir au minimum :
 
 | Variable | Exemple |
 |----------|---------|
-| `DATABASE_URL` | Supabase pooler `:6543?pgbouncer=true&sslmode=require` |
-| `DIRECT_URL` | Supabase session `:5432?sslmode=require` |
+| `POSTGRES_PASSWORD` | Mode A : mot de passe Postgres local (docker) |
+| `DATABASE_URL` / `DIRECT_URL` | Mode A : `postgresql://atelier:MOTDEPASSE@postgres:5432/atelier` |
+| `DATABASE_URL` | Mode B : Supabase pooler `:6543?pgbouncer=true&sslmode=require` |
+| `DIRECT_URL` | Mode B : Supabase `:5432?sslmode=require` |
 | `JWT_SECRET` | `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"` |
 | `ALLOWED_ORIGINS` | `http://VOTRE_IP` (sans slash final) |
 
-**Avant le premier login**, créer les comptes test depuis votre machine (`.env` local avec les mêmes URLs Supabase) :
+**Schéma complet (tables + triggers + audit partitionné)** : appliqué automatiquement au 1er démarrage du conteneur `api` (`prisma db push` + `prisma/full_schema.sql` + `migrate-missing.mjs`).
+
+**Comptes de login** (optionnel, une fois) depuis votre PC en pointant vers la BDD :
 
 ```bash
-npm run migrate          # si pas encore fait
+# Mode A : tunnel SSH ou URL temporaire ; Mode B : .env local Supabase
 npx prisma db seed
 ```
 
 ---
 
 ## Etape 3 — Deploy applicatif
+
+### UpCloud / Windows (PowerShell)
+
+Cle SSH : `%USERPROFILE%\.ssh\id_ed25519_upcloud` (passphrase). Test :
+
+```powershell
+ssh -i $env:USERPROFILE\.ssh\id_ed25519_upcloud root@94.237.59.178
+```
+
+**Windows** : ne pas utiliser `ControlMaster` dans `~/.ssh/config` (erreur `getsockname failed: Not a socket`). Le script `remote-deploy.ps1` n'utilise pas le multiplexage.
+
+```powershell
+.\deploy\scripts\remote-deploy.ps1
+```
+
+La passphrase peut etre demandee **plusieurs fois** (normal). Pour une seule fois : PowerShell **en administrateur** puis `Set-Service ssh-agent -StartupType Manual; Start-Service ssh-agent; ssh-add $env:USERPROFILE\.ssh\id_ed25519_upcloud`
+
+Defauts du script : `root@94.237.59.178`, dossier `/opt/atelier2026`.
+
+### Oracle / Linux (bash)
 
 Attendre ~2 min apres `terraform apply` (cloud-init installe Docker).
 
@@ -90,7 +114,7 @@ chmod +x deploy/scripts/remote-deploy.sh
 ./deploy/scripts/remote-deploy.sh ubuntu@VOTRE_IP
 ```
 
-Premier build sur la VM : **10–20 min** (ARM).
+Premier build sur la VM : **10–20 min** (ARM ou x86).
 
 Ouvrir **http://VOTRE_IP** — login : `admin@atelier.cm` / `Atelier2026!`
 
