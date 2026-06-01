@@ -113,7 +113,8 @@ Règles prod :
 | `scripts/migrate-missing.mjs` | Migrations Supabase via DIRECT_URL (préféré à `prisma migrate deploy`) |
 | `docs/comprendre-l-app-101.md` | Guide vivant — leçons apprises et astuces projet |
 | `deploy/README.md` | Déploiement MVP Oracle + Docker Compose |
-| `prisma/custom_schema.sql` | Triggers et séquences SQL à exécuter manuellement dans Supabase |
+| `prisma/full_schema.sql` | SQL post-Prisma : triggers, `audit_logs` partitionné, vues (boot Docker / Supabase) |
+| `prisma/custom_schema.sql` | Ancien sous-ensemble — préférer `full_schema.sql` |
 
 ---
 
@@ -146,7 +147,7 @@ Uniquement sur **User**, **Customer**, **Vehicle** (seuls modèles avec `deleted
 
 ---
 
-## État du projet (2026-05-22)
+## État du projet (2026-06-01)
 
 ### Backend — audit complet et corrigé
 - ✅ Bloquants B1-B3 (schema Prisma, $extends soft delete, filtre lowStock)
@@ -195,6 +196,12 @@ Workshop, Stock, Billing, Vehicles, Counter-Sales, Dashboard stats réelles.
 12. **Z-index mobile** — BottomNav 100, Dialog 105, barre d'action formulaire 110, Select/Dropdown/Popover portés **120**. Ne jamais laisser un popup à z-50 dans une modale z-105.
 13. **Formulaires modale mobile** — bottom sheet + scroll + `MobileFormActionBar` au-dessus de la navbar (`MOBILE_BOTTOM_NAV_OFFSET`). Réf. `mobile-form-action-bar.tsx`, `CUSTOMER_FORM_DIALOG_CLASS`.
 14. **Listes mobile** — cartes `md:hidden` + tableau desktop ; profil réception : BottomNav Clients/OT/Nouveau RDV.
+15. **`psql` n'accepte pas `?schema=public`** — ce paramètre est Prisma-only. Toujours stripper le query string avant de passer `DIRECT_URL` à psql : `PSQL_URL="${DIRECT_URL%%\?*}"`.
+16. **`DEFAULT (col_expr)` interdit dans PostgreSQL** — on ne peut pas référencer d'autres colonnes dans une expression `DEFAULT`. Les champs calculés (`lineTotalXaf`, `balanceXaf`) doivent utiliser `@default(dbgenerated())` dans Prisma + un trigger `BEFORE INSERT` dans `full_schema.sql` qui calcule la valeur si `NULL`.
+17. **`full_schema.sql` nécessite une double-passe** — il doit tourner une 1ère fois (sans `ON_ERROR_STOP`) AVANT `prisma db push` pour créer extensions/séquences/fonctions, puis une 2ème fois APRÈS pour créer triggers/vues/audit_logs. Voir `deploy/docker/api-entrypoint.sh`.
+18. **`audit_logs` partitionné bloque `prisma db push`** — si `audit_logs` existe déjà comme table partitionnée (`relkind = 'p'`), Prisma génère un `ALTER TABLE ... RENAME CONSTRAINT + ALTER COLUMN TYPE` invalide. L'entrypoint le droppe automatiquement si partitionné. Ne jamais laisser `audit_logs` en état partitionné avant un `prisma db push`.
+19. **`@db.Inet` obligatoire pour `ip_address` dans AuditLog** — sans ce type hint, Prisma voit `String?` (TEXT) alors que la DB a `INET` → AlterColumn bloquant sur re-déploiement.
+20. **Seed prod : `npx --yes tsx prisma/seed.ts`** — le container prod n'a pas `ts-node` (`--omit=dev`). Utiliser `docker exec atelier2026-api-1 npx --yes tsx prisma/seed.ts`. Ne jamais tenter de seeder depuis la machine locale vers l'IP publique (port 5432 non exposé).
 
 ---
 
