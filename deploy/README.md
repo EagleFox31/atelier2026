@@ -1,4 +1,4 @@
-# Déploiement — Atelier 2026
+# Déploiement — Atelier Maître
 
 Stack : **Caddy** (80/443) + **Next.js** + **NestJS** + **Redis** + **PostgreSQL** (conteneur local ou Supabase).
 

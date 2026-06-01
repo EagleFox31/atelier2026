@@ -1,4 +1,4 @@
-# Workflows Atelier 2026
+# Workflows Atelier Maître
 > Cartographie des flux métier — ce qui existe, ce qui est manuel, ce qui peut être automatisé
 
 ---

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Atelier 2026 — Orchestrateur de développement
+ * Atelier Maître — Orchestrateur de développement
  * 1. Kill des ports existants
  * 2. Lancement NestJS :3001 (tsx) + Next.js :3000 (turbopack)
  * 3. Type-check backend + frontend en arrière-plan (parallèle)
@@ -97,7 +97,7 @@ await new Promise(r => setTimeout(r, 2000));
 try {
   writeFileSync('postman/env_dynamic.json', JSON.stringify({
     id: "atelier-env",
-    name: "Atelier 2026 Local",
+    name: "Atelier Maître Local",
     values: [
       { key: "baseUrl", value: `http://localhost:${API_PORT}`, enabled: true }
     ],

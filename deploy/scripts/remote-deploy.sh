@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploie Atelier 2026 sur une VM (Oracle ou autre) via SSH + Docker Compose.
+# Deploie Atelier Maître sur une VM (Oracle ou autre) via SSH + Docker Compose.
 # Usage : ./deploy/scripts/remote-deploy.sh ubuntu@IP_PUBLIQUE
 # Prerequis : deploy/.env.prod rempli, cle SSH, Docker installe sur la VM (cloud-init OCI)
 

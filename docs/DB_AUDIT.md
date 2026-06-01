@@ -1,4 +1,4 @@
-# Audit Base de Données Supabase — Atelier 2026
+# Audit Base de Données Supabase — Atelier Maître
 
 **Date** : 2026-05-23  
 **Instance** : PostgreSQL 17.6 (Supabase, eu-west-1)  

@@ -127,7 +127,7 @@ async function main() {
     update: {},
     create: {
       id: 'default',
-      shopName: 'ATELIER 2026',
+      shopName: 'Atelier Maître',
       tagline: 'Garage automobile — Yaoundé, Cameroun',
       niu: 'M012345678901X',
       email: 'contact@atelier2026.cm',

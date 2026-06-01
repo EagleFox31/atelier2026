@@ -1,4 +1,4 @@
-# Politique de sécurité — Atelier 2026
+# Politique de sécurité — Atelier Maître
 
 ## Signaler une vulnérabilité
 

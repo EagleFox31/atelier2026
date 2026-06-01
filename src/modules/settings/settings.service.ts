@@ -4,7 +4,7 @@ import { UpdateWorkshopSettingsDto } from './dto/workshop-settings.dto';
 
 export const DEFAULT_WORKSHOP_SETTINGS = {
   id: 'default',
-  shopName: 'ATELIER 2026',
+  shopName: 'Atelier Maître',
   tagline: 'Garage automobile — Yaoundé, Cameroun',
   niu: 'M012345678901X',
   email: 'contact@atelier2026.cm',

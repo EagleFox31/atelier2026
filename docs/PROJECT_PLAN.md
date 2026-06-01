@@ -1,4 +1,4 @@
-# Plan de Projet : Atelier 2026
+# Plan de Projet : Atelier Maître
 
 Application de gestion d'atelier automobile moderne, conforme aux standards 2026.
 

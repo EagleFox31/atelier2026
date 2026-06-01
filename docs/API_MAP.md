@@ -1,4 +1,4 @@
-# Cartographie des APIs, Endpoints et Schémas — Atelier 2026
+# Cartographie des APIs, Endpoints et Schémas — Atelier Maître
 
 Ce document est généré à partir de la lecture directe du code source NestJS (controllers + services) et du schéma Prisma. Il décrit chaque module, ses endpoints, ses schémas d'entrée/sortie, ses règles de traitement métier et les triggers de base de données.
 

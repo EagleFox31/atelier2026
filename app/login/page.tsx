@@ -55,7 +55,7 @@ export default function LoginPage() {
               <Wrench className="text-brand" size={28} />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Atelier 2026</h1>
+              <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Atelier Maître</h1>
               <p className="mt-1 text-sm text-slate-500">
                 Gestion d'atelier automobile premium
               </p>
@@ -140,7 +140,7 @@ export default function LoginPage() {
 
           <div className="mt-10 text-center">
             <p className="text-sm text-slate-400">
-              © {new Date().getFullYear()} Atelier 2026. CEMAC Compliant.
+              © {new Date().getFullYear()} Atelier Maître. CEMAC Compliant.
             </p>
           </div>
         </div>

@@ -1,4 +1,4 @@
-# Onboarding Atelier 2026
+# Onboarding Atelier Maître
 
 Bienvenue. Choisissez votre profil ci-dessous pour accéder à votre guide de prise en main.
 
