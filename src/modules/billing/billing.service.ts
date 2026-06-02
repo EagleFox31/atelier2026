@@ -44,11 +44,12 @@ export class BillingService {
     });
   }
 
-  createQuote(body: CreateQuoteDto, userId: string) {
+  createQuote(body: CreateQuoteDto, userId: string, garageId?: string | null) {
     const amounts = this.computeAmounts(body.subtotal);
 
     return this.prisma.quote.create({
       data: {
+        ...(garageId ? { garageId } : {}),
         serviceOrderId: body.serviceOrderId,
         customerId: body.customerId,
         createdBy: userId,
@@ -266,7 +267,7 @@ export class BillingService {
    * Création de facture depuis un devis (Point 9).
    * Pas de $transaction interactif — incompatible avec pgbouncer (Supabase pooler).
    */
-  async createInvoiceFromQuote(quoteId: string, userId: string) {
+  async createInvoiceFromQuote(quoteId: string, userId: string, garageId?: string | null) {
     const quote = await this.prisma.quote.findUnique({
       where: { id: quoteId },
       include: {
@@ -289,6 +290,7 @@ export class BillingService {
 
     const invoice = await this.prisma.invoice.create({
       data: {
+        ...(garageId ? { garageId } : quote.garageId ? { garageId: quote.garageId } : {}),
         serviceOrderId: quote.serviceOrderId,
         quoteId: quote.id,
         customerId: quote.customerId,
@@ -340,9 +342,11 @@ export class BillingService {
     method: PaymentMethod;
     userId: string;
     idempotencyKey: string;
+    garageId?: string | null;
   }) {
     const payment = await this.prisma.payment.create({
       data: {
+        ...(data.garageId ? { garageId: data.garageId } : {}),
         invoiceId: data.invoiceId,
         amountXaf: data.amount,
         method: data.method,

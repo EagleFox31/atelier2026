@@ -622,6 +622,7 @@ export class WorkshopService {
               phone: customer.phonePrimary,
               message: `Bonjour ${nom}, votre véhicule est prêt. Vous pouvez venir le récupérer à l'atelier. Merci pour votre confiance.`,
               customerId: customer.id,
+              serviceOrderId: otId,
               lang: customer.lang ?? 'fr',
             });
             this.logger.log(`SMS "véhicule prêt" envoyé à ${customer.phonePrimary}`);
