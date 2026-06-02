@@ -13,7 +13,7 @@ export class SmsProcessor extends WorkerHost {
   }
 
   async process(job: Job<any, any, string>): Promise<any> {
-    const { phone, message, customerId, lang, notificationId } = job.data;
+    const { phone, message, customerId, lang, notificationId, serviceOrderId } = job.data;
     
     this.logger.log(`Traitement SMS pour ${phone} (${lang})`);
 
@@ -35,7 +35,10 @@ export class SmsProcessor extends WorkerHost {
         if (notificationId) {
           await this.prisma.sMSNotification.update({
             where: { id: notificationId },
-            data: sentData,
+            data: {
+              ...sentData,
+              ...(serviceOrderId ? { serviceOrderId } : {}),
+            },
           });
         } else {
           await this.prisma.sMSNotification.create({
@@ -44,6 +47,7 @@ export class SmsProcessor extends WorkerHost {
               messageBody: message,
               customerId: customerId,
               lang,
+              ...(serviceOrderId ? { serviceOrderId } : {}),
               ...sentData,
             },
           });

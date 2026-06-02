@@ -99,6 +99,7 @@ export class StockController {
       serviceOrderId: body.serviceOrderId,
       referenceDoc: body.referenceDoc,
       unitPriceXaf: body.unitPriceXaf,
+      garageId: user.garageId,
     });
   }
 

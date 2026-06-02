@@ -22,8 +22,8 @@ export class BillingController {
 
   @Post('quotes')
   @RequirePermission('FAC_CREATE')
-  createQuote(@CurrentUser() user: { id: string }, @Body() body: CreateQuoteDto) {
-    return this.billingService.createQuote(body, user.id);
+  createQuote(@CurrentUser() user: any, @Body() body: CreateQuoteDto) {
+    return this.billingService.createQuote(body, user.id, user.garageId);
   }
 
   @Post('quotes/:quoteId/send')
@@ -58,20 +58,21 @@ export class BillingController {
   @RequireRole('CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN')
   createInvoiceFromQuote(
     @Param('quoteId') quoteId: string,
-    @CurrentUser() user: { id: string },
+    @CurrentUser() user: any,
   ) {
-    return this.billingService.createInvoiceFromQuote(quoteId, user.id);
+    return this.billingService.createInvoiceFromQuote(quoteId, user.id, user.garageId);
   }
 
   @Post('payment')
   @RequirePermission('FAC_PAY')
-  recordPayment(@CurrentUser() user: { id: string }, @Body() body: RecordPaymentDto) {
+  recordPayment(@CurrentUser() user: any, @Body() body: RecordPaymentDto) {
     return this.billingService.recordPayment({
       invoiceId: body.invoiceId,
       amount: body.amount,
       method: body.method,
       userId: user.id,
       idempotencyKey: body.idempotencyKey ?? randomUUID(),
+      garageId: user.garageId,
     });
   }
 

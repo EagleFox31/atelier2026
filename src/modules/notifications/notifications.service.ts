@@ -24,6 +24,12 @@ export class NotificationsService {
       where,
       orderBy: { sentAt: 'desc' },
       take: 50,
+      include: {
+        // Charge l'OT liée pour que le front puisse afficher `serviceOrder.reference`.
+        serviceOrder: {
+          select: { reference: true },
+        },
+      },
     });
   }
 

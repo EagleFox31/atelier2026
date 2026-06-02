@@ -29,12 +29,12 @@ export class StockService {
     serviceOrderId?: string;
     referenceDoc?: string;
     unitPriceXaf?: number;
+    garageId?: string | null;
   }) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Enregistrement du mouvement
-      // Le trigger SQL se déclenchera BEFORE INSERT pour vérifier le stock et UPDATE parts_catalog
       const movement = await tx.stockMovement.create({
         data: {
+          ...(data.garageId ? { garageId: data.garageId } : {}),
           partId: data.partId,
           movementType: data.type,
           quantity: data.quantity,
@@ -42,8 +42,8 @@ export class StockService {
           serviceOrderId: data.serviceOrderId,
           referenceDoc: data.referenceDoc,
           unitPriceXaf: data.unitPriceXaf,
-          qtyBefore: 0, // Sera remplacé par le trigger
-          qtyAfter: 0,  // Sera remplacé par le trigger
+          qtyBefore: 0,
+          qtyAfter: 0,
         },
       });
 
