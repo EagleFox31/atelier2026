@@ -110,6 +110,7 @@ async function main() {
   await migrateUserNewFields();
   await migrateDemoRequests();
   await migrateMultiTenant();
+  await migrateGarageIdColumns();
 
   console.log('\n✅ Migration terminée.');
 }
@@ -249,6 +250,25 @@ async function migrateMultiTenant() {
     console.log('   ✅ workshop_settings.garage_id ajouté');
   } else {
     console.log('   ⏭️  workshop_settings.garage_id existe déjà');
+  }
+}
+
+async function migrateGarageIdColumns() {
+  const tables = [
+    'customers', 'vehicles', 'service_orders', 'parts_catalog',
+    'stock_movements', 'quotes', 'invoices', 'payments', 'appointments',
+  ];
+  for (const table of tables) {
+    const { rows } = await q(`
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='${table}' AND column_name='garage_id'
+    `);
+    if (rows.length === 0) {
+      await q(`ALTER TABLE public.${table} ADD COLUMN garage_id UUID REFERENCES garages(id)`);
+      console.log(`   ✅ ${table}.garage_id ajouté`);
+    } else {
+      console.log(`   ⏭️  ${table}.garage_id existe déjà`);
+    }
   }
 }
 

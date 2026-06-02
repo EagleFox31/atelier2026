@@ -6,7 +6,8 @@ import { CustomerType } from '@prisma/client';
 export class CustomersService {
     constructor(private prisma: PrismaService) { }
 
-    async findAll(search?: string, type?: CustomerType) {
+    async findAll(search?: string, type?: CustomerType, garageId?: string) {
+        const db = this.prisma.forGarage(garageId);
         const where: any = { deletedAt: null };
         if (type) where.customerType = type;
         if (search) {
@@ -18,48 +19,36 @@ export class CustomersService {
                 { email: { contains: search, mode: 'insensitive' } },
             ];
         }
-
-        return this.prisma.customer.findMany({
-            where,
-            orderBy: { createdAt: 'desc' },
-        });
+        return db.customer.findMany({ where, orderBy: { createdAt: 'desc' } });
     }
 
-    async findOne(id: string) {
-        const customer = await this.prisma.customer.findUnique({
+    async findOne(id: string, garageId?: string) {
+        const db = this.prisma.forGarage(garageId);
+        const customer = await db.customer.findUnique({
             where: { id, deletedAt: null },
             include: {
                 vehicles: true,
-                serviceOrders: {
-                    orderBy: { openedAt: 'desc' },
-                    take: 5
-                }
+                serviceOrders: { orderBy: { openedAt: 'desc' }, take: 5 },
             },
         });
-
         if (!customer) throw new NotFoundException('Client introuvable');
         return customer;
     }
 
-    async create(data: any) {
-        return this.prisma.customer.create({
-            data,
-        });
+    async create(data: any, garageId?: string) {
+        const db = this.prisma.forGarage(garageId);
+        return db.customer.create({ data });
     }
 
-    async update(id: string, data: any) {
-        await this.findOne(id);
-        return this.prisma.customer.update({
-            where: { id },
-            data,
-        });
+    async update(id: string, data: any, garageId?: string) {
+        await this.findOne(id, garageId);
+        const db = this.prisma.forGarage(garageId);
+        return db.customer.update({ where: { id }, data });
     }
 
-    async remove(id: string) {
-        await this.findOne(id);
-        return this.prisma.customer.update({
-            where: { id },
-            data: { deletedAt: new Date() },
-        });
+    async remove(id: string, garageId?: string) {
+        await this.findOne(id, garageId);
+        const db = this.prisma.forGarage(garageId);
+        return db.customer.update({ where: { id }, data: { deletedAt: new Date() } });
     }
 }

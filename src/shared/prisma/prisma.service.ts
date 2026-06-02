@@ -106,4 +106,57 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
   async transaction<T>(fn: (prisma: PrismaClient) => Promise<T>): Promise<T> {
     return this.$transaction(fn as any) as Promise<T>;
   }
+
+  /**
+   * Retourne un client Prisma étendu qui :
+   * - filtre automatiquement toutes les lectures par garageId
+   * - injecte garageId sur tous les create
+   * Usage : const db = this.prisma.forGarage(user.garageId); db.customer.findMany(...)
+   */
+  forGarage(garageId: string | null | undefined) {
+    if (!garageId) return this;
+
+    const SCOPED: Record<string, true> = {
+      customer: true, vehicle: true, serviceOrder: true, partsCatalog: true,
+      stockMovement: true, quote: true, invoice: true, payment: true, appointment: true,
+    };
+
+    return this.$extends({
+      query: {
+        $allModels: {
+          async findMany({ model, args, query }: any) {
+            if (SCOPED[model.charAt(0).toLowerCase() + model.slice(1)]) {
+              args.where = { ...args.where, garageId };
+            }
+            return query(args);
+          },
+          async findFirst({ model, args, query }: any) {
+            if (SCOPED[model.charAt(0).toLowerCase() + model.slice(1)]) {
+              args.where = { ...args.where, garageId };
+            }
+            return query(args);
+          },
+          async count({ model, args, query }: any) {
+            if (SCOPED[model.charAt(0).toLowerCase() + model.slice(1)]) {
+              args.where = { ...args.where, garageId };
+            }
+            return query(args);
+          },
+          async create({ model, args, query }: any) {
+            if (SCOPED[model.charAt(0).toLowerCase() + model.slice(1)]) {
+              (args.data as any).garageId = (args.data as any).garageId ?? garageId;
+            }
+            return query(args);
+          },
+          async createMany({ model, args, query }: any) {
+            if (SCOPED[model.charAt(0).toLowerCase() + model.slice(1)]) {
+              const data = Array.isArray(args.data) ? args.data : [args.data];
+              args.data = data.map((d: any) => ({ ...d, garageId: d.garageId ?? garageId }));
+            }
+            return query(args);
+          },
+        },
+      },
+    }) as unknown as PrismaService;
+  }
 }

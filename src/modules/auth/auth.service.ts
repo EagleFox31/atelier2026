@@ -38,7 +38,13 @@ export class AuthService {
       throw new UnauthorizedException('Identifiants invalides');
     }
 
-    const payload = { sub: user.id, email: user.email, version: user.tokenVersion };
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      version: user.tokenVersion,
+      tenantId: user.tenantId ?? null,
+      garageId: user.garageId ?? null,
+    };
     
     // Mise à jour de la date de dernière connexion
     await this.prisma.user.update({

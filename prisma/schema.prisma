@@ -337,6 +337,7 @@ model AuditLog {
 
 model Customer {
   id               String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  garageId         String?           @map("garage_id") @db.Uuid
   customerType     CustomerType      @default(INDIVIDUAL) @map("customer_type")
   firstName        String?           @map("first_name")
   lastName         String?           @map("last_name")
@@ -389,6 +390,7 @@ model VehicleModel {
 
 model Vehicle {
   id              String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  garageId        String?                 @map("garage_id") @db.Uuid
   customerId      String                  @map("customer_id") @db.Uuid
   plateNumber     String                  @map("plate_number")
   plateFormat     String                  @default("NEW") @map("plate_format")
@@ -463,6 +465,7 @@ model ReceptionCheckCatalog {
 
 model ServiceOrder {
   id                 String                  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  garageId           String?                 @map("garage_id") @db.Uuid
   reference          String                  @unique @default(dbgenerated("fn_next_ref('OT', 'seq_ot')"))
   vehicleId          String                  @map("vehicle_id") @db.Uuid
   customerId         String                  @map("customer_id") @db.Uuid
@@ -672,6 +675,7 @@ model Supplier {
 
 model PartsCatalog {
   id                  String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  garageId            String?           @map("garage_id") @db.Uuid
   reference           String            @unique
   oemReference        String?           @map("oem_reference")
   barcode             String?           @unique
@@ -710,6 +714,7 @@ model PartsCatalog {
 
 model StockMovement {
   id             String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  garageId       String?           @map("garage_id") @db.Uuid
   partId         String            @map("part_id") @db.Uuid
   movementType   StockMovementType @map("movement_type")
   quantity       Decimal           @db.Decimal(10, 3)
@@ -742,6 +747,7 @@ model StockMovement {
 
 model Quote {
   id                   String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  garageId             String?      @map("garage_id") @db.Uuid
   reference            String       @unique @default(dbgenerated("fn_next_ref('DEV', 'seq_quote')"))
   serviceOrderId       String       @map("service_order_id") @db.Uuid
   customerId           String       @map("customer_id") @db.Uuid
@@ -839,6 +845,7 @@ model ASPPurchase {
 
 model Invoice {
   id               String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  garageId         String?       @map("garage_id") @db.Uuid
   reference        String        @unique @default(dbgenerated("fn_next_ref('FAC', 'seq_invoice')"))
   serviceOrderId   String?       @map("service_order_id") @db.Uuid
   quoteId          String?       @map("quote_id") @db.Uuid
@@ -901,6 +908,7 @@ model InvoiceLine {
 
 model Payment {
   id             String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  garageId       String?       @map("garage_id") @db.Uuid
   invoiceId      String        @map("invoice_id") @db.Uuid
   method         PaymentMethod
   amountXaf      Decimal       @map("amount_xaf") @db.Decimal(15, 2)
@@ -967,6 +975,7 @@ model CounterSaleLine {
 
 model Appointment {
   id              String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  garageId        String?           @map("garage_id") @db.Uuid
   customerId      String            @map("customer_id") @db.Uuid
   vehicleId       String?           @map("vehicle_id") @db.Uuid
   scheduledAt     DateTime          @map("scheduled_at") @db.Timestamptz
