@@ -16,8 +16,8 @@ export class BillingController {
 
   @Get('quotes')
   @RequirePermission('FAC_VIEW')
-  listQuotes(@Query('serviceOrderId') serviceOrderId?: string) {
-    return this.billingService.listQuotes(serviceOrderId);
+  listQuotes(@CurrentUser() user: any, @Query('serviceOrderId') serviceOrderId?: string) {
+    return this.billingService.listQuotes(serviceOrderId, user?.garageId);
   }
 
   @Post('quotes')
@@ -47,10 +47,11 @@ export class BillingController {
   @Get('invoices')
   @RequirePermission('FAC_VIEW')
   listInvoices(
+    @CurrentUser() user: any,
     @Query('customerId') customerId?: string,
     @Query('status') status?: string,
   ) {
-    return this.billingService.listInvoices(customerId, status);
+    return this.billingService.listInvoices(customerId, status, user?.garageId);
   }
 
   @Post('invoice/from-quote/:quoteId')

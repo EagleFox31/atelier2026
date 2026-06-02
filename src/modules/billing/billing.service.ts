@@ -31,9 +31,11 @@ export class BillingService {
     return computeAmounts(subtotal);
   }
 
-  listQuotes(serviceOrderId?: string) {
+  listQuotes(serviceOrderId?: string, garageId?: string | null) {
+    const where: Record<string, unknown> = { ...(garageId ? { garageId } : {}) };
+    if (serviceOrderId) where.serviceOrderId = serviceOrderId;
     return this.prisma.quote.findMany({
-      where: serviceOrderId ? { serviceOrderId } : {},
+      where,
       include: {
         customer: true,
         lines: true,
@@ -207,8 +209,8 @@ export class BillingService {
     return quote;
   }
 
-  listInvoices(customerId?: string, status?: string) {
-    const where: Record<string, unknown> = {};
+  listInvoices(customerId?: string, status?: string, garageId?: string | null) {
+    const where: Record<string, unknown> = { ...(garageId ? { garageId } : {}) };
     if (customerId) where.customerId = customerId;
     if (status) where.status = status;
 
