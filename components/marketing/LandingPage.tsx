@@ -16,6 +16,13 @@ import {
   Building2,
   CheckCircle2,
   ChevronRight,
+  UserPlus,
+  Users,
+  Zap,
+  Wifi,
+  Mail,
+  Clock,
+  TrendingUp,
 } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -165,15 +172,24 @@ export function LandingPage() {
                   />
                 </Link>
                 <Link
-                  href="/login"
+                  href="/inscription"
                   className={cn(
                     buttonVariants({ variant: 'outline', size: 'lg' }),
-                    'h-12 rounded-xl border-slate-200/90 bg-white/60 text-slate-700 backdrop-blur-sm hover:bg-white hover:border-slate-300',
+                    'h-12 rounded-xl border-brand/40 bg-white/80 text-brand backdrop-blur-sm hover:bg-white hover:border-brand/60 font-semibold',
                   )}
                 >
-                  Accéder à l&apos;app
+                  <UserPlus size={17} className="mr-1.5" />
+                  Créer mon atelier
                 </Link>
-                <InstallAppButton variant="landing-outline" size="lg" />
+                <Link
+                  href="/login"
+                  className={cn(
+                    buttonVariants({ variant: 'ghost', size: 'lg' }),
+                    'h-12 rounded-xl text-slate-600 hover:bg-white/60',
+                  )}
+                >
+                  Déjà un compte
+                </Link>
               </div>
               <TrustPills
                 items={[
@@ -181,6 +197,7 @@ export function LandingPage() {
                   'Données hébergées',
                   'Support FR',
                   'XAF · TVA 19,25 %',
+                  'Hors-ligne (PWA)',
                 ]}
               />
             </motion.div>
@@ -331,6 +348,66 @@ export function LandingPage() {
 
       <SectionDivider />
 
+      {/* Comment ça marche */}
+      <section id="comment-ca-marche" className="scroll-mt-20 bg-white px-4 py-10 sm:px-6 sm:py-14">
+        <div className="mx-auto max-w-6xl">
+          <div className="text-center">
+            <SectionEyebrow>Démarrage</SectionEyebrow>
+            <SectionTitle>Opérationnel en 3 étapes</SectionTitle>
+            <SectionLead className="mx-auto mt-3">
+              Pas d&apos;installation, pas de serveur. Votre atelier est en ligne en moins de 10 minutes.
+            </SectionLead>
+          </div>
+          <div className="mt-10 grid gap-6 sm:grid-cols-3 sm:gap-8">
+            {[
+              {
+                step: '01',
+                icon: UserPlus,
+                title: 'Créez votre compte',
+                desc: 'Renseignez les infos de votre garage — nom, ville, contact. Votre espace est prêt en 3 minutes.',
+                color: 'text-brand bg-brand/10',
+              },
+              {
+                step: '02',
+                icon: Users,
+                title: 'Ajoutez votre équipe',
+                desc: 'Invitez techniciens, réceptionniste et caissier. Chacun reçoit son identifiant prenom.nom.',
+                color: 'text-[var(--afrique-forest)] bg-[var(--afrique-forest-soft)]',
+              },
+              {
+                step: '03',
+                icon: Zap,
+                title: 'Gérez vos OT',
+                desc: 'Créez votre premier ordre de travail, envoyez un devis PDF, encaissez. Tout est lié automatiquement.',
+                color: 'text-[var(--afrique-gold)] bg-[var(--afrique-gold-soft)]',
+              },
+            ].map((s, i) => (
+              <motion.div
+                key={s.step}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: i * 0.12 }}
+                className="relative flex flex-col gap-4 rounded-2xl border border-slate-100 bg-slate-50/60 p-6 shadow-sm"
+              >
+                <span className="absolute right-4 top-4 text-5xl font-black text-slate-100 select-none">
+                  {s.step}
+                </span>
+                <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center shrink-0', s.color)}>
+                  <s.icon size={22} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900">{s.title}</h3>
+                  <p className="mt-1.5 text-sm text-slate-600 leading-relaxed">{s.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <SectionDivider />
+
       {/* Features */}
       <section id="fonctionnalites" className="scroll-mt-20 landing-section-sand px-4 py-10 sm:px-6 sm:py-12">
         <div className="mx-auto max-w-6xl">
@@ -343,6 +420,28 @@ export function LandingPage() {
           <div className="mt-8 grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
             {FEATURES.map((f, i) => (
               <FeatureCard key={f.title} icon={f.icon} title={f.title} desc={f.desc} index={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Stats */}
+      <section className="bg-gradient-to-r from-brand/5 via-[var(--afrique-gold-soft)] to-[var(--afrique-forest-soft)] px-4 py-10 sm:px-6 sm:py-12">
+        <div className="mx-auto max-w-5xl">
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+            {[
+              { icon: Clock,     value: '30 s',      label: 'Pour créer un OT' },
+              { icon: FileText,  value: '1 clic',    label: 'Devis en PDF XAF' },
+              { icon: Wifi,      value: '100 %',     label: 'Fonctionne hors-ligne' },
+              { icon: TrendingUp,value: 'Temps réel',label: 'Tableau de bord live' },
+            ].map(({ icon: Icon, value, label }) => (
+              <div key={label} className="flex flex-col items-center gap-2 text-center">
+                <div className="w-10 h-10 rounded-xl bg-white/70 flex items-center justify-center shadow-sm">
+                  <Icon size={18} className="text-brand" />
+                </div>
+                <p className="text-2xl font-black text-slate-900 sm:text-3xl">{value}</p>
+                <p className="text-xs font-medium text-slate-600">{label}</p>
+              </div>
             ))}
           </div>
         </div>
@@ -436,6 +535,111 @@ export function LandingPage() {
           </div>
         </div>
       </LandingParallaxSection>
+
+      {/* Tarifs */}
+      <section id="tarifs" className="scroll-mt-20 bg-white px-4 py-10 sm:px-6 sm:py-14">
+        <div className="mx-auto max-w-4xl text-center">
+          <SectionEyebrow>Tarifs</SectionEyebrow>
+          <SectionTitle>Simple et transparent</SectionTitle>
+          <SectionLead className="mx-auto mt-3">
+            Un seul plan — toutes les fonctionnalités incluses dès le premier jour.
+          </SectionLead>
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 sm:gap-8">
+            {/* Plan unique */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="relative flex flex-col rounded-2xl border-2 border-brand bg-white p-8 shadow-lg shadow-brand/10 text-left"
+            >
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <span className="rounded-full bg-brand px-4 py-1 text-xs font-bold text-white shadow">
+                  Recommandé
+                </span>
+              </div>
+              <p className="text-sm font-semibold uppercase tracking-wider text-brand">Atelier Maître Pro</p>
+              <div className="mt-4 flex items-end gap-2">
+                <span className="text-4xl font-black text-slate-900">Sur devis</span>
+              </div>
+              <p className="mt-2 text-sm text-slate-500">Tarif adapté à votre nombre de garages et de techniciens.</p>
+              <ul className="mt-6 space-y-3">
+                {[
+                  'OT, devis, factures PDF illimités',
+                  'Stock + alertes seuil',
+                  'Planning & rendez-vous',
+                  'SMS Orange / MTN intégrés',
+                  'Tableau de bord temps réel',
+                  'Multi-garages inclus',
+                  'Support en français',
+                  'Données hébergées en sécurité',
+                ].map(item => (
+                  <li key={item} className="flex items-center gap-2.5 text-sm text-slate-700">
+                    <CheckCircle2 size={16} className="shrink-0 text-brand" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/demo"
+                className={cn(
+                  buttonVariants({ size: 'lg' }),
+                  'mt-8 w-full h-12 rounded-xl bg-brand text-white shadow-md hover:bg-brand/90',
+                )}
+              >
+                Demander un tarif <ArrowRight size={16} className="ml-1.5" />
+              </Link>
+            </motion.div>
+
+            {/* Plan pilote */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-8 text-left"
+            >
+              <p className="text-sm font-semibold uppercase tracking-wider text-slate-500">Pilote gratuit</p>
+              <div className="mt-4 flex items-end gap-2">
+                <span className="text-4xl font-black text-slate-900">Gratuit</span>
+                <span className="mb-1.5 text-slate-500">/ période test</span>
+              </div>
+              <p className="mt-2 text-sm text-slate-500">Testez toutes les fonctionnalités avant de vous engager.</p>
+              <ul className="mt-6 space-y-3">
+                {[
+                  'Accès complet à la plateforme',
+                  '1 garage, équipe complète',
+                  'Accompagnement démarrage',
+                  'Données conservées à la fin du pilote',
+                  'Aucune carte bancaire requise',
+                ].map(item => (
+                  <li key={item} className="flex items-center gap-2.5 text-sm text-slate-700">
+                    <CheckCircle2 size={16} className="shrink-0 text-[var(--afrique-forest)]" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/inscription"
+                className={cn(
+                  buttonVariants({ variant: 'outline', size: 'lg' }),
+                  'mt-8 w-full h-12 rounded-xl border-slate-300 hover:bg-white',
+                )}
+              >
+                <UserPlus size={16} className="mr-1.5" />
+                Démarrer le pilote
+              </Link>
+            </motion.div>
+          </div>
+          <p className="mt-6 text-sm text-slate-400 flex items-center justify-center gap-1.5">
+            <Mail size={13} /> Des questions ?&nbsp;
+            <Link href="/demo" className="text-brand hover:underline font-medium">
+              Contactez-nous
+            </Link>
+          </p>
+        </div>
+      </section>
+
+      <SectionDivider />
 
       {/* FAQ */}
       <section id="faq" className="scroll-mt-20 bg-white px-4 py-10 sm:px-6 sm:py-12">
