@@ -99,7 +99,7 @@ export class AuthService {
         deletedAt: null,
         OR: [{ email: identifier }, { employeeCode: identifier }],
       },
-      select: { id: true, firstName: true, lastName: true },
+      select: { id: true, firstName: true, lastName: true, garageId: true },
     });
 
     // Toujours répondre OK — ne pas révéler si le compte existe
@@ -111,13 +111,19 @@ export class AuthService {
       data: { passwordResetRequestedAt: new Date() },
     });
 
-    // Récupérer les IDs des ADMIN et SUPER_ADMIN actifs
-    const adminUserRoles = await this.prisma.userRole.findMany({
-      where: {
-        revokedAt: null,
-        role: { code: { in: ['ADMIN', 'SUPER_ADMIN'] } },
-        user: { deletedAt: null, status: 'ACTIVE' },
+    // ADMIN du même garage (+ SUPER_ADMIN plateforme si pas de garage sur le demandeur)
+    const adminWhere: Record<string, unknown> = {
+      revokedAt: null,
+      role: { code: { in: ['ADMIN', 'SUPER_ADMIN'] } },
+      user: {
+        deletedAt: null,
+        status: 'ACTIVE',
+        ...(user.garageId ? { garageId: user.garageId } : {}),
       },
+    };
+
+    const adminUserRoles = await this.prisma.userRole.findMany({
+      where: adminWhere,
       select: { userId: true },
       distinct: ['userId'],
     });

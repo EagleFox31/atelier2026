@@ -122,6 +122,8 @@ async function main() {
   // ne jamais ré-exécuter sur des garages clients (corruption de données).
   await migrateGarageRefSequences();
   await migrateCounterSalesGarageId();
+  await migrateSmsNotificationsGarageId();
+  await migratePartsCatalogGarageReference();
   await migrateWorkshopLogoUrl();
 
   console.log('\n✅ Migration terminée.');
@@ -379,13 +381,54 @@ async function migrateCounterSalesGarageId() {
   await q(`ALTER TABLE public.counter_sales ADD COLUMN garage_id UUID REFERENCES garages(id)`);
   await q(`CREATE INDEX idx_counter_sales_garage_id ON public.counter_sales(garage_id)`);
   await q(`
-    UPDATE counter_sales cs
-    SET garage_id = COALESCE(c.garage_id, u.garage_id)
-    FROM users u
-    LEFT JOIN customers c ON c.id = cs.customer_id
-    WHERE u.id = cs.sold_by AND cs.garage_id IS NULL
+    UPDATE counter_sales
+    SET garage_id = COALESCE(
+      (SELECT c.garage_id FROM customers c WHERE c.id = counter_sales.customer_id),
+      (SELECT u.garage_id FROM users u WHERE u.id = counter_sales.sold_by)
+    )
+    WHERE garage_id IS NULL
   `);
   console.log('   ✅ counter_sales.garage_id ajouté');
+}
+
+async function migrateSmsNotificationsGarageId() {
+  const { rows } = await q(`
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'sms_notifications' AND column_name = 'garage_id'
+  `);
+  if (rows.length > 0) {
+    console.log('   ⏭️  sms_notifications.garage_id existe déjà');
+    return;
+  }
+  await q(`ALTER TABLE public.sms_notifications ADD COLUMN garage_id UUID REFERENCES garages(id)`);
+  await q(`CREATE INDEX idx_sms_notifications_garage_id ON public.sms_notifications(garage_id)`);
+  await q(`
+    UPDATE sms_notifications sn
+    SET garage_id = COALESCE(
+      (SELECT so.garage_id FROM service_orders so WHERE so.id = sn.service_order_id),
+      (SELECT c.garage_id FROM customers c WHERE c.id = sn.customer_id)
+    )
+    WHERE garage_id IS NULL
+  `);
+  console.log('   ✅ sms_notifications.garage_id ajouté');
+}
+
+async function migratePartsCatalogGarageReference() {
+  const { rows } = await q(`
+    SELECT 1 FROM pg_indexes
+    WHERE schemaname = 'public' AND tablename = 'parts_catalog'
+      AND indexname = 'parts_catalog_garage_reference_key'
+  `);
+  if (rows.length > 0) {
+    console.log('   ⏭️  parts_catalog (garage_id, reference) unique existe déjà');
+    return;
+  }
+  await q(`ALTER TABLE public.parts_catalog DROP CONSTRAINT IF EXISTS parts_catalog_reference_key`);
+  await q(`
+    CREATE UNIQUE INDEX parts_catalog_garage_reference_key
+    ON public.parts_catalog (garage_id, reference)
+  `);
+  console.log('   ✅ parts_catalog.reference unique par garage');
 }
 
 async function migrateGarageRefSequences() {

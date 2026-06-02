@@ -8,6 +8,7 @@ import {
   makeDbUser,
   makeIntegrationPrismaMock,
   signTestToken,
+  TEST_GARAGE_ID,
 } from '../integration/helpers/app.helper';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -135,7 +136,11 @@ describe('Notifications — contrats de réponse HTTP', () => {
 
       expect(res.status).toBe(200);
       expect(smsHistoryMock).toHaveBeenCalledWith(
-        expect.objectContaining({ take: 50, orderBy: { sentAt: 'desc' } }),
+        expect.objectContaining({
+          take: 50,
+          orderBy: { sentAt: 'desc' },
+          where: { garageId: TEST_GARAGE_ID },
+        }),
       );
     });
   });
