@@ -161,6 +161,16 @@ export class TeamService {
         });
     }
 
+    async toggleStatus(id: string) {
+        const user = await this.findOne(id);
+        const newStatus = user.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
+        return this.prisma.user.update({
+            where: { id },
+            data: { status: newStatus },
+            select: { id: true, status: true, firstName: true, lastName: true },
+        });
+    }
+
     async assignRole(id: string, roleCode: string) {
         await this.findOne(id);
         const role = await this.prisma.role.findUnique({ where: { code: roleCode } });
