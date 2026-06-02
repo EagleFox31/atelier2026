@@ -9,7 +9,11 @@ type AuthUser = {
   email: string | null;
   employeeCode: string | null;
   status: string;
+  tenantId: string | null;
+  garageId: string | null;
   onboardingCompletedAt: Date | null;
+  garage: { id: string; name: string; slug: string } | null;
+  tenant: { id: string; name: string; slug: string } | null;
   roles: Array<{
     role: {
       code: string;
@@ -34,6 +38,14 @@ function mapProfile(user: AuthUser) {
     roles: userRoles,
     permissions: userPermissions,
     onboardingCompletedAt: user.onboardingCompletedAt?.toISOString() ?? null,
+    tenantId: user.tenantId,
+    garageId: user.garageId,
+    garage: user.garage
+      ? { id: user.garage.id, name: user.garage.name, slug: user.garage.slug }
+      : null,
+    tenant: user.tenant
+      ? { id: user.tenant.id, name: user.tenant.name, slug: user.tenant.slug }
+      : null,
   };
 }
 

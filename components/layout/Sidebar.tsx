@@ -185,9 +185,16 @@ export function Sidebar() {
             <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center shadow-lg shadow-brand/20">
               <Wrench size={18} className="text-white" />
             </div>
-            <span className="text-xl font-bold text-white tracking-tight">
-              Atelier<span className="text-brand"> Maître</span>
-            </span>
+            <div className="flex flex-col min-w-0">
+              <span className="text-xl font-bold text-white tracking-tight leading-tight">
+                Atelier<span className="text-brand"> Maître</span>
+              </span>
+              {user?.garage?.name && (
+                <span className="text-[11px] text-slate-400 truncate leading-tight mt-0.5">
+                  {user.garage.name}
+                </span>
+              )}
+            </div>
           </motion.div>
         )}
         <Button
@@ -320,13 +327,20 @@ export function MobileSidebar({ onClose }: { onClose?: () => void }) {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden bg-sidebar-bg text-slate-300 w-full">
       <div className="shrink-0 h-16 flex items-center px-6 border-b border-white/5 justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center shadow-lg shadow-brand/20">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 bg-brand rounded-lg flex items-center justify-center shadow-lg shadow-brand/20 shrink-0">
             <Wrench size={18} className="text-white" />
           </div>
-          <span className="text-xl font-bold text-white tracking-tight">
-            Atelier<span className="text-brand"> Maître</span>
-          </span>
+          <div className="flex flex-col min-w-0">
+            <span className="text-xl font-bold text-white tracking-tight leading-tight">
+              Atelier<span className="text-brand"> Maître</span>
+            </span>
+            {user?.garage?.name && (
+              <span className="text-[11px] text-slate-400 truncate leading-tight">
+                {user.garage.name}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
