@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/dialog";
 import { TeamMemberForm } from "@/components/forms/TeamMemberForm";
 import { teamApi } from "@/lib/api";
+import { useAuth } from "@/contexts/auth-context";
+import { countTeamMembersOnlineNow } from "@/lib/team-presence";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
@@ -31,6 +33,7 @@ interface TeamMember {
   status: string;
   tempPassword?: string | null;
   passwordResetRequestedAt?: string | null;
+  lastLoginAt?: string | null;
   roles: { role: { label: string; code: string } }[];
   assignedOTs?: { id: string; reference: string; status: string }[];
 }
@@ -120,6 +123,7 @@ function PasswordCell({ member, onReset }: { member: TeamMember; onReset: () => 
 }
 
 export default function TeamPage() {
+  const { user } = useAuth();
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -144,7 +148,12 @@ export default function TeamPage() {
     return () => clearTimeout(t);
   }, [fetchTeam]);
 
-  const busyCount = members.filter(m => m.status === 'ACTIVE' && (m.assignedOTs?.some((o: { status: string }) => ['IN_PROGRESS', 'DIAGNOSING', 'REPAIRING'].includes(o.status)))).length;
+  const onlineNowCount = countTeamMembersOnlineNow(members, user?.id);
+  const busyCount = members.filter(
+    (m) =>
+      m.status === 'ACTIVE' &&
+      m.assignedOTs?.some((o) => ['IN_PROGRESS', 'DIAGNOSING', 'REPAIRING'].includes(o.status)),
+  ).length;
   const totalCount = members.length;
 
   return (
@@ -192,8 +201,13 @@ export default function TeamPage() {
             <div>
               <p className="text-sm font-medium text-blue-600">Actifs maintenant</p>
               <p className="text-2xl font-bold text-foreground">
-                {loading ? '—' : `${busyCount} / ${totalCount}`}
+                {loading ? '—' : `${onlineNowCount} / ${totalCount}`}
               </p>
+              {!loading && busyCount > 0 && (
+                <p className="text-[11px] text-blue-600/80">
+                  {busyCount} en intervention sur un OT
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

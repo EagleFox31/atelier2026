@@ -116,6 +116,7 @@ export class SignupService {
             tx,
           ),
           onboardingCompletedAt: new Date(),
+          lastLoginAt: new Date(),
         },
       });
 
