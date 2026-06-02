@@ -219,6 +219,15 @@ const STEPS_BY_ROLE: Record<string, Step[]> = {
       icon: Users,
       color: 'text-violet-500',
       bg: 'bg-violet-500/10',
+      title: 'Demandes de démo',
+      description:
+        'Les garages intéressés remplissent le formulaire sur le site. Vous les retrouvez dans "Demandes démo" : contact, statut, notes — et une alerte dans la cloche.',
+      hint: '→ Demandes démo',
+    },
+    {
+      icon: Users,
+      color: 'text-indigo-500',
+      bg: 'bg-indigo-500/10',
       title: 'Ouvrir un atelier',
       description:
         'Pour chaque nouveau client, créez un compte Administrateur dans "Équipe". C\'est lui qui prend la main pour gérer son propre atelier — son équipe, ses voitures, sa facturation.',

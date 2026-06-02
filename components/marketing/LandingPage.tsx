@@ -35,6 +35,7 @@ import {
   LandingFooter,
 } from '@/components/marketing/landing-ui';
 import { BrandCalligraphy } from '@/components/marketing/brand-calligraphy';
+import { InstallAppButton } from '@/components/pwa/InstallAppButton';
 
 const FEATURES = [
   {
@@ -86,6 +87,10 @@ const FAQ = [
     a: 'Oui. Un compte patron peut regrouper plusieurs ateliers (ex. Douala + Yaoundé). Chaque employé reste rattaché à un seul garage.',
   },
   {
+    q: 'Comment installer l\u2019application sur mon téléphone ?',
+    a: 'Utilisez le bouton « Installer l\u2019app » sur cette page : sur Android ou ordinateur, l\u2019installation est en un clic ; sur iPhone, suivez les étapes Safari (Partager → Sur l\u2019écran d\u2019accueil). Aucun Play Store requis.',
+  },
+  {
     q: 'Faut-il un serveur sur place ?',
     a: 'Non en mode cloud : navigateur + téléphone. Déploiement possible sur un VPS si vous préférez vos données en local.',
   },
@@ -116,7 +121,7 @@ export function LandingPage() {
   const floatBadgeY = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0, -90]);
 
   return (
-    <div className="landing-page min-h-screen bg-[#f1f5f9] text-slate-800">
+    <div className="landing-page min-h-screen text-slate-800">
       <LandingHeader />
 
       {/* Hero */}
@@ -134,14 +139,12 @@ export function LandingPage() {
               transition={{ duration: 0.5 }}
               style={{ y: copyY, opacity: copyOpacity }}
             >
-              <Badge className="mb-6 rounded-full border-brand/15 bg-white/80 px-4 py-1.5 text-brand shadow-sm backdrop-blur-sm">
+              <Badge className="mb-6 rounded-full border-[var(--afrique-gold)]/25 bg-white/85 px-4 py-1.5 text-[var(--afrique-earth)] shadow-sm backdrop-blur-sm">
                 Conçu pour les ateliers au Cameroun
               </Badge>
               <SectionTitle as="h1">
                 De la réception à l&apos;encaissement,{' '}
-                <span className="bg-gradient-to-r from-brand to-[#2a8fd4] bg-clip-text text-transparent">
-                  un seul flux.
-                </span>
+                <span className="landing-gradient-text">un seul flux.</span>
               </SectionTitle>
               <SectionLead className="mt-6 text-slate-600 sm:text-xl">
                 OT, devis, stock, planning et factures en XAF — sans carnet, sans
@@ -152,7 +155,7 @@ export function LandingPage() {
                   href="/demo"
                   className={cn(
                     buttonVariants({ size: 'lg' }),
-                    'group h-12 gap-2 rounded-xl bg-brand px-8 text-base text-white shadow-lg shadow-brand/20 transition-all duration-200 hover:bg-brand-hover hover:shadow-xl hover:shadow-brand/25',
+                    'group h-12 gap-2 rounded-xl bg-gradient-to-r from-brand via-[#1a6a9c] to-[var(--afrique-forest)] px-8 text-base text-white shadow-lg shadow-brand/20 ring-1 ring-[var(--afrique-gold)]/30 transition-all duration-200 hover:shadow-xl hover:ring-[var(--afrique-gold)]/45',
                   )}
                 >
                   Réserver une démo
@@ -170,6 +173,7 @@ export function LandingPage() {
                 >
                   Accéder à l&apos;app
                 </Link>
+                <InstallAppButton variant="landing-outline" size="lg" />
               </div>
               <TrustPills
                 items={[
@@ -205,9 +209,9 @@ export function LandingPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-2 p-4 sm:gap-3 sm:p-5">
                   {[
-                    { label: 'OT en cours', value: '12', color: 'bg-brand/10 text-brand' },
-                    { label: 'CA du jour', value: '485k', color: 'bg-green-500/10 text-green-700' },
-                    { label: 'Stock bas', value: '3', color: 'bg-amber-500/10 text-amber-700' },
+                    { label: 'OT en cours', value: '12', color: 'bg-[var(--afrique-brand-soft)] text-brand' },
+                    { label: 'CA du jour', value: '485k', color: 'bg-[var(--afrique-gold-soft)] text-[var(--afrique-gold)]' },
+                    { label: 'Stock bas', value: '3', color: 'bg-[var(--afrique-terra-soft)] text-[var(--afrique-terracotta)]' },
                   ].map((k) => (
                     <div key={k.label} className={`rounded-xl p-3 sm:p-4 ${k.color}`}>
                       <p className="text-[10px] font-medium opacity-80 sm:text-xs">{k.label}</p>
@@ -217,9 +221,9 @@ export function LandingPage() {
                 </div>
                 <div className="space-y-2 border-t border-slate-100 px-4 py-4 sm:px-5">
                   {[
-                    { ref: 'OT-2026-0142', veh: 'Toyota Hilux · CE 1234 AB', status: 'EN COURS', tone: 'bg-blue-500/10 text-blue-700' },
-                    { ref: 'OT-2026-0138', veh: 'Peugeot 301 · LT 8890 CD', status: 'PRÊT', tone: 'bg-green-500/10 text-green-700' },
-                    { ref: 'OT-2026-0135', veh: 'Nissan Hardbody · SW 4455 EF', status: 'CQ', tone: 'bg-violet-500/10 text-violet-700' },
+                    { ref: 'OT-2026-0142', veh: 'Toyota Hilux · CE 1234 AB', status: 'EN COURS', tone: 'bg-[var(--afrique-brand-soft)] text-brand' },
+                    { ref: 'OT-2026-0138', veh: 'Peugeot 301 · LT 8890 CD', status: 'PRÊT', tone: 'bg-[var(--afrique-forest-soft)] text-[var(--afrique-forest)]' },
+                    { ref: 'OT-2026-0135', veh: 'Nissan Hardbody · SW 4455 EF', status: 'CQ', tone: 'bg-[var(--afrique-gold-soft)] text-[#8a6914]' },
                   ].map((row) => (
                     <div
                       key={row.ref}
@@ -303,7 +307,7 @@ export function LandingPage() {
       <SectionDivider className="py-1" />
 
       {/* Pain */}
-      <section id="probleme" className="scroll-mt-20 bg-white px-4 pt-8 pb-10 sm:px-6 sm:pt-9 sm:pb-12">
+      <section id="probleme" className="scroll-mt-20 landing-section-warm px-4 pt-8 pb-10 sm:px-6 sm:pt-9 sm:pb-12">
         <div className="mx-auto max-w-6xl text-center">
           <SectionEyebrow>Le constat</SectionEyebrow>
           <SectionTitle className="mx-auto">Vous reconnaissez ça ?</SectionTitle>
@@ -328,7 +332,7 @@ export function LandingPage() {
       <SectionDivider />
 
       {/* Features */}
-      <section id="fonctionnalites" className="scroll-mt-20 px-4 py-10 sm:px-6 sm:py-12">
+      <section id="fonctionnalites" className="scroll-mt-20 landing-section-sand px-4 py-10 sm:px-6 sm:py-12">
         <div className="mx-auto max-w-6xl">
           <SectionEyebrow>Plateforme</SectionEyebrow>
           <SectionTitle>Tout l&apos;atelier, une plateforme</SectionTitle>
@@ -349,7 +353,7 @@ export function LandingPage() {
         id="multi-garages"
         decor
         contentShift={20}
-        className="scroll-mt-20 bg-gradient-to-br from-[#155A87] via-[#1a6a9c] to-[#1D6FA4] px-4 py-12 text-white sm:px-6 sm:py-14"
+        className="scroll-mt-20 bg-gradient-to-br from-[#155A87] via-[#1a5c4a] to-[#1D6FA4] px-4 py-12 text-white sm:px-6 sm:py-14"
       >
         <div className="mx-auto max-w-6xl">
           <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-10">
@@ -411,11 +415,11 @@ export function LandingPage() {
               téléphone dans l&apos;atelier, pas seulement le bureau.
             </SectionLead>
           </div>
-          <div className="flex-1 rounded-2xl border border-slate-200/80 bg-white p-8 shadow-lg shadow-slate-200/60 ring-1 ring-slate-900/[0.03]">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand/10 ring-1 ring-brand/10">
-              <Smartphone className="text-brand" size={22} />
+          <div className="flex-1 rounded-2xl border border-[var(--afrique-gold)]/20 bg-white p-8 shadow-lg shadow-[var(--afrique-terra-soft)] ring-1 ring-slate-900/[0.03]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--afrique-forest-soft)] ring-1 ring-[var(--afrique-forest-ring)]">
+              <Smartphone className="text-[var(--afrique-forest)]" size={22} />
             </div>
-            <h3 className="mt-5 text-lg font-bold text-brand">100 % contexte Cameroun</h3>
+            <h3 className="mt-5 text-lg font-bold text-[var(--afrique-forest)]">100 % contexte Cameroun</h3>
             <ul className="mt-5 space-y-3">
               {[
                 'Montants en francs CFA (XAF)',
@@ -424,7 +428,7 @@ export function LandingPage() {
                 'Interface en français',
               ].map((line) => (
                 <li key={line} className="flex items-start gap-2.5 text-sm text-slate-600">
-                  <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-brand/60" />
+                  <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--afrique-gold)]" />
                   {line}
                 </li>
               ))}
@@ -453,13 +457,15 @@ export function LandingPage() {
 
       {/* CTA */}
       <section className="px-4 pb-10 pt-6 sm:px-6 sm:pb-12">
-        <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl bg-gradient-to-br from-brand via-[#1a6fa8] to-[#155A87] px-8 py-10 text-center text-white shadow-2xl shadow-brand/25 ring-1 ring-white/10 sm:py-12">
+        <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl landing-cta-africa px-8 py-10 text-center text-white shadow-2xl shadow-[var(--afrique-forest)]/25 ring-1 ring-[var(--afrique-gold)]/25 sm:py-12">
           <div
-            className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-white/10 blur-3xl"
+            className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full blur-3xl"
+            style={{ background: 'rgba(212, 160, 23, 0.15)' }}
             aria-hidden
           />
           <div
-            className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-sky-300/20 blur-3xl"
+            className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full blur-3xl"
+            style={{ background: 'rgba(31, 107, 69, 0.2)' }}
             aria-hidden
           />
           <div className="relative">
@@ -468,7 +474,7 @@ export function LandingPage() {
               Prêt à structurer votre atelier ?
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-pretty text-lg leading-relaxed text-white/88">
-              Démo guidée 30 min · Cloud ou serveur dédié · Accompagnement en français
+              Démo guidée 30 min · Accompagnement en français · Réponse sous 48 h
             </p>
             <div className="mt-9 flex flex-wrap justify-center gap-3 sm:gap-4">
             <Link
@@ -489,6 +495,7 @@ export function LandingPage() {
               >
                 Connexion atelier
               </Link>
+              <InstallAppButton variant="landing-ghost" size="lg" />
             </div>
           </div>
         </div>

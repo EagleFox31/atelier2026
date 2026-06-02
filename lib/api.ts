@@ -58,7 +58,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     localStorage.removeItem('atelier_user');
     const returnPath = window.location.pathname + window.location.search;
     const pathOnly = returnPath.split('?')[0];
-    const skipReturn = ['/', '/accueil', '/login', '/forgot-password', '/demo'];
+    const skipReturn = ['/', '/accueil', '/login', '/forgot-password', '/demo', '/inscription'];
     if (returnPath && !skipReturn.includes(pathOnly)) {
       sessionStorage.setItem('atelier_return_url', returnPath);
     }
@@ -278,6 +278,53 @@ export interface DemoBookingPayload {
 export const marketingApi = {
   requestDemo: (body: DemoBookingPayload) =>
     post<{ received: true }>('/public/demo-booking', body),
+};
+
+// ─── Inscription atelier (public) ───────────────────────────────────────────
+export interface SignupTeamCreated {
+  roleCode: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  employeeCode: string;
+  tempPassword: string;
+}
+
+export interface SignupPayload {
+  admin: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+    password: string;
+  };
+  workshop: {
+    shopName: string;
+    tagline?: string;
+    niu?: string;
+    email: string;
+    phone: string;
+    address: string;
+    city?: string;
+    defaultLaborRateXaf?: number;
+  };
+  team?: Array<{
+    roleCode: string;
+    firstName: string;
+    lastName: string;
+    email?: string;
+    phone?: string;
+  }>;
+}
+
+export const signupApi = {
+  status: () => get<{ available: boolean; reason?: string }>('/public/signup/status'),
+  register: (body: SignupPayload) =>
+    post<{
+      access_token: string;
+      user: { id: string; firstName: string; lastName: string; email: string | null; employeeCode: string | null };
+      teamCreated: SignupTeamCreated[];
+    }>('/public/signup', body),
 };
 
 export type DemoRequestStatus =

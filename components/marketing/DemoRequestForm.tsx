@@ -20,6 +20,8 @@ import {
 import { marketingApi, getApiErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { buttonVariants } from '@/components/ui/button';
+import { BrandCalligraphy } from '@/components/marketing/brand-calligraphy';
+import { LandingKenteBar } from '@/components/marketing/LandingKenteBar';
 
 const schema = z.object({
   fullName: z.string().min(2, 'Nom requis'),
@@ -71,25 +73,43 @@ export function DemoRequestForm() {
 
   if (submitted) {
     return (
-      <div className="mx-auto w-full max-w-md text-center">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-500/10 ring-1 ring-green-500/20">
-          <CheckCircle2 className="text-green-600" size={36} />
-        </div>
-        <h1 className="mt-6 text-2xl font-bold tracking-tight text-slate-800">
-          Demande bien reçue
-        </h1>
-        <p className="mt-3 text-pretty text-slate-600 leading-relaxed">
-          Merci pour votre intérêt. Notre équipe vous contactera sous{' '}
-          <strong className="font-medium text-slate-800">48 heures ouvrées</strong> pour planifier
-          une démonstration personnalisée de 30 minutes.
-        </p>
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link href="/" className={cn(buttonVariants({ variant: 'outline' }), 'rounded-xl')}>
-            Retour à l&apos;accueil
-          </Link>
-          <Link href="/login" className={cn(buttonVariants(), 'rounded-xl bg-brand text-white hover:bg-brand-hover')}>
-            Accéder à l&apos;app
-          </Link>
+      <div className="mx-auto w-full max-w-md overflow-hidden rounded-2xl border border-[var(--afrique-gold)]/25 bg-white text-center shadow-xl shadow-[var(--afrique-terra-soft)] ring-1 ring-slate-900/[0.04]">
+        <LandingKenteBar className="h-1.5" />
+        <div className="p-8 sm:p-10">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--afrique-forest-soft)] ring-2 ring-[var(--afrique-forest-ring)]">
+            <CheckCircle2 className="text-[var(--afrique-forest)]" size={36} />
+          </div>
+          <p className="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--afrique-earth)]">
+            Merci
+          </p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-800">
+            Demande <span className="landing-accent-underline">bien reçue</span>
+          </h1>
+          <p className="mt-3 text-pretty text-slate-600 leading-relaxed">
+            Notre équipe vous contactera sous{' '}
+            <strong className="font-medium text-[var(--afrique-forest)]">48 h ouvrées</strong> pour
+            une démo de <BrandCalligraphy className="text-[1.2em]">30 min</BrandCalligraphy>.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+            <Link
+              href="/"
+              className={cn(
+                buttonVariants({ variant: 'outline' }),
+                'rounded-xl border-[var(--afrique-gold)]/30',
+              )}
+            >
+              Retour à l&apos;accueil
+            </Link>
+            <Link
+              href="/login"
+              className={cn(
+                buttonVariants(),
+                'rounded-xl bg-gradient-to-r from-brand to-[var(--afrique-forest)] text-white shadow-md ring-1 ring-[var(--afrique-gold)]/25 hover:opacity-95',
+              )}
+            >
+              Accéder à l&apos;app
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -99,41 +119,44 @@ export function DemoRequestForm() {
     <div className="mx-auto w-full max-w-lg">
       <Link
         href="/"
-        className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-brand"
+        className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-[var(--afrique-earth)] transition-colors hover:text-brand"
       >
         <ArrowLeft size={16} />
         Retour
       </Link>
 
+      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--afrique-earth)]">
+        Démonstration
+      </p>
       <div className="mb-8 flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand/10 ring-1 ring-brand/15">
-          <CalendarDays className="text-brand" size={24} />
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--afrique-gold-soft)] ring-1 ring-[var(--afrique-gold-ring)]">
+          <CalendarDays className="text-[#8a6914]" size={24} />
         </div>
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-800 sm:text-3xl">
-            Réserver une démo
+            Réserver une <span className="landing-accent-underline">démo</span>
           </h1>
-          <p className="mt-2 text-pretty text-slate-600 leading-relaxed">
-            Présentation guidée d&apos;Atelier Maître — OT, facturation XAF, stock et planning.
-            Sans engagement.
-          </p>
         </div>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 rounded-2xl border border-slate-200/90 bg-white p-6 shadow-sm ring-1 ring-slate-900/[0.03] sm:p-8">
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
+          className="relative overflow-hidden space-y-5 rounded-2xl border border-[var(--afrique-gold)]/20 bg-white p-6 pt-7 shadow-xl shadow-[var(--afrique-terra-soft)] ring-1 ring-slate-900/[0.04] sm:p-8 sm:pt-9"
+        >
+          <LandingKenteBar className="absolute inset-x-0 top-0 h-1" />
           <div className="grid gap-5 sm:grid-cols-2">
             <FormField
               control={form.control}
               name="fullName"
               render={({ field }) => (
                 <FormItem className="sm:col-span-2">
-                  <FormLabel>Nom complet</FormLabel>
+                  <FormLabel className="text-slate-700">Nom complet</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
                       placeholder="Jean Kengne"
-                      className="h-11 border-slate-200 bg-slate-50/80 focus-visible:bg-white"
+                      className="h-11 border-[var(--afrique-gold)]/20 bg-[var(--afrique-sand)]/50 focus-visible:border-brand focus-visible:ring-brand/20"
                       disabled={loading}
                     />
                   </FormControl>
@@ -153,7 +176,7 @@ export function DemoRequestForm() {
                       type="email"
                       autoComplete="email"
                       placeholder="vous@atelier.cm"
-                      className="h-11 border-slate-200 bg-slate-50/80 focus-visible:bg-white"
+                      className="h-11 border-[var(--afrique-gold)]/20 bg-[var(--afrique-sand)]/50 focus-visible:border-brand focus-visible:ring-brand/20"
                       disabled={loading}
                     />
                   </FormControl>
@@ -173,7 +196,7 @@ export function DemoRequestForm() {
                       type="tel"
                       autoComplete="tel"
                       placeholder="+237 6XX XXX XXX"
-                      className="h-11 border-slate-200 bg-slate-50/80 focus-visible:bg-white"
+                      className="h-11 border-[var(--afrique-gold)]/20 bg-[var(--afrique-sand)]/50 focus-visible:border-brand focus-visible:ring-brand/20"
                       disabled={loading}
                     />
                   </FormControl>
@@ -191,7 +214,7 @@ export function DemoRequestForm() {
                     <Input
                       {...field}
                       placeholder="Garage Akwa Mécanique"
-                      className="h-11 border-slate-200 bg-slate-50/80 focus-visible:bg-white"
+                      className="h-11 border-[var(--afrique-gold)]/20 bg-[var(--afrique-sand)]/50 focus-visible:border-brand focus-visible:ring-brand/20"
                       disabled={loading}
                     />
                   </FormControl>
@@ -211,7 +234,7 @@ export function DemoRequestForm() {
                     <Input
                       {...field}
                       placeholder="Douala, Yaoundé…"
-                      className="h-11 border-slate-200 bg-slate-50/80 focus-visible:bg-white"
+                      className="h-11 border-[var(--afrique-gold)]/20 bg-[var(--afrique-sand)]/50 focus-visible:border-brand focus-visible:ring-brand/20"
                       disabled={loading}
                     />
                   </FormControl>
@@ -232,7 +255,7 @@ export function DemoRequestForm() {
                       {...field}
                       rows={3}
                       placeholder="Nombre de techniciens, besoins particuliers…"
-                      className="resize-none border-slate-200 bg-slate-50/80 focus-visible:bg-white"
+                      className="resize-none border-[var(--afrique-gold)]/20 bg-[var(--afrique-sand)]/50 focus-visible:border-brand focus-visible:ring-brand/20"
                       disabled={loading}
                     />
                   </FormControl>
@@ -251,7 +274,7 @@ export function DemoRequestForm() {
           <Button
             type="submit"
             disabled={loading}
-            className="h-12 w-full gap-2 rounded-xl bg-brand text-base shadow-lg shadow-brand/20 hover:bg-brand-hover"
+            className="h-12 w-full gap-2 rounded-xl bg-gradient-to-r from-brand via-[#1a6a9c] to-[var(--afrique-forest)] text-base text-white shadow-lg shadow-brand/20 ring-1 ring-[var(--afrique-gold)]/30 hover:opacity-95"
           >
             {loading ? (
               <>
