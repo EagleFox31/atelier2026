@@ -1,11 +1,11 @@
-# MVP : HTTP sur le port 80 (IP publique ou domaine)
-# /api/* → NestJS | reste → Next.js (meme origine pour le browser)
-
 {
 	email {$ACME_EMAIL:admin@example.com}
 }
 
-:80 {
+# Si APP_DOMAIN est défini → HTTPS auto Let's Encrypt + redirect HTTP→HTTPS
+# Sinon → HTTP sur port 80 uniquement (fallback IP directe)
+
+{$APP_DOMAIN::80} {
 	encode gzip zstd
 
 	handle /api/* {
@@ -16,14 +16,3 @@
 		reverse_proxy web:3000
 	}
 }
-
-# Decommenter quand APP_DOMAIN est renseigne (HTTPS auto Let's Encrypt)
-# {$APP_DOMAIN} {
-# 	encode gzip zstd
-# 	handle /api/* {
-# 		reverse_proxy api:3001
-# 	}
-# 	handle {
-# 		reverse_proxy web:3000
-# 	}
-# }
