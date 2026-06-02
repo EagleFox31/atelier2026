@@ -18,10 +18,6 @@ import {
   ShieldCheck,
   Lock,
   Target,
-  Pencil,
-  Trash2,
-  Check,
-  X,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { 
@@ -66,8 +62,6 @@ export default function ReportsPage() {
   const [targetYear, setTargetYear] = useState(currentYear);
   const [targets, setTargets]       = useState<MonthlyTargetRow[]>([]);
   const [targetsLoading, setTargetsLoading] = useState(false);
-  const [editingMonth, setEditingMonth]     = useState<number | null>(null);
-  const [editValue, setEditValue]           = useState('');
 
   useEffect(() => {
     async function loadReportData() {
@@ -207,21 +201,6 @@ export default function ReportsPage() {
       .catch(() => {})
       .finally(() => setTargetsLoading(false));
   }, [targetYear]);
-
-  async function saveTarget(month: number) {
-    const val = parseFloat(editValue.replace(/\s/g, '').replace(',', '.'));
-    if (!val || val <= 0) { setEditingMonth(null); return; }
-    await reportsApi.upsertTarget({ year: targetYear, month, targetXaf: val });
-    setEditingMonth(null);
-    const data = await reportsApi.targets(targetYear);
-    setTargets(data);
-  }
-
-  async function removeTarget(id: string) {
-    await reportsApi.deleteTarget(id);
-    const data = await reportsApi.targets(targetYear);
-    setTargets(data);
-  }
 
   const formatKpiValue = (val: number): string => {
     if (val >= 1000000) {
@@ -458,15 +437,18 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
 
-        {/* Objectifs mensuels */}
+        {/* Objectifs mensuels — lecture seule, édition dans Paramètres */}
         <Card className="border-border shadow-sm ring-1 ring-border/50 bg-card">
           <CardHeader>
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div>
                 <CardTitle className="text-lg font-bold flex items-center gap-2">
-                  <Target size={18} className="text-brand" /> Objectifs mensuels
+                  <Target size={18} className="text-brand" /> Atteinte des objectifs
                 </CardTitle>
-                <CardDescription>Cliquez sur un objectif pour le modifier · Vert ≥ 100 % · Orange 80–99 % · Rouge &lt; 80 %</CardDescription>
+                <CardDescription>
+                  Vert ≥ 100 % · Orange 80–99 % · Rouge &lt; 80 % ·{' '}
+                  <a href="/settings" className="text-brand hover:underline font-medium">Modifier les objectifs →</a>
+                </CardDescription>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => setTargetYear(y => y - 1)} className="px-2 py-1 rounded text-slate-500 hover:bg-slate-100 text-sm">‹</button>
@@ -487,63 +469,29 @@ export default function ReportsPage() {
                       <th className="text-right py-2 px-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">Objectif</th>
                       <th className="text-right py-2 px-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">Réalisé</th>
                       <th className="text-right py-2 pl-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">Atteinte</th>
-                      <th className="w-16" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {targets.map(row => {
-                      const isEditing = editingMonth === row.month;
                       const badge = row.status === 'exceeded' ? 'bg-green-100 text-green-700'
                         : row.status === 'close'    ? 'bg-orange-100 text-orange-700'
                         : row.status === 'missed'   ? 'bg-red-100 text-red-600'
                         : 'bg-slate-100 text-slate-500';
                       return (
-                        <tr key={row.month} className="group hover:bg-slate-50/60 transition-colors">
+                        <tr key={row.month} className="hover:bg-slate-50/40 transition-colors">
                           <td className="py-2.5 pr-4 font-medium text-slate-700">{row.label}</td>
-                          <td className="py-2.5 px-3 text-right">
-                            {isEditing ? (
-                              <div className="flex items-center justify-end gap-1">
-                                <input
-                                  autoFocus
-                                  type="text"
-                                  value={editValue}
-                                  onChange={e => setEditValue(e.target.value)}
-                                  onKeyDown={e => { if (e.key === 'Enter') void saveTarget(row.month); if (e.key === 'Escape') setEditingMonth(null); }}
-                                  className="w-28 text-right border border-brand rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand"
-                                  placeholder="ex: 1500000"
-                                />
-                                <button onClick={() => void saveTarget(row.month)} className="text-green-600 hover:text-green-700"><Check size={14} /></button>
-                                <button onClick={() => setEditingMonth(null)} className="text-slate-400 hover:text-slate-600"><X size={14} /></button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => { setEditingMonth(row.month); setEditValue(row.targetXaf?.toString() ?? ''); }}
-                                className="flex items-center gap-1 ml-auto text-slate-700 hover:text-brand group/edit"
-                              >
-                                {row.targetXaf ? `${row.targetXaf.toLocaleString('fr-FR')} XAF` : <span className="text-slate-400 italic text-xs">Définir</span>}
-                                <Pencil size={11} className="opacity-0 group-hover/edit:opacity-60 transition-opacity" />
-                              </button>
-                            )}
+                          <td className="py-2.5 px-3 text-right text-slate-600">
+                            {row.targetXaf ? `${row.targetXaf.toLocaleString('fr-FR')} XAF` : <span className="text-slate-300 text-xs">Non défini</span>}
                           </td>
                           <td className="py-2.5 px-3 text-right text-slate-600">
                             {row.revenue > 0 ? `${row.revenue.toLocaleString('fr-FR')} XAF` : <span className="text-slate-300">—</span>}
                           </td>
                           <td className="py-2.5 pl-3 text-right">
                             {row.achievementPct !== null ? (
-                              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${badge}`}>
+                              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${badge}`}>
                                 {row.achievementPct} %
                               </span>
                             ) : <span className="text-slate-300 text-xs">—</span>}
-                          </td>
-                          <td className="py-2.5 text-right">
-                            {row.targetId && (
-                              <button
-                                onClick={() => void removeTarget(row.targetId!)}
-                                className="opacity-0 group-hover:opacity-60 hover:!opacity-100 text-slate-400 hover:text-red-500 transition-all"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            )}
                           </td>
                         </tr>
                       );
