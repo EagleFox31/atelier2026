@@ -92,6 +92,8 @@ export const authApi = {
     post<{ access_token: string; user: ApiUser }>('/auth/login', { identifier, password }),
   logout:  () => post('/auth/logout'),
   profile: () => get<ApiUser>('/auth/profile'),
+  forgotPassword: (identifier: string) =>
+    post<{ message: string }>('/auth/forgot-password', { identifier }),
   completeOnboarding: () =>
     patch<{ onboardingCompletedAt: string | null }>('/auth/onboarding', {}),
 };
@@ -275,6 +277,38 @@ export interface DemoBookingPayload {
 export const marketingApi = {
   requestDemo: (body: DemoBookingPayload) =>
     post<{ received: true }>('/public/demo-booking', body),
+};
+
+export type DemoRequestStatus =
+  | 'NEW'
+  | 'CONTACTED'
+  | 'SCHEDULED'
+  | 'CONVERTED'
+  | 'REJECTED';
+
+export interface DemoRequest {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  garageName: string;
+  city: string | null;
+  message: string | null;
+  status: DemoRequestStatus;
+  adminNotes: string | null;
+  handledById: string | null;
+  createdAt: string;
+  updatedAt: string;
+  handledBy: { id: string; firstName: string; lastName: string } | null;
+}
+
+export const demoRequestsApi = {
+  list: (params?: { status?: DemoRequestStatus; q?: string; limit?: number; offset?: number }) =>
+    get<DemoRequest[]>(`/demo-requests${toQuery(params)}`),
+  stats: () => get<{ new: number }>('/demo-requests/stats'),
+  get: (id: string) => get<DemoRequest>(`/demo-requests/${id}`),
+  update: (id: string, body: { status?: DemoRequestStatus; adminNotes?: string }) =>
+    patch<DemoRequest>(`/demo-requests/${id}`, body),
 };
 
 export function handleApiError(err: unknown, fallback = 'Une erreur inattendue est survenue'): void {

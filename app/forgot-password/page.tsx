@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Wrench, Loader2, ArrowLeft, Mail, CheckCircle2 } from 'lucide-react';
-import { handleApiError } from '@/lib/api';
+import { handleApiError, authApi } from '@/lib/api';
 import { toast } from 'sonner'; // Still needed for toast.success
 
 export default function ForgotPasswordPage() {
@@ -20,11 +20,7 @@ export default function ForgotPasswordPage() {
 
     setLoading(true);
     try {
-      // Pour une application locale/interne, on simule une requête ou on appelle un endpoint si existant.
-      // Comme aucun endpoint backend de réinitialisation n'est présent, on simule un envoi réussi.
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast.success('Demande de réinitialisation envoyée !');
+      await authApi.forgotPassword(identifier);
       setSubmitted(true);
     } catch (err: unknown) {
       handleApiError(err, 'Une erreur est survenue lors de l\'envoi de la demande.');
@@ -113,13 +109,13 @@ export default function ForgotPasswordPage() {
                 </div>
                 <CardTitle className="text-lg font-bold text-foreground">Demande reçue</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground mt-1 max-w-[280px] mx-auto leading-relaxed">
-                  Si le compte existe, les instructions de réinitialisation ont été envoyées à l&apos;adresse associée.
+                  Votre demande a été transmise à l&apos;administrateur. Il vous communiquera votre nouveau mot de passe.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="bg-muted p-3.5 rounded-lg border border-border text-center">
                   <p className="text-xs text-muted-foreground leading-normal">
-                    En cas de problème persistant, veuillez contacter directement votre responsable d&apos;atelier pour obtenir un nouveau mot de passe.
+                    L&apos;administrateur recevra une notification et réinitialisera votre mot de passe depuis la page Équipe.
                   </p>
                 </div>
                 <Link href="/login" className="block w-full">

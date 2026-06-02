@@ -61,6 +61,13 @@ export class AuthController {
     return mapProfile(user);
   }
 
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() body: { identifier: string }) {
+    return this.authService.forgotPassword(body.identifier);
+  }
+
   @Patch('onboarding')
   @HttpCode(HttpStatus.OK)
   async completeOnboarding(@CurrentUser() user: AuthUser) {
