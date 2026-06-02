@@ -20,6 +20,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { BillingDocument } from "@/components/billing/BillingDocument";
 import { buildInvoicePrintData } from "@/lib/billing-print-data";
 import { FALLBACK_WORKSHOP_SETTINGS } from "@/lib/workshop-settings";
+import { FiscalHintLabel } from "@/components/fiscal/FiscalHintLabel";
 
 const INVOICE_STATUS: Record<string, { label: string; color: string }> = {
   DRAFT:     { label: 'Brouillon',         color: 'bg-slate-100 text-slate-600' },
@@ -396,12 +397,17 @@ export default function InvoiceDetailPage() {
                     <span>HT</span><span className="font-mono">{formatXAF(invoice.subtotalXaf)}</span>
                   </div>
                   <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>TVA ({Math.round(Number(invoice.taxRate) * 100)}%)</span>
+                    <FiscalHintLabel hint="tva">
+                      <span>TVA ({Math.round(Number(invoice.taxRate) * 100)}%)</span>
+                    </FiscalHintLabel>
                     <span className="font-mono">{formatXAF(invoice.taxAmountXaf)}</span>
                   </div>
                   {Number(invoice.stampDutyXaf) > 0 && (
                     <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>Timbre fiscal</span><span className="font-mono">{formatXAF(invoice.stampDutyXaf)}</span>
+                      <FiscalHintLabel hint="stamp">
+                        <span>Timbre fiscal</span>
+                      </FiscalHintLabel>
+                      <span className="font-mono">{formatXAF(invoice.stampDutyXaf)}</span>
                     </div>
                   )}
                   <Separator />

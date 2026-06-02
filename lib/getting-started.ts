@@ -211,7 +211,7 @@ export const TOUR_STEPS_BY_ROLE: Record<GuideRole, TourStepDef[]> = {
     {
       target: 'tour-getting-started',
       title: 'Premiers pas',
-      description: 'Cochez les actions ci-dessous : la liste se met à jour automatiquement.',
+      description: 'Icône checklist en haut : ouvrez pour voir la progression et les tâches à faire.',
     },
   ],
   CHEF_ATELIER: [

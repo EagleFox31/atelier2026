@@ -19,7 +19,6 @@ import { useAuth } from "@/contexts/auth-context";
 import { isTechnicianProfile } from "@/lib/role-routing";
 import { scopeOrdersForUser } from "@/lib/workshop-orders";
 import { useRealtimeEvents } from "@/hooks/use-realtime-events";
-import { GettingStartedPanel } from "@/components/onboarding/GettingStartedPanel";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -318,8 +317,6 @@ export default function WorkshopPage() {
           )}
         </div>
       </div>
-
-      <GettingStartedPanel />
 
       {/* Onglets + Tableau */}
       <Card className="rounded-2xl border-border shadow-sm overflow-hidden" data-tour="tour-workshop-new">

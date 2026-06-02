@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FiscalHintLabel } from '@/components/fiscal/FiscalHintLabel';
 import {
   Building2,
   Wrench,
@@ -335,7 +336,9 @@ export default function SettingsPage() {
                     <div className="space-y-2">
                       <Label className="flex items-center gap-2">
                         <Percent size={16} className="text-slate-400" />
-                        TVA (%)
+                        <FiscalHintLabel hint="taxRateSettings">
+                          <span>TVA (%)</span>
+                        </FiscalHintLabel>
                       </Label>
                       <Input
                         type="number"
