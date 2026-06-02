@@ -6,8 +6,8 @@ import { PrismaService } from '../../shared/prisma/prisma.service';
 export class TeamService {
     constructor(private prisma: PrismaService) { }
 
-    async findAll(search?: string, roleId?: string) {
-        const where: any = { deletedAt: null };
+    async findAll(search?: string, roleId?: string, garageId?: string | null) {
+        const where: any = { deletedAt: null, ...(garageId ? { garageId } : {}) };
         if (search) {
             where.OR = [
                 { firstName: { contains: search, mode: 'insensitive' } },
@@ -85,7 +85,7 @@ export class TeamService {
         return user;
     }
 
-    async create(data: { firstName: string; lastName: string; email?: string; phone?: string; roleCode?: string; specialty?: string; password?: string }) {
+    async create(data: { firstName: string; lastName: string; email?: string; phone?: string; roleCode?: string; specialty?: string; password?: string; garageId?: string; tenantId?: string }) {
         const plainPassword = data.password ?? this.generatePassword(data.firstName);
         const passwordHash = await bcrypt.hash(plainPassword, 10);
         const employeeCode = await this.generateEmployeeCode(data.firstName, data.lastName);
@@ -100,6 +100,8 @@ export class TeamService {
                 specialty: data.specialty,
                 passwordHash,
                 tempPassword: plainPassword,
+                ...(data.garageId ? { garageId: data.garageId } : {}),
+                ...(data.tenantId ? { tenantId: data.tenantId } : {}),
             },
             select: { id: true, employeeCode: true, firstName: true, lastName: true, email: true, phone: true, status: true, tempPassword: true, specialty: true },
         });

@@ -7,19 +7,17 @@ import { CurrentUser, RequireRole } from '../../decorators/auth.decorator';
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
-  /** Lecture — tout utilisateur authentifié (devis, factures, paramètres). */
   @Get('workshop')
-  getWorkshopSettings() {
-    return this.settingsService.getWorkshopSettings();
+  getWorkshopSettings(@CurrentUser() user: any) {
+    return this.settingsService.getWorkshopSettings(user?.garageId);
   }
 
-  /** Écriture — administrateurs uniquement. */
   @Patch('workshop')
   @RequireRole('ADMIN', 'SUPER_ADMIN')
   updateWorkshopSettings(
     @Body() body: UpdateWorkshopSettingsDto,
-    @CurrentUser() user: { id: string },
+    @CurrentUser() user: any,
   ) {
-    return this.settingsService.updateWorkshopSettings(body, user.id);
+    return this.settingsService.updateWorkshopSettings(body, user.id, user?.garageId);
   }
 }

@@ -81,9 +81,12 @@ export class WorkshopService {
     @Optional() private events?: EventsService,
   ) {}
 
-  listOTs(status?: OTStatus, search?: string, user?: WorkshopUser & { garageId?: string }) {
-    const db = this.prisma.forGarage(user?.garageId);
-    const where: Record<string, unknown> = { ...technicianAssignmentFilter(user) };
+  listOTs(status?: OTStatus, search?: string, user?: WorkshopUser & { garageId?: string | null }) {
+    const garageId = user?.garageId;
+    const where: Record<string, unknown> = {
+      ...technicianAssignmentFilter(user),
+      ...(garageId ? { garageId } : {}),
+    };
     if (status) where.status = status;
     if (search) {
       where.OR = [
@@ -94,7 +97,7 @@ export class WorkshopService {
       ];
     }
 
-    return db.serviceOrder.findMany({
+    return this.prisma.serviceOrder.findMany({
       where,
       include: {
         customer: true,
