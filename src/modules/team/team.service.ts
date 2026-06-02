@@ -80,7 +80,7 @@ export class TeamService {
 
     async create(data: { firstName: string; lastName: string; email?: string; phone?: string; roleCode?: string; password?: string }) {
         const passwordHash = await bcrypt.hash(data.password ?? 'Atelier2026!', 10);
-        const employeeCode = await this.generateEmployeeCode();
+        const employeeCode = await this.generateEmployeeCode(data.firstName, data.lastName);
 
         const user = await this.prisma.user.create({
             data: {
@@ -104,21 +104,24 @@ export class TeamService {
         return user;
     }
 
-    /** Prochain code EMP-NNN — inclut les comptes soft-deleted (unicité DB). */
-    private async generateEmployeeCode(): Promise<string> {
-        const rows = await this.prisma.$queryRaw<{ employee_code: string }[]>`
-            SELECT employee_code FROM users
-            WHERE employee_code LIKE 'EMP-%'
-            ORDER BY CAST(SUBSTRING(employee_code FROM 5) AS INTEGER) DESC
-            LIMIT 1
-        `;
-        const lastNum = rows[0]?.employee_code
-            ? parseInt(rows[0].employee_code.slice(4), 10)
-            : 0;
-        if (Number.isNaN(lastNum)) {
-            throw new Error(`Code employé invalide en base : ${rows[0]?.employee_code}`);
+    /** Génère prenom.nom (ex: jean.dupont), avec suffixe numérique si doublon. */
+    private async generateEmployeeCode(firstName: string, lastName: string): Promise<string> {
+        const normalize = (s: string) =>
+            s.toLowerCase()
+             .normalize('NFD').replace(/[̀-ͯ]/g, '')
+             .replace(/[^a-z]/g, '');
+
+        const base = `${normalize(firstName)}.${normalize(lastName)}`;
+
+        const exists = await this.prisma.user.findUnique({ where: { employeeCode: base } });
+        if (!exists) return base;
+
+        for (let i = 2; i < 100; i++) {
+            const candidate = `${base}${i}`;
+            const found = await this.prisma.user.findUnique({ where: { employeeCode: candidate } });
+            if (!found) return candidate;
         }
-        return `EMP-${String(lastNum + 1).padStart(3, '0')}`;
+        return `${base}-${Date.now()}`;
     }
 
     async update(id: string, data: any) {
