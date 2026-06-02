@@ -274,33 +274,33 @@ async function migrateDefaultGarageForSeededData() {
     return;
   }
 
-  // Cherche un tenant/garage existant créé par inscription
-  const { rows: existing } = await q(`SELECT id, tenant_id FROM garages ORDER BY created_at ASC LIMIT 1`);
+  // Toujours créer un tenant+garage "default" DÉDIÉ aux comptes seedés/système.
+  // On ne réutilise jamais un garage client (évite de mélanger les données).
+  const { rows: tenantRows } = await q(`
+    INSERT INTO tenants (slug, name, email, plan, status)
+    VALUES ('default', 'Atelier Maître (démo)', 'admin@atelier.cm', 'starter', 'active')
+    ON CONFLICT (slug) DO UPDATE SET slug = tenants.slug
+    RETURNING id
+  `);
+  const tenantId = tenantRows[0].id;
 
-  let garageId, tenantId;
+  // Cherche si le garage default existe déjà pour ce tenant
+  const { rows: existingGarage } = await q(`
+    SELECT id FROM garages WHERE tenant_id = $1 AND slug = 'principal' LIMIT 1
+  `, [tenantId]);
 
-  if (existing.length > 0) {
-    // Un garage existe déjà (créé via /inscription) — on utilise le premier
-    garageId = existing[0].id;
-    tenantId = existing[0].tenant_id;
-    console.log(`   ℹ️  Garage existant trouvé (${garageId}) — rattachement des users orphelins`);
+  let garageId;
+  if (existingGarage.length > 0) {
+    garageId = existingGarage[0].id;
+    console.log(`   ⏭️  Garage default déjà existant (${garageId})`);
   } else {
-    // Aucun garage → créer le tenant + garage "default"
-    const { rows: tenantRows } = await q(`
-      INSERT INTO tenants (slug, name, email, plan, status)
-      VALUES ('default', 'Atelier Maître (défaut)', 'admin@atelier.cm', 'starter', 'active')
-      ON CONFLICT (slug) DO UPDATE SET slug = tenants.slug
-      RETURNING id
-    `);
-    tenantId = tenantRows[0].id;
-
     const { rows: garageRows } = await q(`
       INSERT INTO garages (tenant_id, slug, name, city, address, phone, status)
-      VALUES ($1, 'principal', 'Garage Principal', 'Yaoundé', 'Bastos, Rue 1.042, Yaoundé', '+237 699 00 00 00', 'active')
+      VALUES ($1, 'principal', 'Garage Démo', 'Yaoundé', 'Bastos, Rue 1.042, Yaoundé', '+237 699 00 00 00', 'active')
       RETURNING id
     `, [tenantId]);
     garageId = garageRows[0].id;
-    console.log(`   ✅ Tenant + garage "default" créés`);
+    console.log(`   ✅ Tenant + garage "default" (démo) créés`);
   }
 
   // Rattacher les users orphelins
