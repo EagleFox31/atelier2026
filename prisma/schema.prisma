@@ -1078,6 +1078,7 @@ model MonthlyTarget {
 model WorkshopSettings {
   id                  String   @id @default("default")
   garageId            String?  @unique @map("garage_id") @db.Uuid
+  logoUrl             String?  @map("logo_url")
   shopName            String   @map("shop_name")
   tagline             String   @default("Garage automobile — Yaoundé, Cameroun")
   niu                 String?

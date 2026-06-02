@@ -240,9 +240,11 @@ export const reportsApi = {
 
 // ─── Settings ────────────────────────────────────────────────────────────────
 export const settingsApi = {
-  getWorkshop: () => get<import('./workshop-settings').WorkshopSettings>('/settings/workshop'),
+  getWorkshop:    () => get<import('./workshop-settings').WorkshopSettings>('/settings/workshop'),
   updateWorkshop: (body: unknown) =>
     patch<import('./workshop-settings').WorkshopSettings>('/settings/workshop', body),
+  updateLogo:     (logoUrl: string | null) =>
+    post<import('./workshop-settings').WorkshopSettings>('/settings/workshop/logo', { logoUrl }),
 };
 
 // ─── Audit ─────────────────────────────────────────────────────────────────

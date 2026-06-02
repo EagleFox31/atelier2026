@@ -19,6 +19,7 @@ export interface BillingDocumentData {
     email: string;
     phone: string;
     address: string;
+    logoUrl?: string | null;
   };
   customer: {
     name: string;
@@ -80,12 +81,21 @@ export function BillingDocument({ type, data }: BillingDocumentProps) {
       <header className="flex justify-between items-start gap-8 mb-8">
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center text-white text-lg font-black shrink-0"
-              style={{ backgroundColor: BRAND }}
-            >
-              A
-            </div>
+            {data.workshop.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={data.workshop.logoUrl}
+                alt={data.workshop.shopName}
+                className="h-14 max-w-[120px] object-contain shrink-0"
+              />
+            ) : (
+              <div
+                className="w-11 h-11 rounded-xl flex items-center justify-center text-white text-lg font-black shrink-0"
+                style={{ backgroundColor: BRAND }}
+              >
+                {data.workshop.shopName.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div>
               <p className="text-xl font-black tracking-tight leading-none">{data.workshop.shopName}</p>
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400 mt-1">

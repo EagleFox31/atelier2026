@@ -113,6 +113,7 @@ async function main() {
   await migrateGarageIdColumns();
   await migrateMonthlyTargets();
   await migrateDefaultGarageForSeededData();
+  await migrateWorkshopLogoUrl();
 
   console.log('\n✅ Migration terminée.');
 }
@@ -253,6 +254,16 @@ async function migrateMultiTenant() {
   } else {
     console.log('   ⏭️  workshop_settings.garage_id existe déjà');
   }
+}
+
+async function migrateWorkshopLogoUrl() {
+  const { rows } = await q(`
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='workshop_settings' AND column_name='logo_url'
+  `);
+  if (rows.length > 0) { console.log('   ⏭️  workshop_settings.logo_url existe déjà'); return; }
+  await q(`ALTER TABLE public.workshop_settings ADD COLUMN logo_url TEXT`);
+  console.log('   ✅ workshop_settings.logo_url ajouté');
 }
 
 async function migrateDefaultGarageForSeededData() {
