@@ -164,14 +164,12 @@ describe('TeamService', () => {
   });
 
   describe('create()', () => {
-    it('hash le mot de passe et crée l\'utilisateur', async () => {
+    it('hash le mot de passe et crée l\'utilisateur avec identifiant prenom.nom', async () => {
       const { service, prismaMock } = makeDeps();
-      prismaMock.$queryRaw.mockResolvedValue([{ employee_code: 'EMP-005' }]);
+      // Pas de doublon → code jean.dupont disponible
+      prismaMock.user.findUnique.mockResolvedValue(null);
       prismaMock.user.create.mockResolvedValue({
-        id: 'u-1',
-        firstName: 'Jean',
-        lastName: 'Dupont',
-        employeeCode: 'EMP-006',
+        id: 'u-1', firstName: 'Jean', lastName: 'Dupont', employeeCode: 'jean.dupont',
       });
 
       await service.create({ firstName: 'Jean', lastName: 'Dupont', password: 'Secret123!' });
@@ -179,33 +177,37 @@ describe('TeamService', () => {
       expect(bcrypt.hash).toHaveBeenCalledWith('Secret123!', 10);
       expect(prismaMock.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ passwordHash: 'hashed-password', employeeCode: 'EMP-006' }),
+          data: expect.objectContaining({ passwordHash: 'hashed-password', employeeCode: 'jean.dupont' }),
         }),
       );
     });
 
-    it('génère EMP-001 si aucun code employé existant', async () => {
+    it('génère prenom.nom si aucun doublon existant', async () => {
       const { service, prismaMock } = makeDeps();
-      prismaMock.$queryRaw.mockResolvedValue([]);
-      prismaMock.user.create.mockResolvedValue({ id: 'u-1', employeeCode: 'EMP-001' });
+      prismaMock.user.findUnique.mockResolvedValue(null);
+      prismaMock.user.create.mockResolvedValue({ id: 'u-1', employeeCode: 'test.user' });
 
       await service.create({ firstName: 'Test', lastName: 'User' });
 
       expect(prismaMock.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({ employeeCode: 'EMP-001' }),
+          data: expect.objectContaining({ employeeCode: 'test.user' }),
         }),
       );
     });
 
-    it('utilise le mot de passe par défaut (Atelier2026!) si aucun fourni', async () => {
+    it('génère un mot de passe auto si aucun fourni (format PrenomNNNN!)', async () => {
       const { service, prismaMock } = makeDeps();
-      prismaMock.$queryRaw.mockResolvedValue([{ employee_code: 'EMP-002' }]);
+      prismaMock.user.findUnique.mockResolvedValue(null);
       prismaMock.user.create.mockResolvedValue({ id: 'u-1' });
 
       await service.create({ firstName: 'Test', lastName: 'User' });
 
-      expect(bcrypt.hash).toHaveBeenCalledWith('Atelier2026!', 10);
+      // Le mot de passe auto est TestNNNN! (prénom + 4 chiffres + !)
+      expect(bcrypt.hash).toHaveBeenCalledWith(
+        expect.stringMatching(/^Test\d{4}!$/),
+        10,
+      );
     });
 
     it('assigne le rôle si roleCode fourni', async () => {
@@ -283,13 +285,21 @@ describe('TeamService', () => {
   });
 
   describe('generateEmployeeCode (via create)', () => {
-    it('lève une erreur si le code employé en base est invalide', async () => {
+    it('ajoute un suffixe numérique si prenom.nom existe déjà', async () => {
       const { service, prismaMock } = makeDeps();
-      prismaMock.$queryRaw.mockResolvedValue([{ employee_code: 'EMP-abc' }]);
+      // test.user existe → test.user2 libre
+      prismaMock.user.findUnique
+        .mockResolvedValueOnce({ id: 'existing' }) // test.user → doublon
+        .mockResolvedValueOnce(null);               // test.user2 → libre
+      prismaMock.user.create.mockResolvedValue({ id: 'u-1', employeeCode: 'test.user2' });
 
-      await expect(
-        service.create({ firstName: 'Test', lastName: 'User' }),
-      ).rejects.toThrow('Code employé invalide en base');
+      await service.create({ firstName: 'Test', lastName: 'User' });
+
+      expect(prismaMock.user.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ employeeCode: 'test.user2' }),
+        }),
+      );
     });
   });
 

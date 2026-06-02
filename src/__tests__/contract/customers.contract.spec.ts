@@ -243,7 +243,7 @@ describe('Customers — contrats de réponse HTTP', () => {
 
   describe('GET /api/customers/:id', () => {
     it('200 — shape : client avec relations vehicles[] et serviceOrders[]', async () => {
-      prisma.customer.findUnique.mockResolvedValue({
+      prisma.customer.findFirst.mockResolvedValue({
         ...CUSTOMER_STUB,
         vehicles: [{ id: 'veh-1', plate: 'CE-1234-LT' }],
         serviceOrders: [],
@@ -263,7 +263,7 @@ describe('Customers — contrats de réponse HTTP', () => {
     });
 
     it('200 — vehicles est un tableau (même vide)', async () => {
-      prisma.customer.findUnique.mockResolvedValue({
+      prisma.customer.findFirst.mockResolvedValue({
         ...CUSTOMER_STUB,
         vehicles: [],
         serviceOrders: [],
@@ -279,7 +279,7 @@ describe('Customers — contrats de réponse HTTP', () => {
     });
 
     it('404 — client inexistant → shape : { statusCode: 404, errorCode: "Not Found", ... }', async () => {
-      prisma.customer.findUnique.mockResolvedValue(null);
+      prisma.customer.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .get('/api/customers/00000000-0000-4000-8000-000000000000')
@@ -296,7 +296,7 @@ describe('Customers — contrats de réponse HTTP', () => {
     });
 
     it('404 — message métier explicite (pas juste "Not Found")', async () => {
-      prisma.customer.findUnique.mockResolvedValue(null);
+      prisma.customer.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .get('/api/customers/00000000-0000-4000-8000-000000000000')
@@ -312,7 +312,7 @@ describe('Customers — contrats de réponse HTTP', () => {
   describe('PATCH /api/customers/:id', () => {
     it('200 — retourne le client mis à jour', async () => {
       const updated = { ...CUSTOMER_STUB, firstName: 'Pierre', updatedAt: new Date().toISOString() };
-      prisma.customer.findUnique.mockResolvedValue({ ...CUSTOMER_STUB, vehicles: [], serviceOrders: [] });
+      prisma.customer.findFirst.mockResolvedValue({ ...CUSTOMER_STUB, vehicles: [], serviceOrders: [] });
       prisma.customer.update.mockResolvedValue(updated);
 
       const res = await request(app.getHttpServer())
@@ -325,7 +325,7 @@ describe('Customers — contrats de réponse HTTP', () => {
     });
 
     it('404 — client inexistant → errorCode "Not Found"', async () => {
-      prisma.customer.findUnique.mockResolvedValue(null);
+      prisma.customer.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .patch('/api/customers/00000000-0000-4000-8000-000000000001')
@@ -342,7 +342,7 @@ describe('Customers — contrats de réponse HTTP', () => {
   describe('DELETE /api/customers/:id', () => {
     it('200 — soft delete : retourne un objet avec deletedAt renseigné', async () => {
       const softDeleted = { ...CUSTOMER_STUB, deletedAt: new Date().toISOString() };
-      prisma.customer.findUnique.mockResolvedValue({ ...CUSTOMER_STUB, vehicles: [], serviceOrders: [] });
+      prisma.customer.findFirst.mockResolvedValue({ ...CUSTOMER_STUB, vehicles: [], serviceOrders: [] });
       prisma.customer.update.mockResolvedValue(softDeleted);
 
       const res = await request(app.getHttpServer())
@@ -355,7 +355,7 @@ describe('Customers — contrats de réponse HTTP', () => {
     });
 
     it('404 — client inexistant → enveloppe erreur', async () => {
-      prisma.customer.findUnique.mockResolvedValue(null);
+      prisma.customer.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .delete('/api/customers/00000000-0000-4000-8000-000000000002')

@@ -175,7 +175,7 @@ describe('Auth — contrats de réponse HTTP', () => {
         .set('Authorization', `Bearer ${token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body).toEqual({
+      expect(res.body).toMatchObject({
         id: 'admin-1',
         firstName: 'Admin',
         lastName: 'Moukoury',

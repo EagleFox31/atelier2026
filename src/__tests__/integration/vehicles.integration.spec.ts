@@ -26,10 +26,11 @@ function makeVehiclesPrismaMock() {
   return {
     ...base,
     vehicle: {
-      findMany:  jest.fn().mockResolvedValue([]),
+      findMany:   jest.fn().mockResolvedValue([]),
       findUnique: jest.fn().mockResolvedValue(null),
-      create:    jest.fn(),
-      update:    jest.fn(),
+      findFirst:  jest.fn().mockResolvedValue(null),
+      create:     jest.fn(),
+      update:     jest.fn(),
     },
     vehicleMake:  { findMany: jest.fn().mockResolvedValue([]) },
     vehicleModel: { findMany: jest.fn().mockResolvedValue([]) },
@@ -121,7 +122,7 @@ describe('Vehicles — intégration HTTP', () => {
 
   describe('GET /api/vehicles/:id', () => {
     it('404 — véhicule introuvable (NotFoundException)', async () => {
-      prisma.vehicle.findUnique.mockResolvedValue(null);
+      prisma.vehicle.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .get(`/api/vehicles/${VEH_ID}`)
@@ -172,7 +173,7 @@ describe('Vehicles — intégration HTTP', () => {
 
   describe('PATCH /api/vehicles/:id', () => {
     it('200 — met à jour le véhicule', async () => {
-      prisma.vehicle.findUnique.mockResolvedValue({ id: VEH_ID, deletedAt: null });
+      prisma.vehicle.findFirst.mockResolvedValue({ id: VEH_ID, deletedAt: null });
       prisma.vehicle.update.mockResolvedValue({ id: VEH_ID, color: 'Rouge' });
 
       const res = await request(app.getHttpServer())
@@ -191,7 +192,7 @@ describe('Vehicles — intégration HTTP', () => {
 
   describe('DELETE /api/vehicles/:id', () => {
     it('200 — soft delete (deletedAt renseigné)', async () => {
-      prisma.vehicle.findUnique.mockResolvedValue({ id: VEH_ID, deletedAt: null });
+      prisma.vehicle.findFirst.mockResolvedValue({ id: VEH_ID, deletedAt: null });
       prisma.vehicle.update.mockResolvedValue({ id: VEH_ID, deletedAt: new Date() });
 
       const res = await request(app.getHttpServer())

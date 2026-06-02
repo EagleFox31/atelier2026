@@ -57,6 +57,14 @@ export function makeIntegrationPrismaMock() {
       create: jest.fn(),
       findMany: jest.fn().mockResolvedValue([]),
       findUnique: jest.fn().mockResolvedValue(null),
+      findFirst: jest.fn().mockResolvedValue(null),
+      update: jest.fn(),
+    },
+    vehicle: {
+      create: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
+      findUnique: jest.fn().mockResolvedValue(null),
+      findFirst: jest.fn().mockResolvedValue(null),
       update: jest.fn(),
     },
     auditLog: {
