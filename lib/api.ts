@@ -217,9 +217,10 @@ export interface InAppNotification {
 
 // ─── Reports ───────────────────────────────────────────────────────────────
 export const reportsApi = {
-  revenue:     (params?: { startDate?: string; endDate?: string }) =>
+  revenue:        (params?: { startDate?: string; endDate?: string }) =>
     get(`/reports/revenue${toQuery(params)}`),
-  performance: () => get('/reports/workshop-performance'),
+  performance:    () => get('/reports/workshop-performance'),
+  dashboardStats: () => get<{ stats: { title: string; value: string; trend: string }[] }>('/reports/dashboard-stats'),
 };
 
 // ─── Settings ────────────────────────────────────────────────────────────────

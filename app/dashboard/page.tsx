@@ -21,7 +21,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { TechnicianHomeRedirect } from "@/components/layout/TechnicianHomeRedirect";
 import { CashierDashboardSection } from "@/components/dashboard/CashierDashboardSection";
 import { isTechnicianProfile, isReceptionnisteProfile, isCaissierProfile } from "@/lib/role-routing";
-import { workshopApi, planningApi, teamApi, billingApi } from "@/lib/api";
+import { workshopApi, planningApi, teamApi, billingApi, reportsApi } from "@/lib/api";
 import { WORKSHOP_STATUS, isActiveOT } from "@/lib/constants";
 
 const STAT_META = [
@@ -70,8 +70,8 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetch('/api/dashboard/stats')
-      .then(r => r.json()).then(d => setStats(d.stats ?? []))
+    reportsApi.dashboardStats()
+      .then(d => setStats(d.stats ?? []))
       .catch(() => {}).finally(() => setStatsLoading(false));
 
     (workshopApi.listOTs() as Promise<any[]>).then(data => {

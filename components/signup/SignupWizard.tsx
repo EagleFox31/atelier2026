@@ -12,13 +12,17 @@ import {
   Building2,
   CheckCircle2,
   Copy,
+  Eye,
+  EyeOff,
   Loader2,
   User,
   Users,
 } from 'lucide-react';
+import { PasswordStrengthIndicator } from '@/components/signup/PasswordStrengthIndicator';
 import { LandingKenteBar } from '@/components/marketing/LandingKenteBar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { getPasswordSimilarityPercent } from '@/lib/password-strength';
 import { cn } from '@/lib/utils';
 import { signupApi, type SignupTeamCreated, handleApiError } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
@@ -86,6 +90,8 @@ export function SignupWizard() {
   const [workshopData, setWorkshopData] = useState<WorkshopForm | null>(null);
   const [selectedRoles, setSelectedRoles] = useState<SignupTeamRoleCode[]>([]);
   const [teamDrafts, setTeamDrafts] = useState<Partial<Record<SignupTeamRoleCode, TeamDraft>>>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const adminForm = useForm<AdminForm>({
     resolver: zodResolver(adminSchema),
@@ -98,6 +104,10 @@ export function SignupWizard() {
       confirmPassword: '',
     },
   });
+
+  const passwordValue = adminForm.watch('password');
+  const confirmPasswordValue = adminForm.watch('confirmPassword');
+  const similarityPercent = getPasswordSimilarityPercent(passwordValue ?? '', confirmPasswordValue ?? '');
 
   const workshopForm = useForm<WorkshopForm>({
     resolver: zodResolver(workshopSchema),
@@ -369,10 +379,66 @@ export function SignupWizard() {
                   <Input {...adminForm.register('phone')} className="h-11" placeholder="+237 6…" />
                 </Field>
                 <Field label="Mot de passe" error={adminForm.formState.errors.password?.message}>
-                  <Input type="password" {...adminForm.register('password')} className="h-11" />
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      {...adminForm.register('password')}
+                      className="h-11 pr-11"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                      className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-slate-400 hover:text-[var(--afrique-earth)]"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                  <PasswordStrengthIndicator password={passwordValue ?? ''} />
                 </Field>
-                <Field label="Confirmer" error={adminForm.formState.errors.confirmPassword?.message}>
-                  <Input type="password" {...adminForm.register('confirmPassword')} className="h-11" />
+                <Field label="Confirmer le mot de passe" error={adminForm.formState.errors.confirmPassword?.message}>
+                  <div className="relative">
+                    <Input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      {...adminForm.register('confirmPassword')}
+                      className="h-11 pr-11"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((v) => !v)}
+                      aria-label={
+                        showConfirmPassword
+                          ? 'Masquer la confirmation'
+                          : 'Afficher la confirmation'
+                      }
+                      className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-slate-400 hover:text-[var(--afrique-earth)]"
+                    >
+                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
+                  {confirmPasswordValue ? (
+                    <div className="mt-2 space-y-1.5" aria-live="polite">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-500">Correspondance</span>
+                        <span className="font-semibold text-slate-700">{similarityPercent}%</span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                        <div
+                          className={cn(
+                            'h-full rounded-full transition-all duration-300',
+                            similarityPercent < 50
+                              ? 'bg-[var(--afrique-coral)]'
+                              : similarityPercent < 100
+                                ? 'bg-[var(--afrique-gold)]'
+                                : 'bg-[var(--afrique-forest)]',
+                          )}
+                          style={{ width: `${similarityPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
                 </Field>
                 <Button
                   type="submit"

@@ -40,6 +40,7 @@ export class TeamService {
                 status: true,
                 tempPassword: true,
                 passwordResetRequestedAt: true,
+                lastLoginAt: true,
                 roles: {
                     where: { revokedAt: null },
                     include: { role: true }
