@@ -675,7 +675,7 @@ export function LandingPage() {
               href="/demo"
               className={cn(
                 buttonVariants({ size: 'lg' }),
-                'h-12 rounded-xl bg-white text-brand shadow-lg transition-all duration-200 hover:bg-slate-50 hover:shadow-xl',
+                'h-12 rounded-xl bg-white text-brand shadow-lg transition-all duration-200 hover:bg-brand hover:text-white hover:shadow-xl',
               )}
             >
               Contactez-nous
