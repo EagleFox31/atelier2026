@@ -387,23 +387,28 @@ export default function ReportsPage() {
                       color: 'var(--foreground)'
                     }}
                     itemStyle={{ color: 'var(--foreground)' }}
-                    formatter={(value: any) => [`${Number(value).toLocaleString()} XAF`, 'Revenu']}
+                    formatter={(value: any, name: string) => [
+                      `${Number(value).toLocaleString()} XAF`,
+                      name === 'revenue' ? 'Revenu' : 'Objectif',
+                    ]}
                   />
-                  <Area 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    stroke="var(--brand)" 
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    name="revenue"
+                    stroke="var(--brand)"
                     strokeWidth={3}
-                    fillOpacity={1} 
-                    fill="url(#colorRev)" 
+                    fillOpacity={1}
+                    fill="url(#colorRev)"
                   />
-                  <Area 
-                    type="monotone" 
-                    dataKey="target" 
-                    stroke="#cbd5e1" 
+                  <Area
+                    type="monotone"
+                    dataKey="target"
+                    name="target"
+                    stroke="#cbd5e1"
                     strokeWidth={2}
                     strokeDasharray="5 5"
-                    fill="transparent" 
+                    fill="transparent"
                   />
                 </AreaChart>
               </ResponsiveContainer>
