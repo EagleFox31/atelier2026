@@ -21,6 +21,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { EventsModule } from './modules/events/events.module';
 import { MarketingModule } from './modules/marketing/marketing.module';
 import { SignupModule } from './modules/signup/signup.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { SchedulerService } from './workers/scheduler.service';
 import { SmsProcessor } from './workers/sms.processor';
 import { JwtAuthGuard, PermissionsGuard } from './guards/auth.guard';
@@ -64,6 +65,7 @@ import { AppController } from './app.controller';
     EventsModule,
     MarketingModule,
     SignupModule,
+    AdminModule,
 
     // 4. Background Jobs (Workers & Schedulers)
     BullModule.registerQueue(

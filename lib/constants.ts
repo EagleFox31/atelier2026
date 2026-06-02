@@ -12,6 +12,7 @@ import {
   Calendar,
   ClipboardList,
   Presentation,
+  Building2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -125,6 +126,12 @@ export const NAV_ITEMS: NavItem[] = [
     title: "Demandes démo",
     href: "/demo-requests",
     icon: Presentation,
+    roles: ["SUPER_ADMIN"],
+  },
+  {
+    title: "Tenants",
+    href: "/admin/tenants",
+    icon: Building2,
     roles: ["SUPER_ADMIN"],
   },
   {

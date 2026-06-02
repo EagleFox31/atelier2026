@@ -364,6 +364,32 @@ export const demoRequestsApi = {
     patch<DemoRequest>(`/demo-requests/${id}`, body),
 };
 
+export const superAdminApi = {
+  listTenants:        () => get<TenantSummary[]>('/admin/tenants'),
+  toggleTenantStatus: (id: string) => patch<{ tenantId: string; status: string }>(`/admin/tenants/${id}/toggle-status`, {}),
+};
+
+export interface TenantSummary {
+  id: string;
+  slug: string;
+  name: string;
+  email: string;
+  plan: string;
+  status: string;
+  createdAt: string;
+  userCount: number;
+  garageCount: number;
+  garages: {
+    id: string;
+    name: string;
+    city: string;
+    address: string;
+    status: string;
+    activeOTs: number;
+    totalOTs: number;
+  }[];
+}
+
 export function handleApiError(err: unknown, fallback = 'Une erreur inattendue est survenue'): void {
   import('sonner').then(({ toast }) => {
     if (err instanceof ApiError && err.status === 401) return;
