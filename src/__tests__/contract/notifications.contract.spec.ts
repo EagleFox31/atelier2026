@@ -69,8 +69,9 @@ describe('Notifications — contrats de réponse HTTP', () => {
       ],
       prismaOverride: {
         ...prisma,
+        customer: { findFirst: jest.fn().mockResolvedValue({ id: '6734cb73-c6bc-4d27-a415-0f32ea5cfcec' }) },
         sMSNotification: { findMany: smsHistoryMock, create: smsCreateMock },
-      } as ReturnType<typeof makeIntegrationPrismaMock>,
+      } as unknown as ReturnType<typeof makeIntegrationPrismaMock>,
     }));
   });
 

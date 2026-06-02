@@ -52,8 +52,9 @@ describe('Notifications — intégration HTTP', () => {
       ],
       prismaOverride: {
         ...prisma,
+        customer: { findFirst: jest.fn().mockResolvedValue({ id: 'cust-1' }) },
         sMSNotification: { findMany: smsHistoryMock, create: smsCreateMock },
-      } as ReturnType<typeof makeIntegrationPrismaMock>,
+      } as unknown as ReturnType<typeof makeIntegrationPrismaMock>,
     }));
   });
 

@@ -553,8 +553,10 @@ export class WorkshopService {
     }
 
     if (targetStatus === OTStatus.IN_PROGRESS && ot.status === OTStatus.QUOTE_APPROVED) {
-      const hasApprovedQuote = ot.quotes.some((q) => q.status === 'APPROVED');
-      if (!hasApprovedQuote) {
+      const hasValidatedQuote = ot.quotes.some((q) =>
+        q.status === 'APPROVED' || q.status === 'BILLED',
+      );
+      if (!hasValidatedQuote) {
         throw new BadRequestException(
           'Approuvez le devis dans Facturation avant de démarrer les travaux (ORD-006)',
         );

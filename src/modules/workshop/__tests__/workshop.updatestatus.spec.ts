@@ -7,11 +7,14 @@ import {
 import { OTStatus, PartStatus } from '@prisma/client';
 import { WorkshopService } from '../workshop.service';
 
+const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
+
 // ─── Factories ────────────────────────────────────────────────────────────────
 
 function makeOT(overrides: Partial<Record<string, unknown>> = {}) {
   return {
     id: 'ot-1',
+    garageId: TEST_GARAGE_ID,
     status: OTStatus.DRAFT,
     version: 3,
     mileageIn: null,
@@ -30,6 +33,7 @@ function makeOT(overrides: Partial<Record<string, unknown>> = {}) {
 function makeUser(roleCodes: string[]) {
   return {
     id: 'user-1',
+    garageId: TEST_GARAGE_ID,
     roles: roleCodes.map((code) => ({ role: { code } })),
   };
 }
@@ -38,6 +42,11 @@ function makeDeps() {
   const prismaMock = {
     serviceOrder: {
       findUnique: jest.fn(),
+      findFirst: jest.fn().mockImplementation(({ where }: { where: { id: string } }) =>
+        where.id === 'ot-inexistant'
+          ? Promise.resolve(null)
+          : Promise.resolve({ id: where.id }),
+      ),
       update: jest.fn(),
     },
     quote: {
@@ -300,7 +309,7 @@ describe('WorkshopService.updateStatus()', () => {
     await service.updateStatus(
       'ot-1',
       OTStatus.RECEIVED,
-      { id: 'user-xyz', roles: [{ role: { code: 'RECEPTIONNISTE' } }] },
+      { id: 'user-xyz', garageId: TEST_GARAGE_ID, roles: [{ role: { code: 'RECEPTIONNISTE' } }] },
       {},
     );
 
@@ -590,6 +599,25 @@ describe('WorkshopService — flux QC', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
+  it('QUOTE_APPROVED → IN_PROGRESS autorisé si devis déjà facturé (BILLED)', async () => {
+    const { service, prismaMock } = makeDeps();
+    prismaMock.serviceOrder.findUnique.mockResolvedValue(
+      makeOT({
+        status: OTStatus.QUOTE_APPROVED,
+        quotes: [{ id: 'q-1', status: 'BILLED', lines: [] }],
+      }),
+    );
+
+    const result = await service.updateStatus(
+      'ot-1',
+      OTStatus.IN_PROGRESS,
+      makeUser(['CHEF_ATELIER']),
+      {},
+    );
+
+    expect(result.status).toBe(OTStatus.IN_PROGRESS);
+  });
+
   it('TECHNICIEN assigné peut passer QUOTE_APPROVED → IN_PROGRESS si devis APPROVED', async () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.serviceOrder.findUnique.mockResolvedValue(
@@ -622,11 +650,11 @@ describe('WorkshopService.assignChef()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.serviceOrder.update.mockResolvedValue({ id: 'ot-1', assignedChef: 'chef-1' });
 
-    await service.assignChef('ot-1', 'chef-1');
+    await service.assignChef('ot-1', 'chef-1', TEST_GARAGE_ID);
 
     expect(prismaMock.serviceOrder.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'ot-1' },
+        where: { id: 'ot-1', garageId: TEST_GARAGE_ID },
         data: { assignedChef: 'chef-1' },
       }),
     );
@@ -640,7 +668,11 @@ describe('WorkshopService.removeWorkItem()', () => {
 
   it('supprime le workItem avec id et serviceOrderId', async () => {
     const prismaMock = {
-      serviceOrder: { findUnique: jest.fn(), update: jest.fn() },
+      serviceOrder: {
+        findUnique: jest.fn(),
+        findFirst: jest.fn().mockResolvedValue({ id: 'ot-1' }),
+        update: jest.fn(),
+      },
       customer: { findUnique: jest.fn() },
       oTWorkItem: { delete: jest.fn().mockResolvedValue({ id: 'wi-1' }) },
     };
@@ -650,7 +682,7 @@ describe('WorkshopService.removeWorkItem()', () => {
     const partsFlowMock = { onQuoteApproved: jest.fn(), consumeReservedParts: jest.fn(), releaseReservationsForOrder: jest.fn(), reconcilePartsAtQc: jest.fn() };
     const service = new WorkshopService(prismaMock as any, auditMock as any, notifMock as any, partsFlowMock as any, smsQueueMock as any);
 
-    await service.removeWorkItem('ot-1', 'wi-1');
+    await service.removeWorkItem('ot-1', 'wi-1', TEST_GARAGE_ID);
 
     expect(prismaMock.oTWorkItem.delete).toHaveBeenCalledWith({
       where: { id: 'wi-1', serviceOrderId: 'ot-1' },
