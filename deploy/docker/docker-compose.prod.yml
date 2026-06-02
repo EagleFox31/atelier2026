@@ -1,4 +1,4 @@
-# Atelier 2026 — stack prod
+# Atelier Maître — stack prod
 # CI/CD : images pré-buildées depuis GHCR — le serveur ne fait que `pull + up`
 # Deploy manuel d'urgence : ajouter --build pour reconstruire localement
 

@@ -23,10 +23,10 @@ test.describe('Authentification', () => {
     await page.getByPlaceholder('admin@atelier.cm ou EMP-001').fill('admin@atelier.cm');
     await page.getByPlaceholder('••••••••').fill('Atelier2026!');
     await Promise.all([
-      page.waitForURL('/', { timeout: 90_000, waitUntil: 'domcontentloaded' }),
+      page.waitForURL('/dashboard', { timeout: 90_000, waitUntil: 'domcontentloaded' }),
       page.getByRole('button', { name: 'Se connecter' }).click(),
     ]);
-    await expect(page).toHaveURL('/');
+    await expect(page).toHaveURL('/dashboard');
   });
 
   test('login avec credentials invalides affiche une erreur', async ({ page }) => {
@@ -47,10 +47,10 @@ test.describe('Authentification', () => {
     await page.locator('input[autocomplete="username"]').fill('EMP-001');
     await page.locator('input[autocomplete="current-password"]').fill('Atelier2026!');
     await Promise.all([
-      page.waitForURL('/', { timeout: 90_000, waitUntil: 'domcontentloaded' }),
+      page.waitForURL('/dashboard', { timeout: 90_000, waitUntil: 'domcontentloaded' }),
       page.getByRole('button', { name: 'Se connecter' }).click(),
     ]);
-    await expect(page).toHaveURL('/');
+    await expect(page).toHaveURL('/dashboard');
   });
 
   test('une page protégée redirige vers /login si non authentifié', async ({ page }) => {

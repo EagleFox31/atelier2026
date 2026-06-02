@@ -17,7 +17,7 @@ export async function loginUser(page: Page, user: Pick<TestUser, 'email' | 'pass
   await page.getByPlaceholder('••••••••').fill(user.password);
   await expect(page.getByRole('button', { name: 'Se connecter' })).toBeEnabled({ timeout: 10_000 });
   await page.getByRole('button', { name: 'Se connecter' }).click();
-  await page.waitForURL('/', { timeout: 90_000, waitUntil: 'domcontentloaded' });
+  await page.waitForURL('/dashboard', { timeout: 90_000, waitUntil: 'domcontentloaded' });
 
   await dismissOnboarding(page);
 }

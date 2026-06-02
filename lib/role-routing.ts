@@ -20,16 +20,24 @@ export function isCaissierProfile(user: ApiUser | null | undefined): boolean {
   return user.roles.includes('CAISSIER') && !user.roles.some(r => ['ADMIN', 'SUPER_ADMIN', 'CHEF_ATELIER', 'RECEPTIONNISTE'].includes(r));
 }
 
+/** Chemins marketing / auth — jamais utilisés comme retour post-login. */
+const NON_APP_RETURN_PATHS = ['/', '/accueil', '/login', '/forgot-password', '/demo'];
+
 /** Page d'accueil après connexion selon le profil. */
 export function getDefaultHomeRoute(user: ApiUser | null | undefined): string {
   if (isTechnicianProfile(user)) return '/workshop';
-  return '/';
+  return '/dashboard';
 }
 
 /** Priorise le retour post-401, sinon route par défaut du rôle. */
 export function resolvePostLoginRoute(user: ApiUser | null | undefined, returnUrl?: string | null): string {
-  if (returnUrl && returnUrl.startsWith('/') && returnUrl !== '/login') {
-    return returnUrl;
+  const pathOnly = returnUrl?.split('?')[0];
+  if (
+    pathOnly &&
+    pathOnly.startsWith('/') &&
+    !NON_APP_RETURN_PATHS.includes(pathOnly)
+  ) {
+    return returnUrl!;
   }
   return getDefaultHomeRoute(user);
 }

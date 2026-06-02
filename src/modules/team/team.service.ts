@@ -29,17 +29,24 @@ export class TeamService {
 
         return this.prisma.user.findMany({
             where,
-            select: { // Exclut le mot de passe
+            select: {
                 id: true,
                 employeeCode: true,
                 firstName: true,
                 lastName: true,
                 email: true,
                 phone: true,
+                specialty: true,
                 status: true,
+                tempPassword: true,
+                passwordResetRequestedAt: true,
                 roles: {
                     where: { revokedAt: null },
                     include: { role: true }
+                },
+                assignedOTs: {
+                    where: { status: { notIn: ['CLOSED', 'CANCELLED'] } },
+                    select: { id: true, reference: true, status: true }
                 },
                 createdAt: true,
             },
@@ -78,8 +85,9 @@ export class TeamService {
         return user;
     }
 
-    async create(data: { firstName: string; lastName: string; email?: string; phone?: string; roleCode?: string; password?: string }) {
-        const passwordHash = await bcrypt.hash(data.password ?? 'Atelier2026!', 10);
+    async create(data: { firstName: string; lastName: string; email?: string; phone?: string; roleCode?: string; specialty?: string; password?: string }) {
+        const plainPassword = data.password ?? this.generatePassword(data.firstName);
+        const passwordHash = await bcrypt.hash(plainPassword, 10);
         const employeeCode = await this.generateEmployeeCode(data.firstName, data.lastName);
 
         const user = await this.prisma.user.create({
@@ -89,9 +97,11 @@ export class TeamService {
                 lastName: data.lastName,
                 email: data.email,
                 phone: data.phone,
+                specialty: data.specialty,
                 passwordHash,
+                tempPassword: plainPassword,
             },
-            select: { id: true, employeeCode: true, firstName: true, lastName: true, email: true, phone: true, status: true },
+            select: { id: true, employeeCode: true, firstName: true, lastName: true, email: true, phone: true, status: true, tempPassword: true, specialty: true },
         });
 
         if (data.roleCode) {
@@ -102,6 +112,24 @@ export class TeamService {
         }
 
         return user;
+    }
+
+    async resetPassword(id: string, password?: string) {
+        const user = await this.findOne(id);
+        const plainPassword = password ?? this.generatePassword(user.firstName);
+        const passwordHash = await bcrypt.hash(plainPassword, 10);
+        return this.prisma.user.update({
+            where: { id },
+            data: { passwordHash, tempPassword: plainPassword, passwordResetRequestedAt: null },
+            select: { id: true, employeeCode: true, firstName: true, lastName: true, tempPassword: true },
+        });
+    }
+
+    /** Génère mot de passe auto : PrenomNNNN! */
+    private generatePassword(firstName: string): string {
+        const digits = Math.floor(1000 + Math.random() * 9000);
+        const base = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+        return `${base}${digits}!`;
     }
 
     /** Génère prenom.nom (ex: jean.dupont), avec suffixe numérique si doublon. */

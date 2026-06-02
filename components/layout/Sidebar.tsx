@@ -177,7 +177,7 @@ export function Sidebar() {
               <Wrench size={18} className="text-white" />
             </div>
             <span className="text-xl font-bold text-white tracking-tight">
-              Atelier<span className="text-brand">2026</span>
+              Atelier<span className="text-brand"> Maître</span>
             </span>
           </motion.div>
         )}
@@ -307,7 +307,7 @@ export function MobileSidebar({ onClose }: { onClose?: () => void }) {
             <Wrench size={18} className="text-white" />
           </div>
           <span className="text-xl font-bold text-white tracking-tight">
-            Atelier<span className="text-brand">2026</span>
+            Atelier<span className="text-brand"> Maître</span>
           </span>
         </div>
       </div>
@@ -390,15 +390,15 @@ export function BottomNav({ onOpenMenu }: { onOpenMenu: () => void }) {
               title: CASHIER_MOBILE_NAV.find(t => t.href === i.href)?.label ?? i.title,
             }))
         : visibleNav
-          .filter(i => ['/', '/planning', '/workshop'].includes(i.href))
-          .sort((a, b) => ['/', '/planning', '/workshop'].indexOf(a.href) - ['/', '/planning', '/workshop'].indexOf(b.href));
+          .filter(i => ['/dashboard', '/planning', '/workshop'].includes(i.href))
+          .sort((a, b) => ['/dashboard', '/planning', '/workshop'].indexOf(a.href) - ['/dashboard', '/planning', '/workshop'].indexOf(b.href));
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card/90 backdrop-blur-xl border-t border-border flex items-center justify-around z-[100] px-2 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]" style={{ height: 'calc(68px + env(safe-area-inset-bottom, 0px))', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       {navs.map(item => {
         const href = 'linkHref' in item && item.linkHref ? item.linkHref : item.href;
-        const isActive = item.href === '/'
-          ? pathname === '/'
+        const isActive = item.href === '/dashboard'
+          ? pathname === '/dashboard'
           : pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
           <Link key={item.href} href={href} className="flex flex-col items-center justify-center w-16 h-full relative group">

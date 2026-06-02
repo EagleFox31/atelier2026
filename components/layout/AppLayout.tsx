@@ -17,7 +17,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 import { Loader } from '@/components/ui/loader';
 
-const PUBLIC_PATHS = ['/login', '/forgot-password'];
+const PUBLIC_PATHS = ['/', '/login', '/forgot-password', '/demo'];
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -89,7 +89,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   async function handleLogout() {
     await logout();
     toast.success('Déconnecté');
-    router.replace('/login');
+    router.replace('/');
   }
 
   return (

@@ -26,7 +26,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   {
     title: "Tableau de bord",
-    href: "/",
+    href: "/dashboard",
     icon: LayoutDashboard,
     hideForRoles: ["TECHNICIEN"],
   },

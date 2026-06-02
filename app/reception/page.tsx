@@ -28,7 +28,7 @@ export default function ReceptionExpressPage() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4 px-4 text-center">
         <p className="text-muted-foreground">Vous n&apos;avez pas les droits pour la réception express.</p>
-        <Button variant="outline" onClick={() => router.push('/')}>Retour</Button>
+        <Button variant="outline" onClick={() => router.push('/dashboard')}>Retour</Button>
       </div>
     );
   }

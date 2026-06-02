@@ -74,7 +74,7 @@ export function Loader({ className, size = 'md', showText = true }: LoaderProps)
       {showText && (
         <div className="flex flex-col items-center gap-1 select-none">
           <span className="text-sm font-bold tracking-wider text-foreground/80 uppercase animate-pulse">
-            Atelier<span className="text-brand">2026</span>
+            Atelier<span className="text-brand"> Maître</span>
           </span>
           <span className="text-[10px] text-muted-foreground font-medium tracking-wide">
             Chargement en cours...

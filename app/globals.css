@@ -147,3 +147,22 @@
     @apply font-sans;
     }
 }
+
+/* Page marketing publique — confort visuel & lisibilité */
+.landing-page {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+  text-rendering: optimizeLegibility;
+}
+
+.landing-page ::selection {
+  background: color-mix(in srgb, var(--brand) 24%, white);
+  color: #0f172a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-page {
+    scroll-behavior: auto;
+  }
+}

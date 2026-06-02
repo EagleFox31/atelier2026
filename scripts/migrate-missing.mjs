@@ -107,6 +107,7 @@ async function main() {
   await migrateInAppNotifications();
   await migrateWorkshopSettings();
   await migrateUserOnboarding();
+  await migrateUserNewFields();
 
   console.log('\n✅ Migration terminée.');
 }
@@ -124,12 +125,29 @@ async function migrateUserOnboarding() {
     return;
   }
 
-  await q(`
-    ALTER TABLE public.users
-      ADD COLUMN onboarding_completed_at TIMESTAMPTZ
-  `);
-
+  await q(`ALTER TABLE public.users ADD COLUMN onboarding_completed_at TIMESTAMPTZ`);
   console.log('   ✅ Colonne users.onboarding_completed_at ajoutée');
+}
+
+async function migrateUserNewFields() {
+  const checks = [
+    { col: 'temp_password',                sql: 'ALTER TABLE public.users ADD COLUMN temp_password TEXT' },
+    { col: 'specialty',                    sql: 'ALTER TABLE public.users ADD COLUMN specialty TEXT' },
+    { col: 'password_reset_requested_at',  sql: 'ALTER TABLE public.users ADD COLUMN password_reset_requested_at TIMESTAMPTZ' },
+  ];
+
+  for (const { col, sql } of checks) {
+    const { rows } = await q(`
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='users' AND column_name='${col}'
+    `);
+    if (rows.length > 0) {
+      console.log(`   ⏭️  Colonne users.${col} existe déjà`);
+    } else {
+      await q(sql);
+      console.log(`   ✅ Colonne users.${col} ajoutée`);
+    }
+  }
 }
 
 async function migrateWorkshopSettings() {

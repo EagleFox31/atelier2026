@@ -1,6 +1,6 @@
 {
     "info": {
-        "name": "Atelier 2026 - Scénarios Automatisés E2E (Par Profil)",
+        "name": "Atelier Maître - Scénarios Automatisés E2E (Par Profil)",
         "description": "Tests complets (A to Z) passant le relais de profil en profil en utilisant l'API NestJS.",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },

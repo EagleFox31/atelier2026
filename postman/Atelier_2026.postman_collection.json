@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "Atelier 2026 — Tests E2E (A à Z)",
-    "description": "Collection complète de tests de bout en bout pour l'API Atelier 2026.\nScénario complet : Auth → Client → Véhicule → OT → Diagnostic → Devis → Facture → Paiement → Clôture.",
+    "name": "Atelier Maître — Tests E2E (A à Z)",
+    "description": "Collection complète de tests de bout en bout pour l'API Atelier Maître.\nScénario complet : Auth → Client → Véhicule → OT → Diagnostic → Devis → Facture → Paiement → Clôture.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [

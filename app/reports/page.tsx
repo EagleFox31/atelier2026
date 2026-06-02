@@ -234,7 +234,7 @@ export default function ReportsPage() {
             
             <div className="flex flex-col gap-3">
               <Button 
-                onClick={() => router.push('/')}
+                onClick={() => router.push('/dashboard')}
                 className="w-full bg-brand hover:bg-brand-hover text-white shadow-lg shadow-brand/20 h-11"
               >
                 Retour au Tableau de Bord

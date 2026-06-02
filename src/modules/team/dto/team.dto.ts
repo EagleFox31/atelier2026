@@ -24,12 +24,23 @@ export class CreateTeamMemberDto {
     roleCode?: string;
 
     @IsString()
-    @MinLength(8)
+    @IsOptional()
+    specialty?: string;
+
+    @IsString()
+    @MinLength(6)
     @IsOptional()
     password?: string;
 }
 
 export class UpdateTeamMemberDto extends PartialType(OmitType(CreateTeamMemberDto, ['roleCode', 'password'] as const)) {}
+
+export class ResetPasswordDto {
+    @IsString()
+    @MinLength(6)
+    @IsOptional()
+    password?: string;
+}
 
 export class AssignRoleDto {
     @IsString()
