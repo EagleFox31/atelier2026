@@ -162,23 +162,25 @@ export class ReportsService {
     garageId?: string | null;
     userId?: string;
   }) {
-    return this.prisma.monthlyTarget.upsert({
-      where: {
-        garageId_year_month: {
-          garageId: (data.garageId ?? '') as string,
-          year: data.year,
-          month: data.month,
-        },
-      },
-      create: {
+    // Upsert manuel — Prisma ne gère pas bien les contraintes uniques avec NULL via upsert
+    const existing = await this.prisma.monthlyTarget.findFirst({
+      where: { garageId: data.garageId ?? null, year: data.year, month: data.month },
+    });
+
+    if (existing) {
+      return this.prisma.monthlyTarget.update({
+        where: { id: existing.id },
+        data: { targetXaf: data.targetXaf },
+      });
+    }
+
+    return this.prisma.monthlyTarget.create({
+      data: {
         garageId: data.garageId ?? null,
         year: data.year,
         month: data.month,
         targetXaf: data.targetXaf,
         createdById: data.userId ?? null,
-      },
-      update: {
-        targetXaf: data.targetXaf,
       },
     });
   }
