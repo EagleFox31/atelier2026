@@ -108,8 +108,56 @@ async function main() {
   await migrateWorkshopSettings();
   await migrateUserOnboarding();
   await migrateUserNewFields();
+  await migrateDemoRequests();
+  await migrateMultiTenant();
 
   console.log('\n✅ Migration terminée.');
+}
+
+async function migrateDemoRequests() {
+  const { rows: enumRows } = await q(`
+    SELECT 1 FROM pg_type WHERE typname = 'demo_request_status_t'
+  `);
+
+  if (enumRows.length === 0) {
+    await q(`
+      CREATE TYPE demo_request_status_t AS ENUM (
+        'NEW', 'CONTACTED', 'SCHEDULED', 'CONVERTED', 'REJECTED'
+      )
+    `);
+    console.log('   ✅ Enum demo_request_status_t créé');
+  } else {
+    console.log('   ⏭️  Enum demo_request_status_t existe déjà');
+  }
+
+  const { rows: tableRows } = await q(`
+    SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='demo_requests'
+  `);
+
+  if (tableRows.length > 0) {
+    console.log('   ⏭️  Table demo_requests existe déjà');
+    return;
+  }
+
+  await q(`
+    CREATE TABLE public.demo_requests (
+      id             UUID                  NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
+      full_name      TEXT                  NOT NULL,
+      email          TEXT                  NOT NULL,
+      phone          TEXT                  NOT NULL,
+      garage_name    TEXT                  NOT NULL,
+      city           TEXT,
+      message        TEXT,
+      status         demo_request_status_t NOT NULL DEFAULT 'NEW',
+      admin_notes    TEXT,
+      handled_by_id  UUID REFERENCES users(id) ON DELETE SET NULL,
+      created_at     TIMESTAMPTZ           NOT NULL DEFAULT now(),
+      updated_at     TIMESTAMPTZ           NOT NULL DEFAULT now()
+    )
+  `);
+  await q(`CREATE INDEX idx_demo_requests_status ON public.demo_requests(status)`);
+  await q(`CREATE INDEX idx_demo_requests_created_at ON public.demo_requests(created_at)`);
+  console.log('   ✅ Table demo_requests créée');
 }
 
 async function migrateUserOnboarding() {
@@ -127,6 +175,81 @@ async function migrateUserOnboarding() {
 
   await q(`ALTER TABLE public.users ADD COLUMN onboarding_completed_at TIMESTAMPTZ`);
   console.log('   ✅ Colonne users.onboarding_completed_at ajoutée');
+}
+
+async function migrateMultiTenant() {
+  // ── Table tenants ──────────────────────────────────────────────────────────
+  const { rows: tenantTable } = await q(`
+    SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='tenants'
+  `);
+  if (tenantTable.length === 0) {
+    await q(`
+      CREATE TABLE public.tenants (
+        id         UUID        NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
+        slug       TEXT        NOT NULL UNIQUE,
+        name       TEXT        NOT NULL,
+        email      TEXT        NOT NULL UNIQUE,
+        plan       TEXT        NOT NULL DEFAULT 'starter',
+        status     TEXT        NOT NULL DEFAULT 'active',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `);
+    console.log('   ✅ Table tenants créée');
+  } else {
+    console.log('   ⏭️  Table tenants existe déjà');
+  }
+
+  // ── Table garages ──────────────────────────────────────────────────────────
+  const { rows: garageTable } = await q(`
+    SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='garages'
+  `);
+  if (garageTable.length === 0) {
+    await q(`
+      CREATE TABLE public.garages (
+        id         UUID        NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
+        tenant_id  UUID        NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        slug       TEXT        NOT NULL,
+        name       TEXT        NOT NULL,
+        city       TEXT        NOT NULL,
+        address    TEXT        NOT NULL,
+        phone      TEXT        NOT NULL,
+        niu        TEXT,
+        status     TEXT        NOT NULL DEFAULT 'active',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        UNIQUE(tenant_id, slug)
+      )
+    `);
+    await q(`CREATE INDEX idx_garages_tenant_id ON public.garages(tenant_id)`);
+    console.log('   ✅ Table garages créée');
+  } else {
+    console.log('   ⏭️  Table garages existe déjà');
+  }
+
+  // ── Colonnes FK sur users ──────────────────────────────────────────────────
+  const userFkCols = [
+    { col: 'tenant_id', sql: 'ALTER TABLE public.users ADD COLUMN tenant_id UUID REFERENCES tenants(id)' },
+    { col: 'garage_id', sql: 'ALTER TABLE public.users ADD COLUMN garage_id UUID REFERENCES garages(id)' },
+  ];
+  for (const { col, sql } of userFkCols) {
+    const { rows } = await q(`
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='users' AND column_name='${col}'
+    `);
+    if (rows.length === 0) { await q(sql); console.log(`   ✅ users.${col} ajouté`); }
+    else console.log(`   ⏭️  users.${col} existe déjà`);
+  }
+
+  // ── Colonne garage_id sur workshop_settings ────────────────────────────────
+  const { rows: wsCol } = await q(`
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema='public' AND table_name='workshop_settings' AND column_name='garage_id'
+  `);
+  if (wsCol.length === 0) {
+    await q(`ALTER TABLE public.workshop_settings ADD COLUMN garage_id UUID UNIQUE REFERENCES garages(id)`);
+    console.log('   ✅ workshop_settings.garage_id ajouté');
+  } else {
+    console.log('   ⏭️  workshop_settings.garage_id existe déjà');
+  }
 }
 
 async function migrateUserNewFields() {

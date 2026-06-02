@@ -162,7 +162,50 @@ enum AppointmentStatus {
   COMPLETED
 }
 
+enum DemoRequestStatus {
+  NEW
+  CONTACTED
+  SCHEDULED
+  CONVERTED
+  REJECTED
+
+  @@map("demo_request_status_t")
+}
+
 // --- Models ---
+
+model Tenant {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  slug      String    @unique
+  name      String
+  email     String    @unique
+  plan      String    @default("starter")
+  status    String    @default("active")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  garages   Garage[]
+  users     User[]
+
+  @@map("tenants")
+}
+
+model Garage {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenantId  String    @map("tenant_id") @db.Uuid
+  slug      String
+  name      String
+  city      String
+  address   String
+  phone     String
+  niu       String?
+  status    String    @default("active")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users     User[]
+  workshopSettings WorkshopSettings[]
+
+  @@unique([tenantId, slug])
+  @@map("garages")
+}
 
 model Role {
   id          String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
@@ -208,6 +251,8 @@ model User {
   firstName               String                  @map("first_name")
   lastName                String                  @map("last_name")
   email                   String?                 @unique
+  tenantId                     String?                 @map("tenant_id") @db.Uuid
+  garageId                     String?                 @map("garage_id") @db.Uuid
   phone                        String?
   passwordHash                 String                  @map("password_hash")
   tempPassword                 String?                 @map("temp_password")
@@ -245,6 +290,9 @@ model User {
   immobilizationsResolved VehicleImmobilization[] @relation("ResolvedBy")
   inAppNotifications      InAppNotification[]
   workshopSettingsUpdates WorkshopSettings[]      @relation("WorkshopSettingsUpdatedBy")
+  handledDemoRequests     DemoRequest[]           @relation("DemoRequestHandledBy")
+  tenant                  Tenant?                 @relation(fields: [tenantId], references: [id])
+  garage                  Garage?                 @relation(fields: [garageId], references: [id])
 
   @@map("users")
 }
@@ -981,9 +1029,32 @@ model InAppNotification {
   @@map("in_app_notifications")
 }
 
+/// Demandes de démo depuis le formulaire public (/demo).
+model DemoRequest {
+  id          String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fullName    String            @map("full_name")
+  email       String
+  phone       String
+  garageName  String            @map("garage_name")
+  city        String?
+  message     String?
+  status      DemoRequestStatus @default(NEW)
+  adminNotes  String?           @map("admin_notes")
+  handledById String?           @map("handled_by_id") @db.Uuid
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  handledBy User? @relation("DemoRequestHandledBy", fields: [handledById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("demo_requests")
+}
+
 /// Paramètres globaux de l'atelier (ligne unique id = "default").
 model WorkshopSettings {
   id                  String   @id @default("default")
+  garageId            String?  @unique @map("garage_id") @db.Uuid
   shopName            String   @map("shop_name")
   tagline             String   @default("Garage automobile — Yaoundé, Cameroun")
   niu                 String?
@@ -995,6 +1066,7 @@ model WorkshopSettings {
   updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
   updatedById         String?  @map("updated_by_id") @db.Uuid
   updatedBy           User?    @relation("WorkshopSettingsUpdatedBy", fields: [updatedById], references: [id])
+  garage              Garage?  @relation(fields: [garageId], references: [id])
 
   @@map("workshop_settings")
 }
