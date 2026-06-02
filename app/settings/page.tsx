@@ -16,6 +16,8 @@ import {
   Percent,
   Clock,
   Loader2,
+  PlusCircle,
+  MapPin,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -106,13 +108,26 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Paramètres</h1>
-          <p className="text-slate-500">Configurez votre atelier et vos préférences</p>
-          {settings?.updatedAt && !loading && (
-            <p className="text-xs text-slate-400 mt-1">
-              Dernière mise à jour : {new Date(settings.updatedAt).toLocaleString('fr-FR')}
-            </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Paramètres</h1>
+            <p className="text-slate-500">Configurez votre atelier et vos préférences</p>
+            {settings?.updatedAt && !loading && (
+              <p className="text-xs text-slate-400 mt-1">
+                Dernière mise à jour : {new Date(settings.updatedAt).toLocaleString('fr-FR')}
+              </p>
+            )}
+          </div>
+          {canEdit && (
+            <Button
+              variant="outline"
+              className="gap-2 shrink-0 border-brand/30 text-brand hover:bg-brand/5"
+              onClick={() => toast.info('Fonctionnalité bientôt disponible — ajout de garage secondaire', { duration: 4000 })}
+            >
+              <PlusCircle size={16} />
+              <MapPin size={14} />
+              Ajouter un garage
+            </Button>
           )}
         </div>
 
