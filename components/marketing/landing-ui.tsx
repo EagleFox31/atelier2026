@@ -6,6 +6,9 @@ import { motion, useScroll, useTransform } from 'motion/react';
 import { Wrench, ChevronDown, type LucideIcon } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { FEATURE_ACCENTS, PAIN_CARD_STYLES } from '@/components/marketing/landing-accents';
+import { LandingKenteBar } from '@/components/marketing/LandingKenteBar';
+import { InstallAppHeaderLink } from '@/components/pwa/InstallAppButton';
 
 /** Lien nav avec soulignement progressif */
 export const navLinkClass =
@@ -21,7 +24,7 @@ export function SectionEyebrow({
   return (
     <p
       className={cn(
-        'mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-brand/80',
+        'mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--afrique-earth)]',
         className,
       )}
     >
@@ -70,19 +73,21 @@ export function LandingHeader() {
   return (
     <motion.header
       style={{ boxShadow: shadow }}
-      className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/75 backdrop-blur-xl backdrop-saturate-150"
+      className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl backdrop-saturate-150"
     >
-      <motion.div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-brand/20 to-transparent"
-        style={{ opacity: borderOpacity }}
-        aria-hidden
-      />
-      <div className="mx-auto flex h-[4.25rem] max-w-6xl items-center justify-between px-4 sm:px-6">
+      <LandingKenteBar />
+      <div className="relative border-b border-slate-200/60">
+        <motion.div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-[var(--afrique-gold)]/40 via-brand/25 to-[var(--afrique-forest)]/40"
+          style={{ opacity: borderOpacity }}
+          aria-hidden
+        />
+        <div className="mx-auto flex h-[4.25rem] max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link
           href="/"
           className="group flex items-center gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-brand/35"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/10 ring-1 ring-brand/10 transition-all duration-300 group-hover:bg-brand/15 group-hover:ring-brand/20">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand/15 to-[var(--afrique-gold-soft)] ring-1 ring-[var(--afrique-gold)]/20 transition-all duration-300 group-hover:ring-[var(--afrique-gold)]/35">
             <Wrench className="text-brand transition-transform duration-300 group-hover:rotate-[-8deg]" size={22} />
           </div>
           <span className="text-lg font-bold tracking-tight text-slate-800">Atelier Maître</span>
@@ -99,6 +104,16 @@ export function LandingHeader() {
           </a>
         </nav>
         <div className="flex items-center gap-2">
+          <InstallAppHeaderLink />
+          <Link
+            href="/inscription"
+            className={cn(
+              buttonVariants({ variant: 'ghost' }),
+              'hidden text-[var(--afrique-earth)] sm:inline-flex',
+            )}
+          >
+            Créer un atelier
+          </Link>
           <Link
             href="/login"
             className={cn(buttonVariants({ variant: 'ghost' }), 'hidden text-slate-600 sm:inline-flex')}
@@ -109,11 +124,12 @@ export function LandingHeader() {
               href="/demo"
               className={cn(
                 buttonVariants(),
-                'rounded-xl bg-brand text-white shadow-md shadow-brand/15 transition-all duration-200 hover:bg-brand-hover hover:shadow-lg hover:shadow-brand/20',
+                'rounded-xl bg-gradient-to-r from-brand to-[#1a5f7a] text-white shadow-md shadow-brand/15 ring-1 ring-[var(--afrique-gold)]/25 transition-all duration-200 hover:from-brand-hover hover:to-[#155a87] hover:shadow-lg',
               )}
             >
               Demander une démo
             </Link>
+        </div>
         </div>
       </div>
     </motion.header>
@@ -126,7 +142,7 @@ export function TrustPills({ items }: { items: string[] }) {
       {items.map((label) => (
         <li
           key={label}
-          className="rounded-full border border-slate-200/90 bg-white/70 px-3.5 py-1.5 text-xs font-medium text-slate-600 shadow-sm backdrop-blur-sm"
+          className="rounded-full border border-[var(--afrique-gold)]/20 bg-white/80 px-3.5 py-1.5 text-xs font-medium text-slate-600 shadow-sm backdrop-blur-sm"
         >
           {label}
         </li>
@@ -136,16 +152,20 @@ export function TrustPills({ items }: { items: string[] }) {
 }
 
 export function PainCard({ children, index }: { children: React.ReactNode; index: number }) {
+  const style = PAIN_CARD_STYLES[index % PAIN_CARD_STYLES.length];
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ delay: index * 0.06, duration: 0.4 }}
-      className="group relative overflow-hidden rounded-2xl border border-rose-100/80 bg-gradient-to-br from-rose-50/90 to-white px-5 py-5 text-sm font-medium leading-snug text-rose-900/90 shadow-sm transition-shadow duration-300 hover:shadow-md"
+      className={cn(
+        'group relative overflow-hidden rounded-2xl border px-5 py-5 text-sm font-medium leading-snug shadow-sm transition-shadow duration-300 hover:shadow-md',
+        style,
+      )}
     >
       <span
-        className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-rose-200/30 blur-2xl transition-opacity group-hover:opacity-80"
+        className="absolute -right-3 -top-3 h-16 w-16 rounded-full bg-[var(--afrique-gold)]/15 blur-2xl transition-opacity group-hover:opacity-90"
         aria-hidden
       />
       <span className="relative">{children}</span>
@@ -164,20 +184,32 @@ export function FeatureCard({
   desc: string;
   index: number;
 }) {
+  const accent = FEATURE_ACCENTS[index % FEATURE_ACCENTS.length];
   return (
     <motion.article
       initial={{ opacity: 0, y: 14 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-50px' }}
       transition={{ delay: index * 0.05, duration: 0.45 }}
-      className="group relative rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm ring-1 ring-slate-900/[0.03] transition-all duration-300 hover:-translate-y-0.5 hover:border-brand/25 hover:shadow-lg hover:shadow-brand/5"
+      className={cn(
+        'group relative rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm ring-1 ring-slate-900/[0.03] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg',
+        accent.hoverBorder,
+      )}
     >
       <div
-        className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-brand/30 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        className={cn(
+          'absolute inset-x-6 top-0 h-px opacity-0 transition-opacity duration-300 group-hover:opacity-100',
+          accent.hoverBar,
+        )}
         aria-hidden
       />
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 ring-1 ring-brand/10 transition-all duration-300 group-hover:bg-brand/15 group-hover:ring-brand/20">
-        <Icon className="text-brand transition-transform duration-300 group-hover:scale-110" size={22} strokeWidth={1.75} />
+      <div
+        className={cn(
+          'flex h-12 w-12 items-center justify-center rounded-2xl ring-1 transition-all duration-300',
+          accent.iconBox,
+        )}
+      >
+        <Icon className={cn('transition-transform duration-300 group-hover:scale-110', accent.icon)} size={22} strokeWidth={1.75} />
       </div>
       <h3 className="mt-5 text-lg font-semibold text-slate-800">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-600">{desc}</p>
@@ -196,7 +228,7 @@ export function FaqItem({ q, a, index }: { q: string; a: string; index: number }
       transition={{ delay: index * 0.05 }}
       className={cn(
         'overflow-hidden rounded-2xl border bg-white transition-colors duration-200',
-        open ? 'border-brand/25 shadow-sm shadow-brand/5' : 'border-slate-200/90 hover:border-slate-300',
+        open ? 'border-[var(--afrique-gold)]/30 shadow-sm shadow-[var(--afrique-gold)]/10' : 'border-slate-200/90 hover:border-[var(--afrique-terracotta)]/25',
       )}
     >
       <button
@@ -230,19 +262,23 @@ export function FaqItem({ q, a, index }: { q: string; a: string; index: number }
 export function SectionDivider({ className }: { className?: string }) {
   return (
     <div
-      className={cn('mx-auto flex max-w-6xl items-center gap-3 px-4 py-2 sm:px-6', className)}
+      className={cn('mx-auto flex max-w-6xl items-center gap-2 px-4 py-2 sm:px-6', className)}
       aria-hidden
     >
-      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-      <div className="h-1.5 w-1.5 rounded-full bg-brand/30" />
-      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
+      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[var(--afrique-terracotta)]/30 to-transparent" />
+      <div className="flex gap-1">
+        <span className="h-1.5 w-1.5 rounded-full bg-[var(--afrique-gold)]" />
+        <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+        <span className="h-1.5 w-1.5 rounded-full bg-[var(--afrique-forest)]" />
+      </div>
+      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[var(--afrique-terracotta)]/30 to-transparent" />
     </div>
   );
 }
 
 export function LandingFooter() {
   return (
-    <footer className="border-t border-slate-200/80 bg-white px-4 py-8 sm:px-6">
+    <footer className="border-t border-[var(--afrique-gold)]/20 bg-gradient-to-b from-white to-[var(--afrique-cream)] px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-6xl">
         <div className="flex flex-col items-center justify-between gap-8 sm:flex-row sm:items-start">
           <div className="text-center sm:text-left">

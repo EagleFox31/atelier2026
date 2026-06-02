@@ -2,7 +2,7 @@
   "name": "Atelier Maître",
   "short_name": "Maître",
   "description": "Gestion d'atelier automobile — Cameroun",
-  "start_url": "/workshop",
+  "start_url": "/login",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

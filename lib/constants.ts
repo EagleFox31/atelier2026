@@ -11,6 +11,7 @@ import {
   UsersRound,
   Calendar,
   ClipboardList,
+  Presentation,
   type LucideIcon,
 } from "lucide-react";
 
@@ -119,6 +120,12 @@ export const NAV_ITEMS: NavItem[] = [
     icon: History,
     permission: "ORD_VIEW",
     hideForRoles: ["TECHNICIEN", "CAISSIER"],
+  },
+  {
+    title: "Demandes démo",
+    href: "/demo-requests",
+    icon: Presentation,
+    roles: ["SUPER_ADMIN"],
   },
   {
     title: "Journal d'Audit",

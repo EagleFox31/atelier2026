@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AuthProvider } from "@/contexts/auth-context";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
+import { PwaInstallProvider } from "@/components/pwa/pwa-install-context";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 const geistMono = Geist_Mono({subsets:['latin'],variable:'--font-mono'});
@@ -36,13 +37,15 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
     <html lang="fr" className={cn("antialiased", geist.variable, geistMono.variable)}>
       <body suppressHydrationWarning>
         <AuthProvider>
-          <TooltipProvider>
-            <AppLayout>
-              {children}
-            </AppLayout>
-            <Toaster position="top-right" richColors />
-            <PwaRegister />
-          </TooltipProvider>
+          <PwaInstallProvider>
+            <TooltipProvider>
+              <AppLayout>
+                {children}
+              </AppLayout>
+              <Toaster position="top-right" richColors />
+              <PwaRegister />
+            </TooltipProvider>
+          </PwaInstallProvider>
         </AuthProvider>
       </body>
     </html>

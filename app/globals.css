@@ -150,15 +150,130 @@
 
 /* Page marketing publique — confort visuel & lisibilité */
 .landing-page {
+  /* Palette inspirée textiles & paysages d'Afrique centrale / kente */
+  --afrique-brand: #1d6fa4;
+  --afrique-gold: #d4a017;
+  --afrique-ochre: #e8a838;
+  --afrique-terracotta: #c4693a;
+  --afrique-forest: #1f6b45;
+  --afrique-savanna: #5a8f4a;
+  --afrique-earth: #8b5e3c;
+  --afrique-coral: #d45d4a;
+  --afrique-sand: #faf6f0;
+  --afrique-cream: #f3ebe0;
+  --afrique-sky: #eef4fa;
+
+  --afrique-gold-soft: rgb(212 160 23 / 0.14);
+  --afrique-gold-ring: rgb(212 160 23 / 0.28);
+  --afrique-forest-soft: rgb(31 107 69 / 0.12);
+  --afrique-forest-ring: rgb(31 107 69 / 0.22);
+  --afrique-terra-soft: rgb(196 105 58 / 0.12);
+  --afrique-terra-ring: rgb(196 105 58 / 0.25);
+  --afrique-brand-soft: rgb(29 111 164 / 0.12);
+  --afrique-brand-ring: rgb(29 111 164 / 0.2);
+
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
   text-rendering: optimizeLegibility;
+  background-color: var(--afrique-sand);
+}
+
+/* Bandeau kente discret */
+.landing-kente-bar {
+  height: 4px;
+  width: 100%;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--afrique-brand) 0,
+    var(--afrique-brand) 28px,
+    var(--afrique-gold) 28px,
+    var(--afrique-gold) 56px,
+    var(--afrique-forest) 56px,
+    var(--afrique-forest) 84px,
+    var(--afrique-terracotta) 84px,
+    var(--afrique-terracotta) 112px,
+    var(--afrique-ochre) 112px,
+    var(--afrique-ochre) 140px
+  );
+}
+
+.landing-gradient-text {
+  background: linear-gradient(
+    105deg,
+    var(--afrique-brand) 0%,
+    #2a8fd4 35%,
+    var(--afrique-gold) 70%,
+    var(--afrique-terracotta) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.landing-section-warm {
+  background: linear-gradient(
+    180deg,
+    var(--afrique-cream) 0%,
+    #ffffff 100%
+  );
+}
+
+.landing-section-sand {
+  background: linear-gradient(
+    180deg,
+    var(--afrique-sand) 0%,
+    var(--afrique-cream) 50%,
+    var(--afrique-sand) 100%
+  );
+}
+
+.landing-cta-africa {
+  background: linear-gradient(
+    135deg,
+    var(--afrique-brand) 0%,
+    #1a5c7a 30%,
+    var(--afrique-forest) 65%,
+    #155a87 100%
+  );
+}
+
+/** Mot mis en valeur (souligné or kente) — pages auth & démo */
+.landing-accent-underline {
+  text-decoration: underline;
+  text-decoration-color: var(--afrique-gold);
+  text-decoration-thickness: 0.14em;
+  text-underline-offset: 0.18em;
+  text-decoration-skip-ink: none;
 }
 
 .landing-page ::selection {
-  background: color-mix(in srgb, var(--brand) 24%, white);
+  background: color-mix(in srgb, var(--afrique-gold) 35%, white);
   color: #0f172a;
+}
+
+/* Menu latéral — scroll visible sur fond sombre */
+.sidebar-nav-scroll {
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.28) transparent;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.22);
+  border-radius: 999px;
+}
+
+.sidebar-nav-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgb(255 255 255 / 0.35);
 }
 
 @media (prefers-reduced-motion: reduce) {

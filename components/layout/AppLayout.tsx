@@ -17,7 +17,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 import { Loader } from '@/components/ui/loader';
 
-const PUBLIC_PATHS = ['/', '/login', '/forgot-password', '/demo'];
+const PUBLIC_PATHS = ['/', '/login', '/forgot-password', '/demo', '/inscription'];
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -103,7 +103,10 @@ export function AppLayout({ children }: AppLayoutProps) {
         <header className="sticky top-0 h-16 bg-card/95 supports-[backdrop-filter]:bg-card/80 backdrop-blur border-b border-border flex items-center justify-between px-4 md:px-8 shrink-0 z-[101]">
           <div className="flex items-center gap-2 md:gap-4 flex-1 max-w-xl">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetContent side="left" className="p-0 w-[280px] bg-sidebar-bg border-none">
+              <SheetContent
+                side="left"
+                className="flex h-full max-h-[100dvh] w-[280px] flex-col gap-0 overflow-hidden p-0 bg-sidebar-bg border-none"
+              >
                 <MobileSidebar onClose={() => setIsMobileMenuOpen(false)} />
               </SheetContent>
             </Sheet>

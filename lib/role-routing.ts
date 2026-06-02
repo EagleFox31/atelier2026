@@ -21,7 +21,7 @@ export function isCaissierProfile(user: ApiUser | null | undefined): boolean {
 }
 
 /** Chemins marketing / auth — jamais utilisés comme retour post-login. */
-const NON_APP_RETURN_PATHS = ['/', '/accueil', '/login', '/forgot-password', '/demo'];
+const NON_APP_RETURN_PATHS = ['/', '/accueil', '/login', '/forgot-password', '/demo', '/inscription'];
 
 /** Page d'accueil après connexion selon le profil. */
 export function getDefaultHomeRoute(user: ApiUser | null | undefined): string {

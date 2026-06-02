@@ -12,6 +12,7 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   login: (identifier: string, password: string) => Promise<void>;
+  setSessionFromToken: (accessToken: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (patch: Partial<ApiUser>) => void;
   isAuthenticated: boolean;
@@ -51,15 +52,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
   }, []);
 
-  const login = useCallback(async (identifier: string, password: string) => {
-    const { access_token } = await authApi.login(identifier, password);
-
-    localStorage.setItem(TOKEN_KEY, access_token);
+  const setSessionFromToken = useCallback(async (accessToken: string) => {
+    localStorage.setItem(TOKEN_KEY, accessToken);
     const profile = await authApi.profile();
     localStorage.setItem(USER_KEY, JSON.stringify(profile));
-
-    setState({ user: profile, token: access_token, isLoading: false });
+    setState({ user: profile, token: accessToken, isLoading: false });
   }, []);
+
+  const login = useCallback(async (identifier: string, password: string) => {
+    const { access_token } = await authApi.login(identifier, password);
+    await setSessionFromToken(access_token);
+  }, [setSessionFromToken]);
 
   const logout = useCallback(async () => {
     try {
@@ -95,6 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ...state,
       isAuthenticated: !!state.token && !!state.user,
       login,
+      setSessionFromToken,
       logout,
       updateUser,
       hasPermission,
