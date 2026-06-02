@@ -18,11 +18,16 @@ import {
   Loader2,
   PlusCircle,
   MapPin,
+  Target,
+  Pencil,
+  Trash2,
+  Check,
+  X,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/auth-context';
-import { handleApiError, settingsApi } from '@/lib/api';
+import { handleApiError, settingsApi, reportsApi, type MonthlyTargetRow } from '@/lib/api';
 import type { WorkshopSettings } from '@/lib/workshop-settings';
 import { toast } from 'sonner';
 
@@ -41,6 +46,14 @@ export default function SettingsPage() {
   const [savingGeneral, setSavingGeneral] = useState(false);
   const [savingBusiness, setSavingBusiness] = useState(false);
   const [settings, setSettings] = useState<WorkshopSettings | null>(null);
+
+  // Objectifs mensuels
+  const currentYear = new Date().getFullYear();
+  const [targetYear, setTargetYear]       = useState(currentYear);
+  const [targets, setTargets]             = useState<MonthlyTargetRow[]>([]);
+  const [targetsLoading, setTargetsLoading] = useState(false);
+  const [editingMonth, setEditingMonth]   = useState<number | null>(null);
+  const [editValue, setEditValue]         = useState('');
 
   const [general, setGeneral] = useState<GeneralForm>({
     shopName: '',
@@ -106,6 +119,36 @@ export default function SettingsPage() {
     }
   }
 
+  // ── Objectifs mensuels ────────────────────────────────────────────────────
+  React.useEffect(() => {
+    if (!canEdit) return;
+    setTargetsLoading(true);
+    reportsApi.targets(targetYear)
+      .then(d => setTargets(d))
+      .catch(() => {})
+      .finally(() => setTargetsLoading(false));
+  }, [targetYear, canEdit]);
+
+  async function saveTarget(month: number) {
+    const val = parseFloat(editValue.replace(/\s/g, '').replace(',', '.'));
+    if (!val || val <= 0) { setEditingMonth(null); return; }
+    try {
+      await reportsApi.upsertTarget({ year: targetYear, month, targetXaf: val });
+      toast.success('Objectif enregistré');
+    } catch { toast.error('Erreur lors de la sauvegarde'); }
+    setEditingMonth(null);
+    const data = await reportsApi.targets(targetYear);
+    setTargets(data);
+  }
+
+  async function removeTarget(id: string) {
+    try {
+      await reportsApi.deleteTarget(id);
+      const data = await reportsApi.targets(targetYear);
+      setTargets(data);
+    } catch { toast.error('Erreur lors de la suppression'); }
+  }
+
   return (
     <div className="space-y-6">
         <div className="flex items-start justify-between gap-4">
@@ -155,6 +198,12 @@ export default function SettingsPage() {
                 <ShieldCheck size={16} />
                 Sécurité
               </TabsTrigger>
+              {canEdit && (
+                <TabsTrigger value="objectifs" className="gap-2">
+                  <Target size={16} />
+                  Objectifs
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="general">
@@ -342,6 +391,107 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {/* Objectifs mensuels */}
+            {canEdit && (
+              <TabsContent value="objectifs">
+                <Card className="border-none shadow-sm">
+                  <CardHeader>
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Target size={18} className="text-brand" /> Objectifs mensuels
+                        </CardTitle>
+                        <CardDescription>
+                          Définissez votre chiffre d&apos;affaires cible par mois.
+                          Les résultats s&apos;affichent dans la page Rapports.
+                        </CardDescription>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setTargetYear(y => y - 1)} className="px-2 py-1 rounded text-slate-500 hover:bg-slate-100 text-sm">‹</button>
+                        <span className="font-bold text-slate-800 min-w-[3rem] text-center">{targetYear}</span>
+                        <button onClick={() => setTargetYear(y => y + 1)} disabled={targetYear > currentYear} className="px-2 py-1 rounded text-slate-500 hover:bg-slate-100 text-sm disabled:opacity-30">›</button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {targetsLoading ? (
+                      <div className="space-y-2">{[...Array(6)].map((_, i) => <div key={i} className="h-10 bg-slate-100 animate-pulse rounded" />)}</div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-slate-100">
+                              <th className="text-left py-2 pr-4 font-semibold text-slate-500 text-xs uppercase tracking-wide w-32">Mois</th>
+                              <th className="text-right py-2 px-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">Objectif CA (XAF)</th>
+                              <th className="w-16" />
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-50">
+                            {targets.map(row => {
+                              const isEditing = editingMonth === row.month;
+                              return (
+                                <tr key={row.month} className="group hover:bg-slate-50/60 transition-colors">
+                                  <td className="py-3 pr-4 font-medium text-slate-700">{row.label}</td>
+                                  <td className="py-3 px-3 text-right">
+                                    {isEditing ? (
+                                      <div className="flex items-center justify-end gap-1.5">
+                                        <input
+                                          autoFocus
+                                          type="text"
+                                          value={editValue}
+                                          onChange={e => setEditValue(e.target.value)}
+                                          onKeyDown={e => {
+                                            if (e.key === 'Enter') void saveTarget(row.month);
+                                            if (e.key === 'Escape') setEditingMonth(null);
+                                          }}
+                                          className="w-36 text-right border border-brand rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20"
+                                          placeholder="ex : 1 500 000"
+                                        />
+                                        <button onClick={() => void saveTarget(row.month)} className="text-green-600 hover:text-green-700 p-1">
+                                          <Check size={15} />
+                                        </button>
+                                        <button onClick={() => setEditingMonth(null)} className="text-slate-400 hover:text-slate-600 p-1">
+                                          <X size={15} />
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        onClick={() => { setEditingMonth(row.month); setEditValue(row.targetXaf?.toString() ?? ''); }}
+                                        className="flex items-center gap-1.5 ml-auto text-slate-700 hover:text-brand group/edit transition-colors"
+                                      >
+                                        {row.targetXaf
+                                          ? <span className="font-semibold">{row.targetXaf.toLocaleString('fr-FR')} XAF</span>
+                                          : <span className="text-slate-400 italic text-xs">Cliquer pour définir</span>}
+                                        <Pencil size={12} className="opacity-0 group-hover/edit:opacity-50 transition-opacity" />
+                                      </button>
+                                    )}
+                                  </td>
+                                  <td className="py-3 text-right">
+                                    {row.targetId && (
+                                      <button
+                                        onClick={() => void removeTarget(row.targetId!)}
+                                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 text-slate-400 hover:text-red-500 transition-all p-1"
+                                        title="Supprimer l'objectif"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                        <p className="mt-4 text-xs text-slate-400">
+                          Entrée pour valider · Échap pour annuler · Survol pour supprimer
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
           </Tabs>
         )}
     </div>
