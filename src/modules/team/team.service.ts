@@ -1,13 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { assertTeamMemberInGarage, garageWhere, requireGarageId } from '../../shared/garage/garage-scope';
 
 @Injectable()
 export class TeamService {
     constructor(private prisma: PrismaService) { }
 
     async findAll(search?: string, roleId?: string, garageId?: string | null) {
-        const where: any = { deletedAt: null, ...(garageId ? { garageId } : {}) };
+        const where: any = { deletedAt: null, ...garageWhere(garageId) };
         if (search) {
             where.OR = [
                 { firstName: { contains: search, mode: 'insensitive' } },
@@ -55,9 +56,11 @@ export class TeamService {
         });
     }
 
-    async findOne(id: string) {
-        const user = await this.prisma.user.findUnique({
-            where: { id, deletedAt: null },
+    async findOne(id: string, garageId?: string | null) {
+        await assertTeamMemberInGarage(this.prisma, id, garageId);
+        const g = requireGarageId(garageId);
+        const user = await this.prisma.user.findFirst({
+            where: { id, garageId: g, deletedAt: null },
             select: {
                 id: true,
                 employeeCode: true,
@@ -87,6 +90,8 @@ export class TeamService {
     }
 
     async create(data: { firstName: string; lastName: string; email?: string; phone?: string; roleCode?: string; specialty?: string; password?: string; garageId?: string; tenantId?: string }) {
+        const g = requireGarageId(data.garageId);
+        const tenantId = data.tenantId;
         const plainPassword = data.password ?? this.generatePassword(data.firstName);
         const passwordHash = await bcrypt.hash(plainPassword, 10);
         const employeeCode = await this.generateEmployeeCode(data.firstName, data.lastName);
@@ -101,8 +106,8 @@ export class TeamService {
                 specialty: data.specialty,
                 passwordHash,
                 tempPassword: plainPassword,
-                ...(data.garageId ? { garageId: data.garageId } : {}),
-                ...(data.tenantId ? { tenantId: data.tenantId } : {}),
+                garageId: g,
+                ...(tenantId ? { tenantId } : {}),
             },
             select: { id: true, employeeCode: true, firstName: true, lastName: true, email: true, phone: true, status: true, tempPassword: true, specialty: true },
         });
@@ -117,8 +122,8 @@ export class TeamService {
         return user;
     }
 
-    async resetPassword(id: string, password?: string) {
-        const user = await this.findOne(id);
+    async resetPassword(id: string, password?: string, garageId?: string | null) {
+        const user = await this.findOne(id, garageId);
         const plainPassword = password ?? this.generatePassword(user.firstName);
         const passwordHash = await bcrypt.hash(plainPassword, 10);
         return this.prisma.user.update({
@@ -155,8 +160,8 @@ export class TeamService {
         return `${base}-${Date.now()}`;
     }
 
-    async update(id: string, data: any) {
-        await this.findOne(id);
+    async update(id: string, data: any, garageId?: string | null) {
+        await this.findOne(id, garageId);
         return this.prisma.user.update({
             where: { id },
             data,
@@ -164,8 +169,8 @@ export class TeamService {
         });
     }
 
-    async toggleStatus(id: string) {
-        const user = await this.findOne(id);
+    async toggleStatus(id: string, garageId?: string | null) {
+        const user = await this.findOne(id, garageId);
         const newStatus = user.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE';
         return this.prisma.user.update({
             where: { id },
@@ -174,8 +179,8 @@ export class TeamService {
         });
     }
 
-    async assignRole(id: string, roleCode: string) {
-        await this.findOne(id);
+    async assignRole(id: string, roleCode: string, garageId?: string | null) {
+        await this.findOne(id, garageId);
         const role = await this.prisma.role.findUnique({ where: { code: roleCode } });
         if (!role) throw new NotFoundException(`Rôle '${roleCode}' introuvable`);
 
@@ -191,8 +196,8 @@ export class TeamService {
         });
     }
 
-    async remove(id: string) {
-        await this.findOne(id);
+    async remove(id: string, garageId?: string | null) {
+        await this.findOne(id, garageId);
         return this.prisma.user.update({
             where: { id },
             data: { deletedAt: new Date(), status: 'DELETED' },

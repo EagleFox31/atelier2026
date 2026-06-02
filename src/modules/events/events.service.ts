@@ -9,6 +9,7 @@ export interface AppEvent {
 
 interface ClientEntry {
   userId: string;
+  garageId: string | null;
   roles: string[];
   subject: Subject<MessageEvent>;
 }
@@ -31,9 +32,10 @@ export class EventsService {
     }
   }
 
-  emitToRoles(roleCodes: string[], event: AppEvent): void {
+  emitToRoles(roleCodes: string[], event: AppEvent, garageId?: string | null): void {
     const msg: MessageEvent = { data: event };
     for (const client of this.clients) {
+      if (garageId && client.garageId && client.garageId !== garageId) continue;
       if (client.roles.some((r) => roleCodes.includes(r))) {
         client.subject.next(msg);
       }

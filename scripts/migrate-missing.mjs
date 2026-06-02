@@ -3,7 +3,12 @@
  * Utilise pool.query() directement (pas de transaction Prisma) — fonctionne avec pgbouncer.
  */
 import 'dotenv/config';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Pool } from 'pg';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const connString = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
 const pool = new Pool({
@@ -113,6 +118,10 @@ async function main() {
   await migrateGarageIdColumns();
   await migrateMonthlyTargets();
   await migrateDefaultGarageForSeededData();
+  // migrateMisplacedDemoDataToDemoGarage désactivé — déplacement one-shot déjà effectué ;
+  // ne jamais ré-exécuter sur des garages clients (corruption de données).
+  await migrateGarageRefSequences();
+  await migrateCounterSalesGarageId();
   await migrateWorkshopLogoUrl();
 
   console.log('\n✅ Migration terminée.');
@@ -266,49 +275,79 @@ async function migrateWorkshopLogoUrl() {
   console.log('   ✅ workshop_settings.logo_url ajouté');
 }
 
-async function migrateDefaultGarageForSeededData() {
-  // Vérifie s'il y a des users sans garage
-  const { rows: orphans } = await q(`SELECT COUNT(*) FROM users WHERE garage_id IS NULL AND deleted_at IS NULL`);
-  if (parseInt(orphans[0].count) === 0) {
-    console.log('   ⏭️  Tous les users ont un garage — rien à migrer');
-    return;
-  }
+const SEED_USER_EMAILS = [
+  'superadmin@atelier.cm',
+  'admin@atelier.cm',
+  'chef@atelier.cm',
+  'tech1@atelier.cm',
+  'reception@atelier.cm',
+  'caisse@atelier.cm',
+  'bot@atelier.cm',
+];
 
-  // Toujours créer un tenant+garage "default" DÉDIÉ aux comptes seedés/système.
-  // On ne réutilise jamais un garage client (évite de mélanger les données).
+async function migrateDefaultGarageForSeededData() {
+  // Tenant + garage démo dédiés aux comptes seed (@atelier.cm) — jamais un garage client.
   const { rows: tenantRows } = await q(`
     INSERT INTO tenants (slug, name, email, plan, status)
     VALUES ('default', 'Atelier Maître (démo)', 'admin@atelier.cm', 'starter', 'active')
-    ON CONFLICT (slug) DO UPDATE SET slug = tenants.slug
+    ON CONFLICT (slug) DO UPDATE SET
+      name = EXCLUDED.name,
+      email = EXCLUDED.email
     RETURNING id
   `);
   const tenantId = tenantRows[0].id;
 
-  // Cherche si le garage default existe déjà pour ce tenant
   const { rows: existingGarage } = await q(`
-    SELECT id FROM garages WHERE tenant_id = $1 AND slug = 'principal' LIMIT 1
+    SELECT id, slug FROM garages
+    WHERE tenant_id = $1 AND slug IN ('demo', 'principal')
+    ORDER BY CASE slug WHEN 'demo' THEN 0 ELSE 1 END
+    LIMIT 1
   `, [tenantId]);
 
   let garageId;
   if (existingGarage.length > 0) {
     garageId = existingGarage[0].id;
-    console.log(`   ⏭️  Garage default déjà existant (${garageId})`);
+    console.log(`   ⏭️  Garage démo existant (${existingGarage[0].slug}, ${garageId})`);
   } else {
     const { rows: garageRows } = await q(`
-      INSERT INTO garages (tenant_id, slug, name, city, address, phone, status)
-      VALUES ($1, 'principal', 'Garage Démo', 'Yaoundé', 'Bastos, Rue 1.042, Yaoundé', '+237 699 00 00 00', 'active')
+      INSERT INTO garages (tenant_id, slug, name, city, address, phone, niu, status)
+      VALUES ($1, 'demo', 'Garage Démo', 'Yaoundé', 'Bastos, Rue 1.042, Yaoundé', '+237 699 00 00 00', 'M012345678901X', 'active')
       RETURNING id
     `, [tenantId]);
     garageId = garageRows[0].id;
-    console.log(`   ✅ Tenant + garage "default" (démo) créés`);
+    console.log(`   ✅ Garage démo créé (${garageId})`);
   }
 
-  // Rattacher les users orphelins
-  const { rowCount: usersUpdated } = await q(`
+  const settingsId = `garage_${garageId}`;
+  await q(`
+    INSERT INTO workshop_settings (
+      id, garage_id, shop_name, tagline, niu, email, phone, address,
+      default_labor_rate_xaf, tax_rate_pct
+    ) VALUES (
+      $1, $2, 'Garage Démo — Atelier Maître',
+      'Environnement de démonstration — Yaoundé, Cameroun',
+      'M012345678901X', 'admin@atelier.cm', '+237 699 00 00 00',
+      'Bastos, Rue 1.042, Yaoundé, Cameroun', 15000, 19.25
+    )
+    ON CONFLICT (id) DO NOTHING
+  `, [settingsId, garageId]);
+
+  // Comptes seed : toujours sur le garage démo (corrige l'erreur Samsung / autre client)
+  const { rowCount: seedUsersUpdated } = await q(`
+    UPDATE users SET garage_id = $1, tenant_id = $2
+    WHERE email = ANY($3::text[]) AND deleted_at IS NULL
+  `, [garageId, tenantId, SEED_USER_EMAILS]);
+  console.log(`   ✅ ${seedUsersUpdated} compte(s) seed @atelier.cm → garage démo`);
+
+  // Users orphelins (hors liste seed explicite)
+  const { rowCount: orphansUpdated } = await q(`
     UPDATE users SET garage_id = $1, tenant_id = $2
     WHERE garage_id IS NULL AND deleted_at IS NULL
-  `, [garageId, tenantId]);
-  console.log(`   ✅ ${usersUpdated} user(s) rattaché(s) au garage default`);
+      AND (email IS NULL OR email <> ALL($3::text[]))
+  `, [garageId, tenantId, SEED_USER_EMAILS]);
+  if (orphansUpdated > 0) {
+    console.log(`   ✅ ${orphansUpdated} user(s) orphelin(s) rattaché(s) au garage démo`);
+  }
 
   // Rattacher les données opérationnelles orphelines
   const tables = ['customers','vehicles','service_orders','parts_catalog','stock_movements','quotes','invoices','payments','appointments'];
@@ -321,6 +360,47 @@ async function migrateDefaultGarageForSeededData() {
     const { rowCount } = await q(`UPDATE ${table} SET garage_id = $1 WHERE garage_id IS NULL`, [garageId]);
     if (rowCount > 0) console.log(`   ✅ ${table} : ${rowCount} ligne(s) rattachée(s)`);
   }
+}
+
+/** @deprecated One-shot only — ne plus appeler (risque de vol de données clients). */
+async function migrateMisplacedDemoDataToDemoGarage() {
+  console.log('   ⏭️  migrateMisplacedDemoDataToDemoGarage désactivé (garages clients protégés)');
+}
+
+async function migrateCounterSalesGarageId() {
+  const { rows } = await q(`
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'counter_sales' AND column_name = 'garage_id'
+  `);
+  if (rows.length > 0) {
+    console.log('   ⏭️  counter_sales.garage_id existe déjà');
+    return;
+  }
+  await q(`ALTER TABLE public.counter_sales ADD COLUMN garage_id UUID REFERENCES garages(id)`);
+  await q(`CREATE INDEX idx_counter_sales_garage_id ON public.counter_sales(garage_id)`);
+  await q(`
+    UPDATE counter_sales cs
+    SET garage_id = COALESCE(c.garage_id, u.garage_id)
+    FROM users u
+    LEFT JOIN customers c ON c.id = cs.customer_id
+    WHERE u.id = cs.sold_by AND cs.garage_id IS NULL
+  `);
+  console.log('   ✅ counter_sales.garage_id ajouté');
+}
+
+async function migrateGarageRefSequences() {
+  const { rows } = await q(`
+    SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'garage_ref_counters'
+  `);
+  if (rows.length > 0) {
+    console.log('   ⏭️  garage_ref_counters existe — mise à jour fonctions/triggers');
+  } else {
+    console.log('→ Numérotation références par garage...');
+  }
+
+  const sqlPath = join(__dirname, '../prisma/migrations/20260602_garage_ref_sequences/migration.sql');
+  await q(readFileSync(sqlPath, 'utf8'));
+  console.log('   ✅ Références par garage (ex. SAMSUNG-ATELIER-OT-2026-00001)');
 }
 
 async function migrateMonthlyTargets() {

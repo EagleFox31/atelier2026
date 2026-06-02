@@ -1,18 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { AppointmentStatus } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import {
+  assertAppointmentInGarage,
+  assertCustomerInGarage,
+  assertVehicleInGarage,
+  garageWhere,
+  requireGarageId,
+} from '../../shared/garage/garage-scope';
 import { CreateAppointmentDto, UpdateAppointmentDto } from './dto/planning.dto';
 
 @Injectable()
 export class PlanningService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(data: CreateAppointmentDto) {
-    return this.prisma.appointment.create({ data });
+  async create(data: CreateAppointmentDto, garageId?: string | null) {
+    const g = requireGarageId(garageId);
+    await assertCustomerInGarage(this.prisma, data.customerId, g);
+    await assertVehicleInGarage(this.prisma, data.vehicleId, g);
+    return this.prisma.appointment.create({
+      data: { ...data, garageId: g },
+    });
   }
 
-  findAll(date?: string, status?: AppointmentStatus) {
-    const where: Record<string, unknown> = {};
+  findAll(garageId?: string | null, date?: string, status?: AppointmentStatus) {
+    const where: Record<string, unknown> = { ...garageWhere(garageId) };
     if (status) where.status = status;
     if (date) {
       const startOfDay = new Date(date);
@@ -29,12 +41,13 @@ export class PlanningService {
     });
   }
 
-  update(id: string, data: UpdateAppointmentDto) {
+  async update(id: string, data: UpdateAppointmentDto, garageId?: string | null) {
+    await assertAppointmentInGarage(this.prisma, id, garageId);
     return this.prisma.appointment.update({ where: { id }, data });
   }
 
-  /** Hard delete intentionnel — Appointment n'a pas de deletedAt */
-  remove(id: string) {
+  async remove(id: string, garageId?: string | null) {
+    await assertAppointmentInGarage(this.prisma, id, garageId);
     return this.prisma.appointment.delete({ where: { id } });
   }
 }

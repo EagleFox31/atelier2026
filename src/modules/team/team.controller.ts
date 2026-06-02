@@ -9,49 +9,49 @@ export class TeamController {
 
     @Post()
     @RequireRole('ADMIN', 'CHEF_ATELIER')
-    create(@CurrentUser() user: any, @Body() body: CreateTeamMemberDto) {
+    create(@CurrentUser() user: { garageId?: string | null; tenantId?: string | null }, @Body() body: CreateTeamMemberDto) {
         return this.teamService.create({ ...body, garageId: user?.garageId ?? undefined, tenantId: user?.tenantId ?? undefined });
     }
 
     @Get()
     @RequirePermission('ORD_VIEW')
-    findAll(@CurrentUser() user: any, @Query('search') search?: string, @Query('roleId') roleId?: string) {
+    findAll(@CurrentUser() user: { garageId?: string | null }, @Query('search') search?: string, @Query('roleId') roleId?: string) {
         return this.teamService.findAll(search, roleId, user?.garageId);
     }
 
     @Get(':id')
     @RequirePermission('ORD_VIEW')
-    findOne(@Param('id') id: string) {
-        return this.teamService.findOne(id);
+    findOne(@CurrentUser() user: { garageId?: string | null }, @Param('id') id: string) {
+        return this.teamService.findOne(id, user?.garageId);
     }
 
     @Patch(':id')
     @RequireRole('ADMIN', 'CHEF_ATELIER')
-    update(@Param('id') id: string, @Body() body: UpdateTeamMemberDto) {
-        return this.teamService.update(id, body);
+    update(@CurrentUser() user: { garageId?: string | null }, @Param('id') id: string, @Body() body: UpdateTeamMemberDto) {
+        return this.teamService.update(id, body, user?.garageId);
     }
 
     @Patch(':id/role')
     @RequireRole('ADMIN')
-    assignRole(@Param('id') id: string, @Body() body: AssignRoleDto) {
-        return this.teamService.assignRole(id, body.roleCode);
+    assignRole(@CurrentUser() user: { garageId?: string | null }, @Param('id') id: string, @Body() body: AssignRoleDto) {
+        return this.teamService.assignRole(id, body.roleCode, user?.garageId);
     }
 
     @Post(':id/reset-password')
     @RequireRole('ADMIN', 'CHEF_ATELIER')
-    resetPassword(@Param('id') id: string, @Body() body: ResetPasswordDto) {
-        return this.teamService.resetPassword(id, body.password);
+    resetPassword(@CurrentUser() user: { garageId?: string | null }, @Param('id') id: string, @Body() body: ResetPasswordDto) {
+        return this.teamService.resetPassword(id, body.password, user?.garageId);
     }
 
     @Patch(':id/toggle-status')
     @RequireRole('ADMIN')
-    toggleStatus(@Param('id') id: string) {
-        return this.teamService.toggleStatus(id);
+    toggleStatus(@CurrentUser() user: { garageId?: string | null }, @Param('id') id: string) {
+        return this.teamService.toggleStatus(id, user?.garageId);
     }
 
     @Delete(':id')
     @RequireRole('ADMIN')
-    remove(@Param('id') id: string) {
-        return this.teamService.remove(id);
+    remove(@CurrentUser() user: { garageId?: string | null }, @Param('id') id: string) {
+        return this.teamService.remove(id, user?.garageId);
     }
 }

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InvoiceStatus, OTStatus, WorkItemStatus } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { garageWhere, requireGarageId } from '../../shared/garage/garage-scope';
 
 const MONTH_LABELS = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
 
@@ -11,7 +12,7 @@ export class ReportsService {
   async getRevenueReport(startDate?: string, endDate?: string, garageId?: string | null) {
     const where: Record<string, unknown> = {
       status: InvoiceStatus.PAID,
-      ...(garageId ? { garageId } : {}),
+      ...garageWhere(garageId),
     };
     if (startDate || endDate) {
       where.paidAt = {};
@@ -32,10 +33,11 @@ export class ReportsService {
   }
 
   async getWorkshopPerformance(garageId?: string | null) {
+    const g = requireGarageId(garageId);
     const workItems = await this.prisma.oTWorkItem.findMany({
       where: {
         status: WorkItemStatus.COMPLETED,
-        ...(garageId ? { serviceOrder: { garageId } } : {}),
+        serviceOrder: { garageId: g },
       },
       include: { technician: true },
     });
@@ -55,7 +57,7 @@ export class ReportsService {
   }
 
   async getDashboardStats(garageId?: string | null) {
-    const garageFilter = garageId ? { garageId } : {};
+    const garageFilter = garageWhere(garageId);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -101,7 +103,7 @@ export class ReportsService {
   // ── Objectifs mensuels ─────────────────────────────────────────────────────
 
   async getTargetsHistory(year: number, garageId?: string | null) {
-    const garageFilter = garageId ? { garageId } : {};
+    const garageFilter = garageWhere(garageId);
 
     // Récupérer les objectifs définis pour l'année
     const targets = await this.prisma.monthlyTarget.findMany({
@@ -162,9 +164,9 @@ export class ReportsService {
     garageId?: string | null;
     userId?: string;
   }) {
-    // Upsert manuel — Prisma ne gère pas bien les contraintes uniques avec NULL via upsert
+    const g = requireGarageId(data.garageId);
     const existing = await this.prisma.monthlyTarget.findFirst({
-      where: { garageId: data.garageId ?? null, year: data.year, month: data.month },
+      where: { garageId: g, year: data.year, month: data.month },
     });
 
     if (existing) {
@@ -176,7 +178,7 @@ export class ReportsService {
 
     return this.prisma.monthlyTarget.create({
       data: {
-        garageId: data.garageId ?? null,
+        garageId: g,
         year: data.year,
         month: data.month,
         targetXaf: data.targetXaf,
@@ -186,9 +188,11 @@ export class ReportsService {
   }
 
   async deleteTarget(id: string, garageId?: string | null) {
-    const target = await this.prisma.monthlyTarget.findUnique({ where: { id } });
+    const g = requireGarageId(garageId);
+    const target = await this.prisma.monthlyTarget.findFirst({
+      where: { id, garageId: g },
+    });
     if (!target) throw new NotFoundException('Objectif introuvable');
-    if (garageId && target.garageId !== garageId) throw new NotFoundException('Objectif introuvable');
     return this.prisma.monthlyTarget.delete({ where: { id } });
   }
 }

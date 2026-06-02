@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { CustomerType } from '@prisma/client';
+import { garageWhere, requireGarageId } from '../../shared/garage/garage-scope';
 
 @Injectable()
 export class CustomersService {
@@ -9,7 +10,7 @@ export class CustomersService {
     async findAll(search?: string, type?: CustomerType, garageId?: string | null) {
         const where: any = {
             deletedAt: null,
-            ...(garageId ? { garageId } : {}),
+            ...garageWhere(garageId),
         };
         if (type) where.customerType = type;
         if (search) {
@@ -25,7 +26,7 @@ export class CustomersService {
     }
 
     async findOne(id: string, garageId?: string | null) {
-        const where: any = { id, deletedAt: null, ...(garageId ? { garageId } : {}) };
+        const where: any = { id, deletedAt: null, ...garageWhere(garageId) };
         const customer = await this.prisma.customer.findFirst({
             where,
             include: {
@@ -39,7 +40,7 @@ export class CustomersService {
 
     async create(data: any, garageId?: string | null) {
         return this.prisma.customer.create({
-            data: { ...data, ...(garageId ? { garageId } : {}) },
+            data: { ...data, garageId: requireGarageId(garageId) },
         });
     }
 

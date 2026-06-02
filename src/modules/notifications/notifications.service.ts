@@ -144,12 +144,16 @@ export class NotificationsService {
    * Retourne les IDs uniques des utilisateurs actifs ayant au moins un des rôles listés.
    * Pour cibler réception ET caissier, appeler deux fois ou fusionner les tableaux côté appelant.
    */
-  async getUserIdsByRoles(roleCodes: string[]): Promise<string[]> {
+  async getUserIdsByRoles(roleCodes: string[], garageId?: string | null): Promise<string[]> {
     const userRoles = await this.prisma.userRole.findMany({
       where: {
         revokedAt: null,
         role: { code: { in: roleCodes } },
-        user: { deletedAt: null },
+        user: {
+          deletedAt: null,
+          // Filtre par garage si fourni — SUPER_ADMIN bypass (garageId null)
+          ...(garageId ? { garageId } : {}),
+        },
       },
       select: { userId: true },
       distinct: ['userId'],

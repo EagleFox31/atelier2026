@@ -2,6 +2,7 @@
 import { Injectable, BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { assertOTInGarage, assertPartInGarage, requireGarageId } from '../../shared/garage/garage-scope';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { StockMovementType, PartStatus } from '@prisma/client';
@@ -31,10 +32,15 @@ export class StockService {
     unitPriceXaf?: number;
     garageId?: string | null;
   }) {
+    const g = requireGarageId(data.garageId);
+    await assertPartInGarage(this.prisma, data.partId, g);
+    if (data.serviceOrderId) {
+      await assertOTInGarage(this.prisma, data.serviceOrderId, g);
+    }
     return this.prisma.$transaction(async (tx) => {
       const movement = await tx.stockMovement.create({
         data: {
-          ...(data.garageId ? { garageId: data.garageId } : {}),
+          garageId: g,
           partId: data.partId,
           movementType: data.type,
           quantity: data.quantity,
@@ -81,7 +87,11 @@ export class StockService {
     salePrice: number;
     userId: string;
     supplierName: string;
+    garageId?: string | null;
   }) {
+    const g = requireGarageId(data.garageId);
+    await assertPartInGarage(this.prisma, data.partId, g);
+    await assertOTInGarage(this.prisma, data.serviceOrderId, g);
     return this.prisma.$transaction(async (tx) => {
       // 1. Création de l'enregistrement ASP
       const asp = await tx.aSPPurchase.create({
@@ -133,18 +143,18 @@ export class StockService {
     }).then((asp) => {
       setImmediate(async () => {
         try {
-          const recipientIds = await this.notifications.getUserIdsByRoles([
-            'CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN',
-          ]);
-          if (recipientIds.length === 0) return;
-
           const order = await this.prisma.serviceOrder.findUnique({
             where: { id: data.serviceOrderId },
             select: {
               reference: true,
+              garageId: true,
               vehicle: { select: { plateNumber: true } },
             },
           });
+          const recipientIds = await this.notifications.getUserIdsByRoles([
+            'CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN',
+          ], order?.garageId ?? null);
+          if (recipientIds.length === 0) return;
           const plate = order?.vehicle?.plateNumber ?? order?.reference ?? data.serviceOrderId;
 
           await this.notifications.createInApp({
@@ -162,9 +172,10 @@ export class StockService {
     });
   }
 
-  async getPart(id: string) {
-    const part = await this.prisma.partsCatalog.findUnique({
-      where: { id },
+  async getPart(id: string, garageId?: string | null) {
+    const g = requireGarageId(garageId);
+    const part = await this.prisma.partsCatalog.findFirst({
+      where: { id, garageId: g },
       include: { supplier: true },
     });
     if (!part) throw new NotFoundException('Pièce introuvable');

@@ -7,6 +7,13 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { PartsFlowService } from '../stock/parts-flow.service';
 import { computeAmounts } from '../../shared/fiscal/compute-amounts';
 import {
+  assertEntityGarage,
+  assertInvoiceInGarage,
+  assertQuoteInGarage,
+  garageWhere,
+  requireGarageId,
+} from '../../shared/garage/garage-scope';
+import {
   QUOTE_CLIENT_APPROVAL_METHODS,
   QUOTE_DEFAULT_APPROVAL_METHOD,
   type QuoteClientApprovalMethod,
@@ -32,7 +39,7 @@ export class BillingService {
   }
 
   listQuotes(serviceOrderId?: string, garageId?: string | null) {
-    const where: Record<string, unknown> = { ...(garageId ? { garageId } : {}) };
+    const where: Record<string, unknown> = { ...garageWhere(garageId) };
     if (serviceOrderId) where.serviceOrderId = serviceOrderId;
     return this.prisma.quote.findMany({
       where,
@@ -47,11 +54,12 @@ export class BillingService {
   }
 
   createQuote(body: CreateQuoteDto, userId: string, garageId?: string | null) {
+    const g = requireGarageId(garageId);
     const amounts = this.computeAmounts(body.subtotal);
 
     return this.prisma.quote.create({
       data: {
-        ...(garageId ? { garageId } : {}),
+        garageId: g,
         serviceOrderId: body.serviceOrderId,
         customerId: body.customerId,
         createdBy: userId,
@@ -81,7 +89,8 @@ export class BillingService {
     });
   }
 
-  async sendQuote(quoteId: string) {
+  async sendQuote(quoteId: string, garageId?: string | null) {
+    await assertQuoteInGarage(this.prisma, quoteId, garageId);
     const quote = await this.prisma.quote.findUnique({
       where: { id: quoteId },
       select: {
@@ -89,6 +98,7 @@ export class BillingService {
         status: true,
         reference: true,
         serviceOrderId: true,
+        garageId: true,
         serviceOrder: { select: { reference: true } },
         customer: { select: { firstName: true, lastName: true, companyName: true, customerType: true } },
       },
@@ -115,7 +125,7 @@ export class BillingService {
       const otRef = quote.serviceOrder?.reference ?? '';
       const recipientIds = await this.notifications.getUserIdsByRoles([
         'RECEPTIONNISTE', 'CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN',
-      ]);
+      ], quote.garageId);
       await this.notifications.createInApp({
         recipientIds,
         title: `Devis à valider — ${clientName}`,
@@ -134,7 +144,13 @@ export class BillingService {
     quoteId: string,
     body: { clientApprovalMethod?: string; clientSignatureRef?: string },
     userId: string,
+    garageId?: string | null,
   ) {
+    const existing = await assertQuoteInGarage(this.prisma, quoteId, garageId);
+    if (existing.status !== 'SENT' && existing.status !== 'DRAFT') {
+      throw new BadRequestException('Seul un devis envoyé ou brouillon peut être approuvé');
+    }
+
     const rawMethod = body.clientApprovalMethod ?? QUOTE_DEFAULT_APPROVAL_METHOD;
     if (!QUOTE_CLIENT_APPROVAL_METHODS.includes(rawMethod as QuoteClientApprovalMethod)) {
       throw new BadRequestException(
@@ -175,7 +191,7 @@ export class BillingService {
 
       const byRoleIds = await this.notifications.getUserIdsByRoles([
         'CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN',
-      ]);
+      ], garageId);
       const assignedChefId = quote.serviceOrder?.assignedChef;
       const recipientIds = [
         ...byRoleIds,
@@ -210,7 +226,7 @@ export class BillingService {
   }
 
   listInvoices(customerId?: string, status?: string, garageId?: string | null) {
-    const where: Record<string, unknown> = { ...(garageId ? { garageId } : {}) };
+    const where: Record<string, unknown> = { ...garageWhere(garageId) };
     if (customerId) where.customerId = customerId;
     if (status) where.status = status;
 
@@ -227,8 +243,9 @@ export class BillingService {
     });
   }
 
-  getQuote(id: string) {
-    return this.prisma.quote.findUnique({
+  async getQuote(id: string, garageId?: string | null) {
+    await assertQuoteInGarage(this.prisma, id, garageId);
+    const quote = await this.prisma.quote.findUnique({
       where: { id },
       include: {
         customer: true,
@@ -251,10 +268,13 @@ export class BillingService {
         creator: { select: { firstName: true, lastName: true } },
       },
     });
+    if (!quote) throw new NotFoundException('Devis introuvable');
+    return quote;
   }
 
-  getInvoice(id: string) {
-    return this.prisma.invoice.findUnique({
+  async getInvoice(id: string, garageId?: string | null) {
+    await assertInvoiceInGarage(this.prisma, id, garageId);
+    const invoice = await this.prisma.invoice.findUnique({
       where: { id },
       include: {
         customer: true,
@@ -263,6 +283,8 @@ export class BillingService {
         serviceOrder: { select: { reference: true } },
       },
     });
+    if (!invoice) throw new NotFoundException('Facture introuvable');
+    return invoice;
   }
 
   /**
@@ -270,6 +292,8 @@ export class BillingService {
    * Pas de $transaction interactif — incompatible avec pgbouncer (Supabase pooler).
    */
   async createInvoiceFromQuote(quoteId: string, userId: string, garageId?: string | null) {
+    const g = requireGarageId(garageId);
+    await assertQuoteInGarage(this.prisma, quoteId, g);
     const quote = await this.prisma.quote.findUnique({
       where: { id: quoteId },
       include: {
@@ -292,7 +316,7 @@ export class BillingService {
 
     const invoice = await this.prisma.invoice.create({
       data: {
-        ...(garageId ? { garageId } : quote.garageId ? { garageId: quote.garageId } : {}),
+        garageId: quote.garageId ?? g,
         serviceOrderId: quote.serviceOrderId,
         quoteId: quote.id,
         customerId: quote.customerId,
@@ -346,9 +370,12 @@ export class BillingService {
     idempotencyKey: string;
     garageId?: string | null;
   }) {
+    const g = requireGarageId(data.garageId);
+    await assertInvoiceInGarage(this.prisma, data.invoiceId, g);
+
     const payment = await this.prisma.payment.create({
       data: {
-        ...(data.garageId ? { garageId: data.garageId } : {}),
+        garageId: g,
         invoiceId: data.invoiceId,
         amountXaf: data.amount,
         method: data.method,
@@ -377,6 +404,7 @@ export class BillingService {
         reference: true,
         totalXaf: true,
         status: true,
+        garageId: true,
         serviceOrderId: true,
         serviceOrder: { select: { reference: true } },
         customer: { select: { firstName: true, lastName: true, companyName: true, customerType: true } },
@@ -417,7 +445,7 @@ export class BillingService {
 
     setImmediate(async () => {
       try {
-        const recipientIds = await this.notifications.getUserIdsByRoles(['CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN']);
+        const recipientIds = await this.notifications.getUserIdsByRoles(['CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN'], invoice.garageId);
         if (recipientIds.length === 0) return;
 
         const customerName = invoice.customer?.customerType === 'COMPANY'
@@ -445,7 +473,8 @@ export class BillingService {
     return payment;
   }
 
-  async getCashClosureSummary(dateIso?: string) {
+  async getCashClosureSummary(dateIso?: string, garageId?: string | null) {
+    const g = requireGarageId(garageId);
     const target = dateIso ? new Date(dateIso) : new Date();
     if (Number.isNaN(target.getTime())) {
       throw new BadRequestException('Date de clôture invalide');
@@ -458,6 +487,7 @@ export class BillingService {
 
     const payments = await this.prisma.payment.findMany({
       where: {
+        garageId: g,
         status: 'CONFIRMED',
         paidAt: { gte: start, lte: end },
       },
@@ -512,8 +542,8 @@ export class BillingService {
     };
   }
 
-  async closeCashDay(data: { userId: string; dateIso?: string; countedCash?: number; notes?: string }) {
-    const summary = await this.getCashClosureSummary(data.dateIso);
+  async closeCashDay(data: { userId: string; dateIso?: string; countedCash?: number; notes?: string; garageId?: string | null }) {
+    const summary = await this.getCashClosureSummary(data.dateIso, data.garageId);
     const countedCash = data.countedCash ?? null;
     const variance = countedCash != null ? countedCash - summary.expectedCash : null;
 

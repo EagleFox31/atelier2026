@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Query, Param, Patch } from '@nestjs/common
 import { StockService } from './stock.service';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { CurrentUser, RequirePermission } from '../../decorators/auth.decorator';
+import { garageWhere, requireGarageId } from '../../shared/garage/garage-scope';
 import { CreateStockMovementDto, CreateASPDto, CreatePartDto, UpdatePartDto } from './dto/stock.dto';
 
 @Controller('stock')
@@ -16,11 +17,13 @@ export class StockController {
   @Get('parts')
   @RequirePermission('STK_VIEW')
   async listParts(
+    @CurrentUser() user: { garageId?: string | null },
     @Query('search') search?: string,
     @Query('category') category?: string,
     @Query('lowStock') lowStock?: string,
   ) {
-    const where: any = { isActive: true };
+    const g = requireGarageId(user.garageId);
+    const where: any = { isActive: true, garageId: g };
 
     if (category) where.category = category;
 
@@ -37,7 +40,7 @@ export class StockController {
       return this.prisma.$queryRaw`
         SELECT id, reference, name_fr, qty_in_stock, qty_available, min_threshold, category, sale_price_xaf
         FROM parts_catalog
-        WHERE qty_available <= min_threshold AND is_active = true
+        WHERE qty_available <= min_threshold AND is_active = true AND garage_id = ${g}::uuid
         ORDER BY (qty_available - min_threshold) ASC
       `;
     }
@@ -51,12 +54,12 @@ export class StockController {
 
   @Get('parts/low-stock')
   @RequirePermission('STK_VIEW')
-  async getLowStockParts() {
-    // Retourne toutes les pièces dont qty_available <= min_threshold
+  async getLowStockParts(@CurrentUser() user: { garageId?: string | null }) {
+    const g = requireGarageId(user.garageId);
     return this.prisma.$queryRaw`
       SELECT id, reference, name_fr, qty_in_stock, qty_available, min_threshold, category
       FROM parts_catalog
-      WHERE qty_available <= min_threshold AND is_active = true
+      WHERE qty_available <= min_threshold AND is_active = true AND garage_id = ${g}::uuid
       ORDER BY (qty_available - min_threshold) ASC
     `;
   }
@@ -64,10 +67,11 @@ export class StockController {
   @Get('movements')
   @RequirePermission('STK_VIEW')
   async listMovements(
+    @CurrentUser() user: { garageId?: string | null },
     @Query('partId') partId?: string,
     @Query('serviceOrderId') serviceOrderId?: string,
   ) {
-    const where: any = {};
+    const where: any = { ...garageWhere(user.garageId) };
     if (partId) where.partId = partId;
     if (serviceOrderId) where.serviceOrderId = serviceOrderId;
 
@@ -119,24 +123,31 @@ export class StockController {
       salePrice: body.salePrice,
       userId: user.id,
       supplierName: body.supplierName,
+      garageId: user.garageId,
     });
   }
 
   @Get('parts/:id')
   @RequirePermission('STK_VIEW')
-  getPart(@Param('id') id: string) {
-    return this.stockService.getPart(id);
+  getPart(@CurrentUser() user: { garageId?: string | null }, @Param('id') id: string) {
+    return this.stockService.getPart(id, user.garageId);
   }
 
   @Post('parts')
   @RequirePermission('STK_CREATE')
-  async createPart(@Body() body: CreatePartDto) {
-    return this.prisma.partsCatalog.create({ data: body });
+  async createPart(@CurrentUser() user: { garageId?: string | null }, @Body() body: CreatePartDto) {
+    const g = requireGarageId(user.garageId);
+    return this.prisma.partsCatalog.create({ data: { ...body, garageId: g } });
   }
 
   @Patch('parts/:id')
   @RequirePermission('STK_CREATE')
-  async updatePart(@Param('id') id: string, @Body() body: UpdatePartDto) {
+  async updatePart(
+    @CurrentUser() user: { garageId?: string | null },
+    @Param('id') id: string,
+    @Body() body: UpdatePartDto,
+  ) {
+    await this.stockService.getPart(id, user.garageId);
     return this.prisma.partsCatalog.update({ where: { id }, data: body });
   }
 
