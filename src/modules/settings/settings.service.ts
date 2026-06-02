@@ -32,9 +32,7 @@ function toResponse(row: {
     email: row.email,
     phone: row.phone,
     address: row.address,
-    defaultLaborRateXaf: row.defaultLaborRateXaf
-      ? row.defaultLaborRateXaf.toNumber()
-      : null,
+    defaultLaborRateXaf: row.defaultLaborRateXaf?.toNumber() ?? null,
     taxRatePct: row.taxRatePct.toNumber(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -44,16 +42,19 @@ function toResponse(row: {
 export class SettingsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getWorkshopSettings() {
-    const row = await this.ensureWorkshopSettings();
+  async getWorkshopSettings(garageId?: string | null) {
+    const row = await this.resolveSettings(garageId);
     return toResponse(row);
   }
 
-  async updateWorkshopSettings(body: UpdateWorkshopSettingsDto, userId: string) {
+  async updateWorkshopSettings(body: UpdateWorkshopSettingsDto, userId: string, garageId?: string | null) {
+    const settingsId = garageId ? `garage_${garageId}` : 'default';
     const row = await this.prisma.workshopSettings.upsert({
-      where: { id: 'default' },
+      where: { id: settingsId },
       create: {
         ...DEFAULT_WORKSHOP_SETTINGS,
+        id: settingsId,
+        ...(garageId ? { garageId } : {}),
         shopName: body.shopName,
         tagline: body.tagline ?? DEFAULT_WORKSHOP_SETTINGS.tagline,
         niu: body.niu ?? null,
@@ -71,9 +72,7 @@ export class SettingsService {
         email: body.email,
         phone: body.phone,
         address: body.address,
-        ...(body.defaultLaborRateXaf != null
-          ? { defaultLaborRateXaf: body.defaultLaborRateXaf }
-          : {}),
+        ...(body.defaultLaborRateXaf != null ? { defaultLaborRateXaf: body.defaultLaborRateXaf } : {}),
         ...(body.taxRatePct != null ? { taxRatePct: body.taxRatePct } : {}),
         updatedById: userId,
       },
@@ -81,17 +80,20 @@ export class SettingsService {
     return toResponse(row);
   }
 
-  private async ensureWorkshopSettings() {
-    const existing = await this.prisma.workshopSettings.findUnique({
-      where: { id: 'default' },
-    });
+  /** Cherche les settings par garageId, fallback sur 'default' */
+  private async resolveSettings(garageId?: string | null) {
+    if (garageId) {
+      const garageSettings = await this.prisma.workshopSettings.findFirst({
+        where: { garageId },
+      });
+      if (garageSettings) return garageSettings;
+    }
+
+    const existing = await this.prisma.workshopSettings.findUnique({ where: { id: 'default' } });
     if (existing) return existing;
 
     return this.prisma.workshopSettings.create({
-      data: {
-        ...DEFAULT_WORKSHOP_SETTINGS,
-        updatedById: null,
-      },
+      data: { ...DEFAULT_WORKSHOP_SETTINGS, updatedById: null },
     });
   }
 }

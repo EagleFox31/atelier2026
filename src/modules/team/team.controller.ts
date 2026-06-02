@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { TeamService } from './team.service';
-import { RequirePermission, RequireRole } from '../../decorators/auth.decorator';
+import { RequirePermission, RequireRole, CurrentUser } from '../../decorators/auth.decorator';
 import { CreateTeamMemberDto, UpdateTeamMemberDto, AssignRoleDto, ResetPasswordDto } from './dto/team.dto';
 
 @Controller('team')
@@ -9,14 +9,14 @@ export class TeamController {
 
     @Post()
     @RequireRole('ADMIN', 'CHEF_ATELIER')
-    create(@Body() body: CreateTeamMemberDto) {
-        return this.teamService.create(body);
+    create(@CurrentUser() user: any, @Body() body: CreateTeamMemberDto) {
+        return this.teamService.create({ ...body, garageId: user?.garageId ?? undefined, tenantId: user?.tenantId ?? undefined });
     }
 
     @Get()
     @RequirePermission('ORD_VIEW')
-    findAll(@Query('search') search?: string, @Query('roleId') roleId?: string) {
-        return this.teamService.findAll(search, roleId);
+    findAll(@CurrentUser() user: any, @Query('search') search?: string, @Query('roleId') roleId?: string) {
+        return this.teamService.findAll(search, roleId, user?.garageId);
     }
 
     @Get(':id')
