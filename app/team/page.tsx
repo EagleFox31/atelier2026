@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import {
   Users, Wrench, CheckCircle2, UserPlus, Activity, TrendingUp,
   Search, RefreshCw, AlertCircle, Eye, EyeOff, KeyRound, Copy, Check,
+  PowerOff, Power,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,44 @@ interface TeamMember {
   passwordResetRequestedAt?: string | null;
   roles: { role: { label: string; code: string } }[];
   assignedOTs?: { id: string; reference: string; status: string }[];
+}
+
+function StatusToggle({ member, onToggle }: { member: TeamMember; onToggle: () => void }) {
+  const [loading, setLoading] = useState(false);
+  const isActive = member.status === 'ACTIVE';
+
+  async function handleToggle() {
+    setLoading(true);
+    try {
+      await teamApi.toggleStatus(member.id);
+      toast.success(isActive
+        ? `${member.firstName} ${member.lastName} suspendu`
+        : `${member.firstName} ${member.lastName} réactivé`
+      );
+      onToggle();
+    } catch {
+      toast.error("Erreur lors du changement de statut");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={handleToggle}
+      disabled={loading}
+      title={isActive ? 'Suspendre le compte' : 'Réactiver le compte'}
+      className={cn(
+        "mt-1.5 w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
+        isActive
+          ? "text-red-500 border-red-100 bg-red-50 hover:bg-red-100"
+          : "text-green-600 border-green-100 bg-green-50 hover:bg-green-100"
+      )}
+    >
+      {isActive ? <PowerOff size={12} /> : <Power size={12} />}
+      {loading ? 'En cours...' : isActive ? 'Suspendre le compte' : 'Réactiver le compte'}
+    </button>
+  );
 }
 
 function PasswordCell({ member, onReset }: { member: TeamMember; onReset: () => void }) {
@@ -276,8 +315,9 @@ export default function TeamPage() {
                         </Badge>
                       </div>
 
-                      {/* Mot de passe */}
+                      {/* Mot de passe + actions */}
                       <PasswordCell member={member} onReset={fetchTeam} />
+                      <StatusToggle member={member} onToggle={fetchTeam} />
 
                       {activeOTs.length > 0 && (
                         <div className="mt-2 p-2.5 bg-muted rounded-lg flex items-center gap-2">

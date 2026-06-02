@@ -43,6 +43,12 @@ export class TeamController {
         return this.teamService.resetPassword(id, body.password);
     }
 
+    @Patch(':id/toggle-status')
+    @RequireRole('ADMIN')
+    toggleStatus(@Param('id') id: string) {
+        return this.teamService.toggleStatus(id);
+    }
+
     @Delete(':id')
     @RequireRole('ADMIN')
     remove(@Param('id') id: string) {

@@ -180,8 +180,9 @@ export const teamApi = {
   get:           (id: string) => get(`/team/${id}`),
   create:        (body: unknown) => post('/team', body),
   update:        (id: string, body: unknown) => patch(`/team/${id}`, body),
-  resetPassword: (id: string, password?: string) => post(`/team/${id}/reset-password`, { password }),
-  delete:        (id: string) => del(`/team/${id}`),
+  resetPassword:  (id: string, password?: string) => post(`/team/${id}/reset-password`, { password }),
+  toggleStatus:   (id: string) => patch(`/team/${id}/toggle-status`, {}),
+  delete:         (id: string) => del(`/team/${id}`),
 };
 
 // ─── Planning ──────────────────────────────────────────────────────────────
