@@ -47,16 +47,40 @@ export function generateQuotePdfBlobUrl(data: BillingDocumentData): string {
   pdf.setFillColor(...BRAND);
   pdf.rect(0, 0, pageWidth, 2.5, 'F');
 
-  // En-tete gauche — atelier
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(14);
-  pdf.setTextColor(...BRAND);
-  pdf.text(pdfText(data.workshop.shopName), margin, y + 4);
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(7);
-  pdf.setTextColor(...MUTED);
-  pdf.text(pdfText(data.workshop.tagline), margin, y + 9);
-  pdf.text(pdfText(workshopContactLine(data.workshop)), margin, y + 13);
+  // En-tete gauche — logo ou nom atelier
+  const logoUrl = data.workshop.logoUrl;
+  if (logoUrl && logoUrl.startsWith('data:image/')) {
+    try {
+      const fmt = logoUrl.split(';')[0].split('/')[1].toUpperCase() as 'PNG' | 'JPEG' | 'JPG' | 'WEBP';
+      pdf.addImage(logoUrl, fmt, margin, y, 28, 12, undefined, 'FAST');
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(...MUTED);
+      pdf.text(pdfText(data.workshop.tagline), margin, y + 16);
+      pdf.text(pdfText(workshopContactLine(data.workshop)), margin, y + 20);
+    } catch {
+      // Fallback texte si image invalide
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(14);
+      pdf.setTextColor(...BRAND);
+      pdf.text(pdfText(data.workshop.shopName), margin, y + 4);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(...MUTED);
+      pdf.text(pdfText(data.workshop.tagline), margin, y + 9);
+      pdf.text(pdfText(workshopContactLine(data.workshop)), margin, y + 13);
+    }
+  } else {
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(14);
+    pdf.setTextColor(...BRAND);
+    pdf.text(pdfText(data.workshop.shopName), margin, y + 4);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(7);
+    pdf.setTextColor(...MUTED);
+    pdf.text(pdfText(data.workshop.tagline), margin, y + 9);
+    pdf.text(pdfText(workshopContactLine(data.workshop)), margin, y + 13);
+  }
 
   // En-tete droite — devis
   pdf.setFont('helvetica', 'bold');
