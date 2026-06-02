@@ -149,6 +149,17 @@ export default function SettingsPage() {
     } catch { toast.error('Erreur lors de la suppression'); }
   }
 
+  async function applyToAll(value: number) {
+    const missing = targets.filter(r => r.targetXaf === null);
+    if (missing.length === 0) { toast.info('Tous les mois ont déjà un objectif.'); return; }
+    await Promise.all(
+      missing.map(r => reportsApi.upsertTarget({ year: targetYear, month: r.month, targetXaf: value }))
+    );
+    toast.success(`Objectif ${value.toLocaleString('fr-FR')} XAF appliqué à ${missing.length} mois`);
+    const data = await reportsApi.targets(targetYear);
+    setTargets(data);
+  }
+
   return (
     <div className="space-y-6">
         <div className="flex items-start justify-between gap-4">
@@ -469,13 +480,24 @@ export default function SettingsPage() {
                                   </td>
                                   <td className="py-3 text-right">
                                     {row.targetId && (
-                                      <button
-                                        onClick={() => void removeTarget(row.targetId!)}
-                                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 text-slate-400 hover:text-red-500 transition-all p-1"
-                                        title="Supprimer l'objectif"
-                                      >
-                                        <Trash2 size={14} />
-                                      </button>
+                                      <div className="flex items-center justify-end gap-1">
+                                        {targets.some(r => r.targetXaf === null) && (
+                                          <button
+                                            onClick={() => void applyToAll(Number(row.targetXaf))}
+                                            className="opacity-0 group-hover:opacity-80 hover:!opacity-100 text-xs text-brand hover:text-brand-hover transition-all px-1.5 py-0.5 rounded hover:bg-brand/10 whitespace-nowrap"
+                                            title="Appliquer cette valeur à tous les mois sans objectif"
+                                          >
+                                            → Copier à tous
+                                          </button>
+                                        )}
+                                        <button
+                                          onClick={() => void removeTarget(row.targetId!)}
+                                          className="opacity-0 group-hover:opacity-60 hover:!opacity-100 text-slate-400 hover:text-red-500 transition-all p-1"
+                                          title="Supprimer l'objectif"
+                                        >
+                                          <Trash2 size={14} />
+                                        </button>
+                                      </div>
                                     )}
                                   </td>
                                 </tr>
