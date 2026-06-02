@@ -86,12 +86,14 @@ jobs:
             ssh -i ~/.ssh/deploy_key root@94.237.59.178 \
               "mkdir -p /opt/atelier2026/deploy && cat > /opt/atelier2026/deploy/.env.prod"
 
-      - name: Send docker-compose.prod.yml + compose-prod.sh
+      - name: Send docker-compose.prod.yml + Caddyfile + compose-prod.sh
         run: |
           ssh -i ~/.ssh/deploy_key root@94.237.59.178 \
             "mkdir -p /opt/atelier2026/deploy/docker /opt/atelier2026/deploy/scripts"
           scp -i ~/.ssh/deploy_key deploy/docker/docker-compose.prod.yml \
             root@94.237.59.178:/opt/atelier2026/deploy/docker/docker-compose.prod.yml
+          scp -i ~/.ssh/deploy_key deploy/docker/Caddyfile \
+            root@94.237.59.178:/opt/atelier2026/deploy/docker/Caddyfile
           scp -i ~/.ssh/deploy_key deploy/scripts/compose-prod.sh \
             root@94.237.59.178:/opt/atelier2026/deploy/scripts/compose-prod.sh
 
