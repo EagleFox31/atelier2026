@@ -280,7 +280,20 @@ export class BillingService {
         customer: true,
         lines: true,
         payments: true,
-        serviceOrder: { select: { reference: true } },
+        serviceOrder: {
+          select: {
+            reference: true,
+            mileageIn: true,
+            vehicle: {
+              select: {
+                plateNumber: true,
+                vin: true,
+                make: { select: { name: true } },
+                model: { select: { name: true } },
+              },
+            },
+          },
+        },
       },
     });
     if (!invoice) throw new NotFoundException('Facture introuvable');

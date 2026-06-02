@@ -1,6 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
 import { BillingService } from '../billing.service';
 
+const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
+
 function makeDeps() {
   const prismaMock = {
     quote: {
@@ -8,10 +10,12 @@ function makeDeps() {
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      findFirst: jest.fn().mockResolvedValue({ id: 'q-1' }),
     },
     invoice: {
       findMany: jest.fn().mockResolvedValue([]),
       findUnique: jest.fn(),
+      findFirst: jest.fn().mockResolvedValue({ id: 'inv-1' }),
     },
     $transaction: jest.fn().mockImplementation(async (fn: any) => fn(prismaMock)),
   };
@@ -305,11 +309,11 @@ describe('BillingService.getQuote()', () => {
 describe('BillingService.getInvoice()', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('retourne la facture avec include customer, lines, payments et serviceOrder.reference', async () => {
+  it('retourne la facture avec include customer, lines, payments et OT + véhicule', async () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.invoice.findUnique.mockResolvedValue({ id: 'inv-1' });
 
-    await service.getInvoice('inv-1');
+    await service.getInvoice('inv-1', TEST_GARAGE_ID);
 
     const call = prismaMock.invoice.findUnique.mock.calls[0][0];
     expect(call.where).toEqual({ id: 'inv-1' });
@@ -317,5 +321,7 @@ describe('BillingService.getInvoice()', () => {
     expect(call.include.lines).toBe(true);
     expect(call.include.payments).toBe(true);
     expect(call.include.serviceOrder.select.reference).toBe(true);
+    expect(call.include.serviceOrder.select.vehicle.select.plateNumber).toBe(true);
+    expect(call.include.serviceOrder.select.vehicle.select.make).toEqual({ select: { name: true } });
   });
 });
