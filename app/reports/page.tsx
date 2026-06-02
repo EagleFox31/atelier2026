@@ -479,7 +479,9 @@ export default function ReportsPage() {
                         : 'bg-slate-100 text-slate-500';
                       return (
                         <tr key={row.month} className="hover:bg-slate-50/40 transition-colors">
-                          <td className="py-2.5 pr-4 font-medium text-slate-700">{row.label}</td>
+                          <td className="py-2.5 pr-4 font-medium text-slate-700">
+                            {['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'][row.month - 1]} {targetYear}
+                          </td>
                           <td className="py-2.5 px-3 text-right text-slate-600">
                             {row.targetXaf ? `${row.targetXaf.toLocaleString('fr-FR')} XAF` : <span className="text-slate-300 text-xs">Non défini</span>}
                           </td>
