@@ -5,18 +5,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  Wrench, 
-  Clock, 
+import {
+  TrendingUp,
+  TrendingDown,
+  Users,
+  Wrench,
+  Clock,
   DollarSign,
   Download,
   Calendar as CalendarIcon,
   ChevronRight,
   ShieldCheck,
-  Lock
+  Lock,
+  Target,
+  Pencil,
+  Trash2,
+  Check,
+  X,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { 
@@ -28,7 +33,7 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
-import { reportsApi, billingApi, customersApi, workshopApi } from "@/lib/api";
+import { reportsApi, billingApi, customersApi, workshopApi, type MonthlyTargetRow } from "@/lib/api";
 import { formatXAF } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
@@ -55,6 +60,14 @@ export default function ReportsPage() {
   // Chart Data
   const [revenueChartData, setRevenueChartData] = useState<any[]>([]);
   const [techPerformance, setTechPerformance] = useState<any[]>([]);
+
+  // Objectifs mensuels
+  const currentYear = new Date().getFullYear();
+  const [targetYear, setTargetYear] = useState(currentYear);
+  const [targets, setTargets]       = useState<MonthlyTargetRow[]>([]);
+  const [targetsLoading, setTargetsLoading] = useState(false);
+  const [editingMonth, setEditingMonth]     = useState<number | null>(null);
+  const [editValue, setEditValue]           = useState('');
 
   useEffect(() => {
     async function loadReportData() {
@@ -137,10 +150,14 @@ export default function ReportsPage() {
         const calculatedRate = ots.length > 0 ? ((cancelledCount / ots.length) * 100).toFixed(1) : "0.0";
         setReturnRate(calculatedRate);
 
-        // 5. Monthly Revenue Chart (grouping last 6 months of paid invoices)
+        // 5. Monthly Revenue Chart — 6 derniers mois avec vrais objectifs
         const invoices = await billingApi.listInvoices() as any[];
         const monthNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
-        
+
+        // Charger les objectifs de l'année courante pour le graphe
+        let dbTargets: MonthlyTargetRow[] = [];
+        try { dbTargets = await reportsApi.targets(new Date().getFullYear()); } catch { /* pas d'objectifs */ }
+
         const revChartData = [];
         for (let i = 5; i >= 0; i--) {
           const d = new Date();
@@ -148,7 +165,7 @@ export default function ReportsPage() {
           const monthIndex = d.getMonth();
           const year = d.getFullYear();
           const label = monthNames[monthIndex];
-          
+
           const monthlyRevenue = invoices
             .filter(inv => {
               if (inv.status !== 'PAID' || !inv.paidAt) return false;
@@ -156,9 +173,10 @@ export default function ReportsPage() {
               return paidDate.getMonth() === monthIndex && paidDate.getFullYear() === year;
             })
             .reduce((sum, inv) => sum + Number(inv.totalXaf || 0), 0);
-            
-          const target = monthlyRevenue > 0 ? Math.round(monthlyRevenue * 1.15) : 1000000;
-          
+
+          const dbTarget = dbTargets.find(t => t.month === monthIndex + 1 && year === new Date().getFullYear());
+          const target = dbTarget?.targetXaf ?? (monthlyRevenue > 0 ? Math.round(monthlyRevenue * 1.15) : null);
+
           revChartData.push({ month: label, revenue: monthlyRevenue, target });
         }
         setRevenueChartData(revChartData);
@@ -180,6 +198,30 @@ export default function ReportsPage() {
     }
     loadReportData();
   }, []);
+
+  // Chargement des objectifs (déclenché par l'année sélectionnée)
+  useEffect(() => {
+    setTargetsLoading(true);
+    reportsApi.targets(targetYear)
+      .then(data => setTargets(data))
+      .catch(() => {})
+      .finally(() => setTargetsLoading(false));
+  }, [targetYear]);
+
+  async function saveTarget(month: number) {
+    const val = parseFloat(editValue.replace(/\s/g, '').replace(',', '.'));
+    if (!val || val <= 0) { setEditingMonth(null); return; }
+    await reportsApi.upsertTarget({ year: targetYear, month, targetXaf: val });
+    setEditingMonth(null);
+    const data = await reportsApi.targets(targetYear);
+    setTargets(data);
+  }
+
+  async function removeTarget(id: string) {
+    await reportsApi.deleteTarget(id);
+    const data = await reportsApi.targets(targetYear);
+    setTargets(data);
+  }
 
   const formatKpiValue = (val: number): string => {
     if (val >= 1000000) {
@@ -387,10 +429,10 @@ export default function ReportsPage() {
                       color: 'var(--foreground)'
                     }}
                     itemStyle={{ color: 'var(--foreground)' }}
-                    formatter={(value: any, name: string) => [
+                    formatter={(value: any, name: any) => [
                       `${Number(value).toLocaleString()} XAF`,
                       name === 'revenue' ? 'Revenu' : 'Objectif',
-                    ]}
+                    ] as any}
                   />
                   <Area
                     type="monotone"
@@ -412,6 +454,103 @@ export default function ReportsPage() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Objectifs mensuels */}
+        <Card className="border-border shadow-sm ring-1 ring-border/50 bg-card">
+          <CardHeader>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div>
+                <CardTitle className="text-lg font-bold flex items-center gap-2">
+                  <Target size={18} className="text-brand" /> Objectifs mensuels
+                </CardTitle>
+                <CardDescription>Cliquez sur un objectif pour le modifier · Vert ≥ 100 % · Orange 80–99 % · Rouge &lt; 80 %</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setTargetYear(y => y - 1)} className="px-2 py-1 rounded text-slate-500 hover:bg-slate-100 text-sm">‹</button>
+                <span className="font-bold text-slate-800 min-w-[3rem] text-center">{targetYear}</span>
+                <button onClick={() => setTargetYear(y => y + 1)} disabled={targetYear >= currentYear} className="px-2 py-1 rounded text-slate-500 hover:bg-slate-100 text-sm disabled:opacity-30">›</button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {targetsLoading ? (
+              <div className="space-y-2">{[...Array(4)].map((_, i) => <div key={i} className="h-10 bg-slate-100 animate-pulse rounded" />)}</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-100">
+                      <th className="text-left py-2 pr-4 font-semibold text-slate-500 text-xs uppercase tracking-wide">Mois</th>
+                      <th className="text-right py-2 px-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">Objectif</th>
+                      <th className="text-right py-2 px-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">Réalisé</th>
+                      <th className="text-right py-2 pl-3 font-semibold text-slate-500 text-xs uppercase tracking-wide">Atteinte</th>
+                      <th className="w-16" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {targets.map(row => {
+                      const isEditing = editingMonth === row.month;
+                      const badge = row.status === 'exceeded' ? 'bg-green-100 text-green-700'
+                        : row.status === 'close'    ? 'bg-orange-100 text-orange-700'
+                        : row.status === 'missed'   ? 'bg-red-100 text-red-600'
+                        : 'bg-slate-100 text-slate-500';
+                      return (
+                        <tr key={row.month} className="group hover:bg-slate-50/60 transition-colors">
+                          <td className="py-2.5 pr-4 font-medium text-slate-700">{row.label}</td>
+                          <td className="py-2.5 px-3 text-right">
+                            {isEditing ? (
+                              <div className="flex items-center justify-end gap-1">
+                                <input
+                                  autoFocus
+                                  type="text"
+                                  value={editValue}
+                                  onChange={e => setEditValue(e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') void saveTarget(row.month); if (e.key === 'Escape') setEditingMonth(null); }}
+                                  className="w-28 text-right border border-brand rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand"
+                                  placeholder="ex: 1500000"
+                                />
+                                <button onClick={() => void saveTarget(row.month)} className="text-green-600 hover:text-green-700"><Check size={14} /></button>
+                                <button onClick={() => setEditingMonth(null)} className="text-slate-400 hover:text-slate-600"><X size={14} /></button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => { setEditingMonth(row.month); setEditValue(row.targetXaf?.toString() ?? ''); }}
+                                className="flex items-center gap-1 ml-auto text-slate-700 hover:text-brand group/edit"
+                              >
+                                {row.targetXaf ? `${row.targetXaf.toLocaleString('fr-FR')} XAF` : <span className="text-slate-400 italic text-xs">Définir</span>}
+                                <Pencil size={11} className="opacity-0 group-hover/edit:opacity-60 transition-opacity" />
+                              </button>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-right text-slate-600">
+                            {row.revenue > 0 ? `${row.revenue.toLocaleString('fr-FR')} XAF` : <span className="text-slate-300">—</span>}
+                          </td>
+                          <td className="py-2.5 pl-3 text-right">
+                            {row.achievementPct !== null ? (
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold ${badge}`}>
+                                {row.achievementPct} %
+                              </span>
+                            ) : <span className="text-slate-300 text-xs">—</span>}
+                          </td>
+                          <td className="py-2.5 text-right">
+                            {row.targetId && (
+                              <button
+                                onClick={() => void removeTarget(row.targetId!)}
+                                className="opacity-0 group-hover:opacity-60 hover:!opacity-100 text-slate-400 hover:text-red-500 transition-all"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
           </CardContent>
         </Card>

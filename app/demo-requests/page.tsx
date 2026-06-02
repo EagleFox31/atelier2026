@@ -21,6 +21,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import { useMarkGettingStartedVisit } from '@/hooks/use-mark-getting-started-visit';
 import {
   demoRequestsApi,
   handleApiError,
@@ -65,6 +66,7 @@ function formatDate(iso: string) {
 }
 
 export default function DemoRequestsPage() {
+  useMarkGettingStartedVisit('demo');
   const { hasRole, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();

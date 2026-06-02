@@ -1061,6 +1061,20 @@ model DemoRequest {
 }
 
 /// Paramètres globaux de l'atelier (ligne unique id = "default").
+model MonthlyTarget {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  garageId    String?  @map("garage_id") @db.Uuid
+  year        Int
+  month       Int      // 1–12
+  targetXaf   Decimal  @map("target_xaf") @db.Decimal(15, 2)
+  createdById String?  @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([garageId, year, month])
+  @@map("monthly_targets")
+}
+
 model WorkshopSettings {
   id                  String   @id @default("default")
   garageId            String?  @unique @map("garage_id") @db.Uuid

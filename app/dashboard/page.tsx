@@ -23,6 +23,7 @@ import { CashierDashboardSection } from "@/components/dashboard/CashierDashboard
 import { isTechnicianProfile, isReceptionnisteProfile, isCaissierProfile } from "@/lib/role-routing";
 import { workshopApi, planningApi, teamApi, billingApi, reportsApi } from "@/lib/api";
 import { WORKSHOP_STATUS, isActiveOT } from "@/lib/constants";
+import { GettingStartedPanel } from "@/components/onboarding/GettingStartedPanel";
 
 const STAT_META = [
   { icon: Wrench,        color: 'text-brand',       bg: 'bg-brand/10' },
@@ -146,6 +147,7 @@ export default function DashboardPage() {
           {isReceptionView ? (
             <>
               <Button
+                data-tour="tour-dash-reception"
                 className="gap-2 bg-brand hover:bg-brand-hover text-white h-10 px-4 shadow-lg shadow-brand/20 w-full sm:w-auto order-first sm:order-none"
                 onClick={() => router.push('/reception')}
               >
@@ -208,6 +210,8 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      <GettingStartedPanel />
 
       {isCashierView ? (
         <CashierDashboardSection

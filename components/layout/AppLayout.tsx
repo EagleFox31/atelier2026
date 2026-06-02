@@ -12,6 +12,7 @@ import { CommandPalette } from './CommandPalette';
 import { useAuth } from '@/contexts/auth-context';
 import { authApi } from '@/lib/api';
 import { OnboardingModal } from '@/components/onboarding/OnboardingModal';
+import { GuideMenu } from '@/components/onboarding/GuideMenu';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
@@ -111,7 +112,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               </SheetContent>
             </Sheet>
 
-            <div className="relative w-full group">
+            <div className="relative w-full group" data-tour="tour-header-search">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-brand transition-colors" size={18} />
               <Input 
                 placeholder="Rechercher un véhicule, client, OT... (⌘K)" 
@@ -127,7 +128,12 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
             
             <div className="flex items-center gap-3">
-              <NotificationBell />
+              <div data-tour="tour-header-guide">
+                <GuideMenu />
+              </div>
+              <div data-tour="tour-header-notifications">
+                <NotificationBell />
+              </div>
               
               <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-white font-bold shadow-lg shadow-brand/20 cursor-pointer hover:ring-2 hover:ring-brand/50 transition-all text-xs">
                 {initials}
