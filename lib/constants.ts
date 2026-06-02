@@ -137,7 +137,7 @@ export const NAV_ITEMS: NavItem[] = [
     title: "Rapports",
     href: "/reports",
     icon: LayoutDashboard,
-    roles: ["ADMIN", "SUPER_ADMIN", "CHEF_ATELIER"],
+    roles: ["ADMIN", "SUPER_ADMIN"],
   },
 ];
 
