@@ -137,15 +137,16 @@ export function Sidebar() {
   const visibleNav = useVisibleItems(NAV_ITEMS);
   const visibleSettings = useVisibleItems(SETTINGS_ITEMS);
 
+  const GESTION_HREFS = ['/admin/tenants','/vehicles','/stock','/stock/movements','/billing','/customers','/history','/demo-requests','/audit','/reports'];
+  const gestionStartIdx = visibleNav.findIndex(i => GESTION_HREFS.includes(i.href));
+
   const principal = isCashier
     ? visibleNav.filter(i => ['/', ...CASHIER_MOBILE_NAV.map(t => t.href)].includes(i.href))
-    : visibleNav.slice(0, visibleNav.findIndex(i => i.href === '/vehicles') === -1
-      ? 4
-      : visibleNav.findIndex(i => i.href === '/vehicles'));
+    : visibleNav.slice(0, gestionStartIdx === -1 ? 4 : gestionStartIdx);
   const gestion = isCashier
     ? visibleNav.filter(i => ['/customers', '/cashier/history'].includes(i.href))
     : visibleNav.filter(i =>
-      ['/vehicles','/stock','/stock/movements','/billing','/customers','/history','/demo-requests','/audit','/reports']
+      GESTION_HREFS
         .includes(i.href)
     );
 
@@ -300,6 +301,8 @@ export function MobileSidebar({ onClose }: { onClose?: () => void }) {
   const visibleNav = useVisibleItems(NAV_ITEMS);
   const visibleSettings = useVisibleItems(SETTINGS_ITEMS);
 
+  const MOBILE_GESTION_HREFS = ['/admin/tenants','/vehicles','/stock','/stock/movements','/billing','/customers','/history','/demo-requests','/audit','/reports'];
+
   const principal = isCashier
     ? visibleNav.filter(i => ['/', ...CASHIER_MOBILE_NAV.map(t => t.href)].includes(i.href))
     : visibleNav.filter(i =>
@@ -308,8 +311,7 @@ export function MobileSidebar({ onClose }: { onClose?: () => void }) {
   const gestion = isCashier
     ? visibleNav.filter(i => ['/customers', '/cashier/history'].includes(i.href))
     : visibleNav.filter(i =>
-      ['/vehicles','/stock','/stock/movements','/billing','/customers','/history','/demo-requests','/audit','/reports']
-        .includes(i.href)
+      MOBILE_GESTION_HREFS.includes(i.href)
     );
 
   const initials = user
