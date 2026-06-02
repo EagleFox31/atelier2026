@@ -89,8 +89,15 @@ async function main() {
     const passwordHash = await bcrypt.hash(u.password, 10);
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      update: {},
-      create: { employeeCode: u.employeeCode, firstName: u.firstName, lastName: u.lastName, email: u.email, passwordHash },
+      update: { tempPassword: u.password },
+      create: {
+        employeeCode: u.employeeCode,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        email: u.email,
+        passwordHash,
+        tempPassword: u.password,
+      },
     });
     const role = await prisma.role.findUnique({ where: { code: u.role } });
     if (role) {

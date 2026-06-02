@@ -37,6 +37,7 @@ function makeVehiclesPrismaMock() {
     vehicle: {
       findMany: jest.fn().mockResolvedValue([]),
       findUnique: jest.fn().mockResolvedValue(null),
+      findFirst: jest.fn().mockResolvedValue(null),
       create: jest.fn(),
       update: jest.fn(),
     },
@@ -130,7 +131,7 @@ describe('Vehicles — contrats de réponse HTTP', () => {
 
   describe('GET /api/vehicles/:id', () => {
     it('200 — shape : { id, plateNumber, customer, serviceOrders[] }', async () => {
-      prisma.vehicle.findUnique.mockResolvedValue({
+      prisma.vehicle.findFirst.mockResolvedValue({
         ...VEHICLE_STUB,
         serviceOrders: [{ id: 'ot-1', reference: 'OT-2026-001', status: 'DRAFT' }],
       });
@@ -149,7 +150,7 @@ describe('Vehicles — contrats de réponse HTTP', () => {
     });
 
     it('404 — inexistant → { statusCode: 404, errorCode: "Not Found", message contient "introuvable" }', async () => {
-      prisma.vehicle.findUnique.mockResolvedValue(null);
+      prisma.vehicle.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .get('/api/vehicles/00000000-0000-4000-8000-000000000000')
@@ -225,7 +226,7 @@ describe('Vehicles — contrats de réponse HTTP', () => {
 
   describe('PATCH /api/vehicles/:id', () => {
     it('200 — retourne le véhicule mis à jour', async () => {
-      prisma.vehicle.findUnique.mockResolvedValue({ ...VEHICLE_STUB, serviceOrders: [] });
+      prisma.vehicle.findFirst.mockResolvedValue({ ...VEHICLE_STUB, serviceOrders: [] });
       prisma.vehicle.update.mockResolvedValue({ ...VEHICLE_STUB, color: 'Blanc' });
 
       const res = await request(app.getHttpServer())
@@ -238,7 +239,7 @@ describe('Vehicles — contrats de réponse HTTP', () => {
     });
 
     it('404 — inexistant → errorCode "Not Found"', async () => {
-      prisma.vehicle.findUnique.mockResolvedValue(null);
+      prisma.vehicle.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .patch('/api/vehicles/00000000-0000-4000-8000-000000000001')
@@ -252,7 +253,7 @@ describe('Vehicles — contrats de réponse HTTP', () => {
 
   describe('DELETE /api/vehicles/:id', () => {
     it('200 — soft delete : deletedAt non-null dans la réponse', async () => {
-      prisma.vehicle.findUnique.mockResolvedValue({ ...VEHICLE_STUB, serviceOrders: [] });
+      prisma.vehicle.findFirst.mockResolvedValue({ ...VEHICLE_STUB, serviceOrders: [] });
       prisma.vehicle.update.mockResolvedValue({ ...VEHICLE_STUB, deletedAt: new Date().toISOString() });
 
       const res = await request(app.getHttpServer())
@@ -264,7 +265,7 @@ describe('Vehicles — contrats de réponse HTTP', () => {
     });
 
     it('404 — inexistant → errorCode "Not Found"', async () => {
-      prisma.vehicle.findUnique.mockResolvedValue(null);
+      prisma.vehicle.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .delete('/api/vehicles/00000000-0000-4000-8000-000000000002')

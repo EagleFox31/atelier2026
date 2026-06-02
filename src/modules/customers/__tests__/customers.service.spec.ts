@@ -4,6 +4,7 @@ import { CustomersService } from '../customers.service';
 function makeDeps() {
   const prismaMock = {
     customer: {
+      findFirst: jest.fn(),
       findMany: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
@@ -95,7 +96,7 @@ describe('CustomersService', () => {
   describe('findOne()', () => {
     it('lève NotFoundException si client introuvable', async () => {
       const { service, prismaMock } = makeDeps();
-      prismaMock.customer.findUnique.mockResolvedValue(null);
+      prismaMock.customer.findFirst.mockResolvedValue(null);
 
       await expect(service.findOne('inexistant')).rejects.toThrow(
         new NotFoundException('Client introuvable'),
@@ -104,11 +105,11 @@ describe('CustomersService', () => {
 
     it('include contient vehicles et serviceOrders avec orderBy + take:5', async () => {
       const { service, prismaMock } = makeDeps();
-      prismaMock.customer.findUnique.mockResolvedValue({ id: 'c-1', vehicles: [], serviceOrders: [] });
+      prismaMock.customer.findFirst.mockResolvedValue({ id: 'c-1', vehicles: [], serviceOrders: [] });
 
       await service.findOne('c-1');
 
-      const call = prismaMock.customer.findUnique.mock.calls[0][0];
+      const call = prismaMock.customer.findFirst.mock.calls[0][0];
       expect(call.include.vehicles).toBe(true);
       expect(call.include.serviceOrders.take).toBe(5);
       expect(call.include.serviceOrders.orderBy).toEqual({ openedAt: 'desc' });
@@ -118,7 +119,7 @@ describe('CustomersService', () => {
   describe('remove()', () => {
     it('soft delete via deletedAt', async () => {
       const { service, prismaMock } = makeDeps();
-      prismaMock.customer.findUnique.mockResolvedValue({ id: 'c-1', deletedAt: null });
+      prismaMock.customer.findFirst.mockResolvedValue({ id: 'c-1', deletedAt: null });
       prismaMock.customer.update.mockResolvedValue({ id: 'c-1', deletedAt: new Date() });
 
       await service.remove('c-1');

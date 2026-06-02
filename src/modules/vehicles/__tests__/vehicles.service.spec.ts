@@ -6,6 +6,7 @@ function makeDeps() {
     vehicle: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
     },
@@ -159,7 +160,7 @@ describe('VehiclesService', () => {
   describe('findOne()', () => {
     it('lève NotFoundException si véhicule introuvable', async () => {
       const { service, prismaMock } = makeDeps();
-      prismaMock.vehicle.findUnique.mockResolvedValue(null);
+      prismaMock.vehicle.findFirst.mockResolvedValue(null);
 
       await expect(service.findOne('inexistant')).rejects.toThrow(
         new NotFoundException('Véhicule introuvable'),
@@ -169,23 +170,23 @@ describe('VehiclesService', () => {
     it('retourne le véhicule avec ses relations (filtré sur deletedAt: null)', async () => {
       const { service, prismaMock } = makeDeps();
       const vehicle = { id: 'v-1', plateNumber: 'LT-1234', deletedAt: null };
-      prismaMock.vehicle.findUnique.mockResolvedValue(vehicle);
+      prismaMock.vehicle.findFirst.mockResolvedValue(vehicle);
 
       const result = await service.findOne('v-1');
 
       expect(result).toEqual(vehicle);
-      expect(prismaMock.vehicle.findUnique).toHaveBeenCalledWith(
+      expect(prismaMock.vehicle.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: 'v-1', deletedAt: null } }),
       );
     });
 
     it('findOne : include contient customer, make, model et serviceOrders (take:10, orderBy:openedAt desc)', async () => {
       const { service, prismaMock } = makeDeps();
-      prismaMock.vehicle.findUnique.mockResolvedValue({ id: 'v-1' });
+      prismaMock.vehicle.findFirst.mockResolvedValue({ id: 'v-1' });
 
       await service.findOne('v-1');
 
-      const call = prismaMock.vehicle.findUnique.mock.calls[0][0];
+      const call = prismaMock.vehicle.findFirst.mock.calls[0][0];
       expect(call.include.customer).toBe(true);
       expect(call.include.make).toBe(true);
       expect(call.include.model).toBe(true);
@@ -210,14 +211,14 @@ describe('VehiclesService', () => {
   describe('update()', () => {
     it('lève NotFoundException si le véhicule est introuvable', async () => {
       const { service, prismaMock } = makeDeps();
-      prismaMock.vehicle.findUnique.mockResolvedValue(null);
+      prismaMock.vehicle.findFirst.mockResolvedValue(null);
 
       await expect(service.update('inexistant', {})).rejects.toThrow(NotFoundException);
     });
 
     it('appelle vehicle.update si le véhicule existe', async () => {
       const { service, prismaMock } = makeDeps();
-      prismaMock.vehicle.findUnique.mockResolvedValue({ id: 'v-1', deletedAt: null });
+      prismaMock.vehicle.findFirst.mockResolvedValue({ id: 'v-1', deletedAt: null });
       prismaMock.vehicle.update.mockResolvedValue({ id: 'v-1', plateNumber: 'LT-999' });
 
       await service.update('v-1', { plateNumber: 'LT-999' });
@@ -232,7 +233,7 @@ describe('VehiclesService', () => {
   describe('remove()', () => {
     it('soft delete via deletedAt', async () => {
       const { service, prismaMock } = makeDeps();
-      prismaMock.vehicle.findUnique.mockResolvedValue({ id: 'v-1', deletedAt: null });
+      prismaMock.vehicle.findFirst.mockResolvedValue({ id: 'v-1', deletedAt: null });
       prismaMock.vehicle.update.mockResolvedValue({ id: 'v-1', deletedAt: new Date() });
 
       await service.remove('v-1');

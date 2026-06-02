@@ -110,6 +110,7 @@ export class SignupService {
           email: dto.admin.email.trim().toLowerCase(),
           phone: dto.admin.phone?.trim() || null,
           passwordHash: adminPasswordHash,
+          tempPassword: dto.admin.password,
           employeeCode: await this.generateEmployeeCode(
             dto.admin.firstName,
             dto.admin.lastName,
