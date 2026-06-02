@@ -312,6 +312,10 @@ export function LandingFooter() {
         </div>
         <div className="mt-8 border-t border-slate-100 pt-6 text-center text-sm text-slate-500">
           <p>© {new Date().getFullYear()} Atelier Maître · Douala, Cameroun</p>
+          <p className="mt-1 text-xs text-slate-400">
+            by{' '}
+            <span className="font-semibold text-slate-500 tracking-wide">Trigenys Group</span>
+          </p>
           <p className="mt-2">
             <a
               href="mailto:contact@atelier2026.cm"
