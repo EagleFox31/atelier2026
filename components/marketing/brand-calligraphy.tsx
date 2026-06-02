@@ -1,8 +1,8 @@
-import { Great_Vibes } from 'next/font/google';
+import { Pinyon_Script } from 'next/font/google';
 import { cn } from '@/lib/utils';
 
-const brandScript = Great_Vibes({
-  subsets: ['latin', 'latin-ext'],
+const brandScript = Pinyon_Script({
+  subsets: ['latin'],
   weight: '400',
   display: 'swap',
 });
@@ -19,7 +19,7 @@ export function BrandCalligraphy({
     <span
       className={cn(
         brandScript.className,
-        'inline-block align-baseline text-[1.75em] leading-[0.95] text-brand sm:text-[1.85em]',
+        'inline-block align-baseline text-[2em] leading-[0.95] text-brand sm:text-[2.1em]',
         className,
       )}
     >
