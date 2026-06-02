@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { VehiclesService } from './vehicles.service';
-import { RequirePermission } from '../../decorators/auth.decorator';
+import { RequirePermission, CurrentUser } from '../../decorators/auth.decorator';
 import { CreateVehicleDto, UpdateVehicleDto } from './dto/vehicle.dto';
 
 @Controller('vehicles')
@@ -9,14 +9,14 @@ export class VehiclesController {
 
     @Post()
     @RequirePermission('VEH_CREATE')
-    create(@Body() body: CreateVehicleDto) {
-        return this.vehiclesService.create(body);
+    create(@CurrentUser() user: any, @Body() body: CreateVehicleDto) {
+        return this.vehiclesService.create(body, user.garageId);
     }
 
     @Get()
     @RequirePermission('VEH_VIEW')
-    findAll(@Query('search') search?: string, @Query('customerId') customerId?: string) {
-        return this.vehiclesService.findAll(search, customerId);
+    findAll(@CurrentUser() user: any, @Query('search') search?: string, @Query('customerId') customerId?: string) {
+        return this.vehiclesService.findAll(search, customerId, user.garageId);
     }
 
     @Get('makes')
@@ -33,19 +33,19 @@ export class VehiclesController {
 
     @Get(':id')
     @RequirePermission('VEH_VIEW')
-    findOne(@Param('id') id: string) {
-        return this.vehiclesService.findOne(id);
+    findOne(@CurrentUser() user: any, @Param('id') id: string) {
+        return this.vehiclesService.findOne(id, user.garageId);
     }
 
     @Patch(':id')
     @RequirePermission('VEH_CREATE')
-    update(@Param('id') id: string, @Body() body: UpdateVehicleDto) {
-        return this.vehiclesService.update(id, body);
+    update(@CurrentUser() user: any, @Param('id') id: string, @Body() body: UpdateVehicleDto) {
+        return this.vehiclesService.update(id, body, user.garageId);
     }
 
     @Delete(':id')
     @RequirePermission('VEH_CREATE')
-    remove(@Param('id') id: string) {
-        return this.vehiclesService.remove(id);
+    remove(@CurrentUser() user: any, @Param('id') id: string) {
+        return this.vehiclesService.remove(id, user.garageId);
     }
 }

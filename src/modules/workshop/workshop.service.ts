@@ -81,7 +81,8 @@ export class WorkshopService {
     @Optional() private events?: EventsService,
   ) {}
 
-  listOTs(status?: OTStatus, search?: string, user?: WorkshopUser) {
+  listOTs(status?: OTStatus, search?: string, user?: WorkshopUser & { garageId?: string }) {
+    const db = this.prisma.forGarage(user?.garageId);
     const where: Record<string, unknown> = { ...technicianAssignmentFilter(user) };
     if (status) where.status = status;
     if (search) {
@@ -93,7 +94,7 @@ export class WorkshopService {
       ];
     }
 
-    return this.prisma.serviceOrder.findMany({
+    return db.serviceOrder.findMany({
       where,
       include: {
         customer: true,
@@ -149,10 +150,11 @@ export class WorkshopService {
     return ot;
   }
 
-  async createOT(body: CreateServiceOrderDto, openedByUserId: string) {
+  async createOT(body: CreateServiceOrderDto, openedByUserId: string, garageId?: string) {
     const ot = await this.prisma.$transaction(async (tx) => {
       const created = await tx.serviceOrder.create({
         data: {
+          garageId: garageId ?? null,
           vehicleId: body.vehicleId,
           customerId: body.customerId,
           openedBy: openedByUserId,

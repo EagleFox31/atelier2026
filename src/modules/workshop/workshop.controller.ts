@@ -35,8 +35,8 @@ export class WorkshopController {
 
   @Post('ot')
   @RequirePermission('ORD_CREATE')
-  createOT(@CurrentUser() user: { id: string }, @Body() body: CreateServiceOrderDto) {
-    return this.workshopService.createOT(body, user.id);
+  createOT(@CurrentUser() user: any, @Body() body: CreateServiceOrderDto) {
+    return this.workshopService.createOT(body, user.id, user.garageId);
   }
 
   @Patch('ot/:id')
