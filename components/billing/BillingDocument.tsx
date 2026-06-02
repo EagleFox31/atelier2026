@@ -361,6 +361,8 @@ export function BillingDocument({ type, data }: BillingDocumentProps) {
 
       <p className="text-center text-[9px] text-slate-300 mt-8">
         Document généré par {data.workshop.shopName} · {data.reference}
+        <span className="mx-2">·</span>
+        <span className="italic">Atelier Maître</span>
       </p>
     </article>
   );

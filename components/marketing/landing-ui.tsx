@@ -317,14 +317,6 @@ export function LandingFooter() {
             <BrandCalligraphy className="text-[1.3em] text-slate-400">by</BrandCalligraphy>
             <span className="font-semibold text-slate-500 tracking-wide text-xs">Trigenys Group</span>
           </p>
-          <p className="mt-2">
-            <a
-              href="mailto:contact@atelier2026.cm"
-              className="font-medium text-brand/90 transition-colors hover:text-brand"
-            >
-              contact@atelier2026.cm
-            </a>
-          </p>
         </div>
       </div>
     </footer>
