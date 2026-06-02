@@ -85,4 +85,55 @@ export class AuthService {
       onboardingCompletedAt: user.onboardingCompletedAt?.toISOString() ?? null,
     };
   }
+
+  async forgotPassword(identifier: string) {
+    // Trouve l'employé par email ou identifiant
+    const user = await this.prisma.user.findFirst({
+      where: {
+        deletedAt: null,
+        OR: [{ email: identifier }, { employeeCode: identifier }],
+      },
+      select: { id: true, firstName: true, lastName: true },
+    });
+
+    // Toujours répondre OK — ne pas révéler si le compte existe
+    if (!user) return { message: 'Demande transmise à l\'administrateur.' };
+
+    // Marquer la demande de reset
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordResetRequestedAt: new Date() },
+    });
+
+    // Récupérer les IDs des ADMIN et SUPER_ADMIN actifs
+    const adminUserRoles = await this.prisma.userRole.findMany({
+      where: {
+        revokedAt: null,
+        role: { code: { in: ['ADMIN', 'SUPER_ADMIN'] } },
+        user: { deletedAt: null, status: 'ACTIVE' },
+      },
+      select: { userId: true },
+      distinct: ['userId'],
+    });
+
+    const adminIds = adminUserRoles.map(ur => ur.userId);
+    if (adminIds.length === 0) return { message: 'Demande transmise à l\'administrateur.' };
+
+    // Créer une notification in-app pour chaque admin
+    const fullName = `${user.firstName} ${user.lastName}`;
+    await this.prisma.$transaction(
+      adminIds.map(recipientId =>
+        this.prisma.inAppNotification.create({
+          data: {
+            recipientId,
+            title: 'Demande de réinitialisation de mot de passe',
+            body: `${fullName} a demandé une réinitialisation de son mot de passe.`,
+            link: '/team',
+          },
+        }),
+      ),
+    );
+
+    return { message: 'Demande transmise à l\'administrateur.' };
+  }
 }
