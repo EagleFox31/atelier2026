@@ -149,15 +149,21 @@ export default function SettingsPage() {
     } catch { toast.error('Erreur lors de la suppression'); }
   }
 
-  async function applyToAll(value: number) {
+  const [applyingAll, setApplyingAll] = useState<number | null>(null); // month en cours d'application
+
+  async function applyToAll(value: number, sourceMonth: number) {
     const missing = targets.filter(r => r.targetXaf === null);
     if (missing.length === 0) { toast.info('Tous les mois ont déjà un objectif.'); return; }
-    await Promise.all(
-      missing.map(r => reportsApi.upsertTarget({ year: targetYear, month: r.month, targetXaf: value }))
-    );
-    toast.success(`Objectif ${value.toLocaleString('fr-FR')} XAF appliqué à ${missing.length} mois`);
-    const data = await reportsApi.targets(targetYear);
-    setTargets(data);
+    setApplyingAll(sourceMonth);
+    try {
+      await Promise.all(
+        missing.map(r => reportsApi.upsertTarget({ year: targetYear, month: r.month, targetXaf: value }))
+      );
+      toast.success(`Objectif ${value.toLocaleString('fr-FR')} XAF appliqué à ${missing.length} mois`);
+      const data = await reportsApi.targets(targetYear);
+      setTargets(data);
+    } catch { toast.error('Erreur lors de l\'application'); }
+    finally { setApplyingAll(null); }
   }
 
   return (
@@ -485,11 +491,14 @@ export default function SettingsPage() {
                                       <div className="flex items-center justify-end gap-1">
                                         {targets.some(r => r.targetXaf === null) && (
                                           <button
-                                            onClick={() => void applyToAll(Number(row.targetXaf))}
-                                            className="opacity-0 group-hover:opacity-80 hover:!opacity-100 text-xs text-brand hover:text-brand-hover transition-all px-1.5 py-0.5 rounded hover:bg-brand/10 whitespace-nowrap"
+                                            onClick={() => void applyToAll(Number(row.targetXaf), row.month)}
+                                            disabled={applyingAll !== null}
+                                            className="flex items-center gap-1 text-xs text-brand hover:text-brand-hover transition-colors px-1.5 py-0.5 rounded hover:bg-brand/10 whitespace-nowrap disabled:opacity-50"
                                             title="Appliquer cette valeur à tous les mois sans objectif"
                                           >
-                                            → Copier à tous
+                                            {applyingAll === row.month ? (
+                                              <><svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg> Application...</>
+                                            ) : '→ Copier à tous'}
                                           </button>
                                         )}
                                         <button
