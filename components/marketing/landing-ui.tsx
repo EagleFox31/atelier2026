@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { motion, useScroll, useTransform } from 'motion/react';
+import { BrandCalligraphy } from '@/components/marketing/brand-calligraphy';
 import { Wrench, ChevronDown, type LucideIcon } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -312,9 +313,9 @@ export function LandingFooter() {
         </div>
         <div className="mt-8 border-t border-slate-100 pt-6 text-center text-sm text-slate-500">
           <p>© {new Date().getFullYear()} Atelier Maître · Douala, Cameroun</p>
-          <p className="mt-1 text-xs text-slate-400">
-            by{' '}
-            <span className="font-semibold text-slate-500 tracking-wide">Trigenys Group</span>
+          <p className="mt-1 text-sm text-slate-400 flex items-baseline justify-center gap-1.5">
+            <BrandCalligraphy className="text-[1.3em] text-slate-400">by</BrandCalligraphy>
+            <span className="font-semibold text-slate-500 tracking-wide text-xs">Trigenys Group</span>
           </p>
           <p className="mt-2">
             <a

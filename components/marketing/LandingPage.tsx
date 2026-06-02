@@ -181,15 +181,6 @@ export function LandingPage() {
                   <UserPlus size={17} className="mr-1.5" />
                   Créer mon atelier
                 </Link>
-                <Link
-                  href="/login"
-                  className={cn(
-                    buttonVariants({ variant: 'ghost', size: 'lg' }),
-                    'h-12 rounded-xl text-slate-600 hover:bg-white/60',
-                  )}
-                >
-                  Déjà un compte
-                </Link>
               </div>
               <TrustPills
                 items={[
@@ -197,7 +188,6 @@ export function LandingPage() {
                   'Données hébergées',
                   'Support FR',
                   'XAF · TVA 19,25 %',
-                  'Hors-ligne (PWA)',
                 ]}
               />
             </motion.div>
