@@ -13,10 +13,10 @@ const pool = new Pool({
   connectionTimeoutMillis: 20000,
 });
 
-async function q(sql) {
+async function q(sql, params = []) {
   const client = await pool.connect();
   try {
-    return await client.query(sql);
+    return await client.query(sql, params);
   } finally {
     client.release();
   }
@@ -112,6 +112,7 @@ async function main() {
   await migrateMultiTenant();
   await migrateGarageIdColumns();
   await migrateMonthlyTargets();
+  await migrateDefaultGarageForSeededData();
 
   console.log('\n✅ Migration terminée.');
 }
@@ -251,6 +252,63 @@ async function migrateMultiTenant() {
     console.log('   ✅ workshop_settings.garage_id ajouté');
   } else {
     console.log('   ⏭️  workshop_settings.garage_id existe déjà');
+  }
+}
+
+async function migrateDefaultGarageForSeededData() {
+  // Vérifie s'il y a des users sans garage
+  const { rows: orphans } = await q(`SELECT COUNT(*) FROM users WHERE garage_id IS NULL AND deleted_at IS NULL`);
+  if (parseInt(orphans[0].count) === 0) {
+    console.log('   ⏭️  Tous les users ont un garage — rien à migrer');
+    return;
+  }
+
+  // Cherche un tenant/garage existant créé par inscription
+  const { rows: existing } = await q(`SELECT id, tenant_id FROM garages ORDER BY created_at ASC LIMIT 1`);
+
+  let garageId, tenantId;
+
+  if (existing.length > 0) {
+    // Un garage existe déjà (créé via /inscription) — on utilise le premier
+    garageId = existing[0].id;
+    tenantId = existing[0].tenant_id;
+    console.log(`   ℹ️  Garage existant trouvé (${garageId}) — rattachement des users orphelins`);
+  } else {
+    // Aucun garage → créer le tenant + garage "default"
+    const { rows: tenantRows } = await q(`
+      INSERT INTO tenants (slug, name, email, plan, status)
+      VALUES ('default', 'Atelier Maître (défaut)', 'admin@atelier.cm', 'starter', 'active')
+      ON CONFLICT (slug) DO UPDATE SET slug = tenants.slug
+      RETURNING id
+    `);
+    tenantId = tenantRows[0].id;
+
+    const { rows: garageRows } = await q(`
+      INSERT INTO garages (tenant_id, slug, name, city, address, phone, status)
+      VALUES ($1, 'principal', 'Garage Principal', 'Yaoundé', 'Bastos, Rue 1.042, Yaoundé', '+237 699 00 00 00', 'active')
+      RETURNING id
+    `, [tenantId]);
+    garageId = garageRows[0].id;
+    console.log(`   ✅ Tenant + garage "default" créés`);
+  }
+
+  // Rattacher les users orphelins
+  const { rowCount: usersUpdated } = await q(`
+    UPDATE users SET garage_id = $1, tenant_id = $2
+    WHERE garage_id IS NULL AND deleted_at IS NULL
+  `, [garageId, tenantId]);
+  console.log(`   ✅ ${usersUpdated} user(s) rattaché(s) au garage default`);
+
+  // Rattacher les données opérationnelles orphelines
+  const tables = ['customers','vehicles','service_orders','parts_catalog','stock_movements','quotes','invoices','payments','appointments'];
+  for (const table of tables) {
+    const { rows: hasCol } = await q(`
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='${table}' AND column_name='garage_id'
+    `);
+    if (hasCol.length === 0) continue;
+    const { rowCount } = await q(`UPDATE ${table} SET garage_id = $1 WHERE garage_id IS NULL`, [garageId]);
+    if (rowCount > 0) console.log(`   ✅ ${table} : ${rowCount} ligne(s) rattachée(s)`);
   }
 }
 
