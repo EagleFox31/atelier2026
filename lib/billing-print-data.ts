@@ -68,6 +68,7 @@ function mapWorkshop(workshop: WorkshopSettings): BillingDocumentData['workshop'
     email: workshop.email,
     phone: workshop.phone,
     address: workshop.address,
+    logoUrl: workshop.logoUrl ?? null,
   };
 }
 
