@@ -145,7 +145,7 @@ export function Sidebar() {
   const gestion = isCashier
     ? visibleNav.filter(i => ['/customers', '/cashier/history'].includes(i.href))
     : visibleNav.filter(i =>
-      ['/vehicles','/stock','/stock/movements','/billing','/customers','/history','/demo-requests','/audit','/reports']
+      ['/vehicles','/stock','/stock/movements','/billing','/customers','/history','/demo-requests','/audit','/reports','/admin/tenants']
         .includes(i.href)
     );
 
@@ -308,7 +308,7 @@ export function MobileSidebar({ onClose }: { onClose?: () => void }) {
   const gestion = isCashier
     ? visibleNav.filter(i => ['/customers', '/cashier/history'].includes(i.href))
     : visibleNav.filter(i =>
-      ['/vehicles','/stock','/stock/movements','/billing','/customers','/history','/demo-requests','/audit','/reports']
+      ['/vehicles','/stock','/stock/movements','/billing','/customers','/history','/demo-requests','/audit','/reports','/admin/tenants']
         .includes(i.href)
     );
 
