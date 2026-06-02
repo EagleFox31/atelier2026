@@ -140,7 +140,7 @@ export function Sidebar() {
   const visibleNav = useVisibleItems(NAV_ITEMS);
   const visibleSettings = useVisibleItems(SETTINGS_ITEMS);
 
-  const GESTION_HREFS = ['/admin/tenants','/vehicles','/stock','/stock/movements','/billing','/customers','/history','/demo-requests','/audit','/reports'];
+  const GESTION_HREFS = ['/admin/tenants','/vehicles','/stock','/stock/movements','/billing','/customers','/history','/demo-requests','/audit','/reports','/help'];
   const gestionStartIdx = visibleNav.findIndex(i => GESTION_HREFS.includes(i.href));
 
   const principal = isCashier
@@ -304,7 +304,7 @@ export function MobileSidebar({ onClose }: { onClose?: () => void }) {
   const visibleNav = useVisibleItems(NAV_ITEMS);
   const visibleSettings = useVisibleItems(SETTINGS_ITEMS);
 
-  const MOBILE_GESTION_HREFS = ['/admin/tenants','/vehicles','/stock','/stock/movements','/billing','/customers','/history','/demo-requests','/audit','/reports'];
+  const MOBILE_GESTION_HREFS = ['/admin/tenants','/vehicles','/stock','/stock/movements','/billing','/customers','/history','/demo-requests','/audit','/reports','/help'];
 
   const principal = isCashier
     ? visibleNav.filter(i => ['/', ...CASHIER_MOBILE_NAV.map(t => t.href)].includes(i.href))

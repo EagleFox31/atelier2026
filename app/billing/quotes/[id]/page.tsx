@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { handleApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { FiscalHintLabel } from "@/components/fiscal/FiscalHintLabel";
 
 const QUOTE_STATUS: Record<string, { label: string; color: string }> = {
   DRAFT:    { label: 'Brouillon',  color: 'bg-slate-100 text-slate-600' },
@@ -262,12 +263,16 @@ export default function QuoteDetailPage() {
               <span>{formatXAF(quote.subtotalXaf)}</span>
             </div>
             <div className="flex justify-between">
-              <span>TVA ({Math.round(Number(quote.taxRate) * 100)}%)</span>
+              <FiscalHintLabel hint="tva">
+                <span>TVA ({Math.round(Number(quote.taxRate) * 100)}%)</span>
+              </FiscalHintLabel>
               <span>{formatXAF(quote.taxAmountXaf)}</span>
             </div>
             {Number(quote.stampDutyXaf) > 0 && (
               <div className="flex justify-between">
-                <span>Timbre fiscal</span>
+                <FiscalHintLabel hint="stamp">
+                  <span>Timbre fiscal</span>
+                </FiscalHintLabel>
                 <span>{formatXAF(quote.stampDutyXaf)}</span>
               </div>
             )}
@@ -381,12 +386,16 @@ export default function QuoteDetailPage() {
                     <span className="font-mono">{formatXAF(quote.subtotalXaf)}</span>
                   </div>
                   <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>TVA ({Math.round(Number(quote.taxRate) * 100)}%)</span>
+                    <FiscalHintLabel hint="tva">
+                      <span>TVA ({Math.round(Number(quote.taxRate) * 100)}%)</span>
+                    </FiscalHintLabel>
                     <span className="font-mono">{formatXAF(quote.taxAmountXaf)}</span>
                   </div>
                   {Number(quote.stampDutyXaf) > 0 && (
                     <div className="flex justify-between text-sm text-muted-foreground">
-                      <span>Timbre fiscal</span>
+                      <FiscalHintLabel hint="stamp">
+                        <span>Timbre fiscal</span>
+                      </FiscalHintLabel>
                       <span className="font-mono">{formatXAF(quote.stampDutyXaf)}</span>
                     </div>
                   )}

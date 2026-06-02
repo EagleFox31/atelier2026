@@ -23,7 +23,6 @@ import { CashierDashboardSection } from "@/components/dashboard/CashierDashboard
 import { isTechnicianProfile, isReceptionnisteProfile, isCaissierProfile } from "@/lib/role-routing";
 import { workshopApi, planningApi, teamApi, billingApi, reportsApi } from "@/lib/api";
 import { WORKSHOP_STATUS, isActiveOT } from "@/lib/constants";
-import { GettingStartedPanel } from "@/components/onboarding/GettingStartedPanel";
 
 const STAT_META = [
   { icon: Wrench,        color: 'text-brand',       bg: 'bg-brand/10' },
@@ -210,8 +209,6 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
-
-      <GettingStartedPanel />
 
       {isCashierView ? (
         <CashierDashboardSection

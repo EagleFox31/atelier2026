@@ -126,12 +126,6 @@ export function GuideMenu() {
               <Map size={14} />
               Tour interactif
             </Button>
-            <Link
-              href="/dashboard#getting-started"
-              className="flex h-8 w-full items-center justify-center rounded-md text-xs font-medium hover:bg-accent"
-            >
-              Checklist Premiers pas
-            </Link>
           </section>
 
           {index.length > 0 && (

@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { formatXAF } from '@/lib/utils';
+import { FiscalHintLabel } from '@/components/fiscal/FiscalHintLabel';
+import { TVA_RATE_LABEL } from '@/lib/fiscal-hints';
 
 export interface BillingDocumentData {
   docType?: 'DEVIS' | 'FACTURE';
@@ -241,12 +243,16 @@ export function BillingDocument({ type, data }: BillingDocumentProps) {
               <span className="font-mono font-semibold">{formatXAF(data.subtotal)}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-slate-500 font-medium">TVA 19,25 %</span>
+              <FiscalHintLabel hint="tva" className="text-slate-500 font-medium">
+                <span>TVA {TVA_RATE_LABEL}</span>
+              </FiscalHintLabel>
               <span className="font-mono font-semibold">{formatXAF(data.tax)}</span>
             </div>
             {stampDuty > 0 && (
               <div className="flex justify-between text-xs">
-                <span className="text-slate-500 font-medium">Timbre fiscal</span>
+                <FiscalHintLabel hint="stamp" className="text-slate-500 font-medium">
+                  <span>Timbre fiscal</span>
+                </FiscalHintLabel>
                 <span className="font-mono font-semibold">{formatXAF(stampDuty)}</span>
               </div>
             )}

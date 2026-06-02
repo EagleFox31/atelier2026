@@ -22,8 +22,9 @@ import { handleApiError } from "@/lib/api";
 import { QuoteOtContextPanel } from "@/components/billing/QuoteOtContextPanel";
 import { PartLineCombobox } from "@/components/forms/PartLineCombobox";
 import { WORKSHOP_STATUS } from "@/lib/constants";
-
-const TAX_RATE = 0.1925;
+import { computeAmounts } from "@/src/shared/fiscal/compute-amounts";
+import { FiscalHintLabel } from "@/components/fiscal/FiscalHintLabel";
+import { TVA_RATE_LABEL } from "@/lib/fiscal-hints";
 
 interface Line {
   id: string;
@@ -39,13 +40,14 @@ interface Line {
 function uid() { return Math.random().toString(36).slice(2); }
 
 function computeTotals(lines: Line[]) {
-  const subtotal = lines.reduce((sum, l) => {
-    const lineTotal = l.quantity * l.unitPriceXaf * (1 - l.discountPct / 100);
-    return sum + lineTotal;
-  }, 0);
-  const tax   = Math.round(subtotal * TAX_RATE);
-  const total = subtotal + tax;
-  return { subtotal: Math.round(subtotal), tax, total };
+  const subtotal = Math.round(
+    lines.reduce((sum, l) => {
+      const lineTotal = l.quantity * l.unitPriceXaf * (1 - l.discountPct / 100);
+      return sum + lineTotal;
+    }, 0),
+  );
+  const { taxAmount, stampDuty, total } = computeAmounts(subtotal);
+  return { subtotal, tax: taxAmount, stampDuty, total };
 }
 
 function customerName(c: any) {
@@ -224,7 +226,7 @@ function NewQuotePageContent() {
   const receptionChecks: any[] = order?.receptionChecks ?? [];
   const otStatus = order ? WORKSHOP_STATUS[order.status] : null;
 
-  const { subtotal, tax, total } = computeTotals(lines);
+  const { subtotal, tax, stampDuty, total } = computeTotals(lines);
 
   if (loading) return (
     <div className="space-y-6">
@@ -485,9 +487,19 @@ function NewQuotePageContent() {
                   <span className="font-mono">{formatXAF(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>TVA 19,25 %</span>
+                  <FiscalHintLabel hint="tva">
+                    <span>TVA {TVA_RATE_LABEL}</span>
+                  </FiscalHintLabel>
                   <span className="font-mono">{formatXAF(tax)}</span>
                 </div>
+                {stampDuty > 0 && (
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <FiscalHintLabel hint="stamp">
+                      <span>Timbre fiscal</span>
+                    </FiscalHintLabel>
+                    <span className="font-mono">{formatXAF(stampDuty)}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between text-lg font-bold text-foreground">
                   <span>Total TTC</span>

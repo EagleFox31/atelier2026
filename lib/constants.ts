@@ -13,6 +13,7 @@ import {
   ClipboardList,
   Presentation,
   Building2,
+  CircleHelp,
   type LucideIcon,
 } from "lucide-react";
 
@@ -159,6 +160,11 @@ export const SETTINGS_ITEMS: NavItem[] = [
     href: "/notifications",
     icon: Bell,
     roles: ["ADMIN", "SUPER_ADMIN"],
+  },
+  {
+    title: "Centre d'aide",
+    href: "/help",
+    icon: CircleHelp,
   },
 ];
 
