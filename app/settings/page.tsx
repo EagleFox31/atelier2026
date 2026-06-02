@@ -443,7 +443,9 @@ export default function SettingsPage() {
                               const isEditing = editingMonth === row.month;
                               return (
                                 <tr key={row.month} className="group hover:bg-slate-50/60 transition-colors">
-                                  <td className="py-3 pr-4 font-medium text-slate-700">{row.label}</td>
+                                  <td className="py-3 pr-4 font-medium text-slate-700">
+                                    {['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'][row.month - 1]} {targetYear}
+                                  </td>
                                   <td className="py-3 px-3 text-right">
                                     {isEditing ? (
                                       <div className="flex items-center justify-end gap-1.5">
