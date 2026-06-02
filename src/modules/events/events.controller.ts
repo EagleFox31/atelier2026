@@ -49,7 +49,7 @@ export class EventsController {
     const roles = user.roles.map((ur: any) => ur.role.code);
     const subject = new Subject<MessageEvent>();
     const disconnect$ = new Subject<void>();
-    const remove = this.events.addClient({ userId: user.id, roles, subject });
+    const remove = this.events.addClient({ userId: user.id, garageId: user.garageId, roles, subject });
 
     req.on('close', () => {
       disconnect$.next();

@@ -9,13 +9,19 @@ export class CounterSalesController {
 
   @Get()
   @RequirePermission('FAC_VIEW')
-  findAll(@Query('search') search?: string) {
-    return this.counterSalesService.findAll(search);
+  findAll(
+    @CurrentUser() user: { garageId?: string | null },
+    @Query('search') search?: string,
+  ) {
+    return this.counterSalesService.findAll(search, user?.garageId);
   }
 
   @Post()
   @RequirePermission('FAC_PAY')
-  create(@Body() body: CreateCounterSaleDto, @CurrentUser() user: { id: string }) {
-    return this.counterSalesService.create(body, user.id);
+  create(
+    @Body() body: CreateCounterSaleDto,
+    @CurrentUser() user: { id: string; garageId?: string | null },
+  ) {
+    return this.counterSalesService.create(body, user.id, user?.garageId);
   }
 }

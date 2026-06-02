@@ -2,6 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { PaymentMethod } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { computeAmounts, computeLineTotal } from '../../shared/fiscal/compute-amounts';
+import {
+  assertCustomerInGarage,
+  assertPartInGarage,
+  garageWhere,
+  requireGarageId,
+} from '../../shared/garage/garage-scope';
 
 import { CreateCounterSaleDto } from './dto/counter-sales.dto';
 
@@ -12,8 +18,10 @@ export type CounterSaleLineInput = CreateCounterSaleDto['lines'][number];
 export class CounterSalesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll(search?: string) {
-    const where: Record<string, unknown> = {};
+  findAll(search?: string, garageId?: string | null) {
+    const where: Record<string, unknown> = {
+      ...garageWhere(garageId),
+    };
     if (search) {
       where.OR = [
         { reference: { contains: search, mode: 'insensitive' } },
@@ -34,7 +42,15 @@ export class CounterSalesService {
     });
   }
 
-  create(data: CreateCounterSaleInput, soldByUserId: string) {
+  async create(data: CreateCounterSaleInput, soldByUserId: string, garageId?: string | null) {
+    const g = requireGarageId(garageId);
+    if (data.customerId) {
+      await assertCustomerInGarage(this.prisma, data.customerId, g);
+    }
+    for (const line of data.lines || []) {
+      await assertPartInGarage(this.prisma, line.partId, g);
+    }
+
     const lines = (data.lines || []).map((line) => {
       const discountPct = line.discountPct ?? 0;
       const lineTotalXaf = computeLineTotal(line.quantity, line.unitPriceXaf, discountPct);
@@ -46,6 +62,7 @@ export class CounterSalesService {
 
     return this.prisma.counterSale.create({
       data: {
+        garageId: g,
         customerId: data.customerId ?? null,
         walkInName: data.walkInName ?? null,
         walkInPhone: data.walkInPhone ?? null,

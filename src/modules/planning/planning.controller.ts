@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { AppointmentStatus } from '@prisma/client';
-import { RequirePermission } from '../../decorators/auth.decorator';
+import { RequirePermission, CurrentUser } from '../../decorators/auth.decorator';
 import { CreateAppointmentDto, UpdateAppointmentDto } from './dto/planning.dto';
 import { PlanningService } from './planning.service';
 
@@ -10,25 +10,33 @@ export class PlanningController {
 
   @Post('appointments')
   @RequirePermission('ORD_CREATE')
-  create(@Body() body: CreateAppointmentDto) {
-    return this.planningService.create(body);
+  create(@CurrentUser() user: { garageId?: string | null }, @Body() body: CreateAppointmentDto) {
+    return this.planningService.create(body, user.garageId);
   }
 
   @Get('appointments')
   @RequirePermission('ORD_VIEW')
-  findAll(@Query('date') date?: string, @Query('status') status?: AppointmentStatus) {
-    return this.planningService.findAll(date, status);
+  findAll(
+    @CurrentUser() user: { garageId?: string | null },
+    @Query('date') date?: string,
+    @Query('status') status?: AppointmentStatus,
+  ) {
+    return this.planningService.findAll(user.garageId, date, status);
   }
 
   @Patch('appointments/:id')
   @RequirePermission('ORD_CREATE')
-  update(@Param('id') id: string, @Body() body: UpdateAppointmentDto) {
-    return this.planningService.update(id, body);
+  update(
+    @CurrentUser() user: { garageId?: string | null },
+    @Param('id') id: string,
+    @Body() body: UpdateAppointmentDto,
+  ) {
+    return this.planningService.update(id, body, user.garageId);
   }
 
   @Delete('appointments/:id')
   @RequirePermission('ORD_CREATE')
-  remove(@Param('id') id: string) {
-    return this.planningService.remove(id);
+  remove(@CurrentUser() user: { garageId?: string | null }, @Param('id') id: string) {
+    return this.planningService.remove(id, user.garageId);
   }
 }

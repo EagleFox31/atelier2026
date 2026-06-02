@@ -29,6 +29,73 @@ const TEST_USERS = [
   { employeeCode: 'SYS-001', firstName: 'Système', lastName: 'Bot',     email: 'bot@atelier.cm',        password: 'SystemPassword_NoLogin!', role: 'SYSTEM' },
 ];
 
+const DEMO_TENANT = {
+  slug: 'default',
+  name: 'Atelier Maître (démo)',
+  email: 'admin@atelier.cm',
+  plan: 'starter',
+  status: 'active',
+} as const;
+
+const DEMO_GARAGE = {
+  slug: 'demo',
+  name: 'Garage Démo',
+  city: 'Yaoundé',
+  address: 'Bastos, Rue 1.042, Yaoundé, Cameroun',
+  phone: '+237 699 00 00 00',
+  niu: 'M012345678901X',
+  status: 'active',
+} as const;
+
+const DEMO_WORKSHOP = {
+  shopName: 'Garage Démo — Atelier Maître',
+  tagline: 'Environnement de démonstration — Yaoundé, Cameroun',
+  niu: 'M012345678901X',
+  email: 'admin@atelier.cm',
+  phone: '+237 699 00 00 00',
+  address: 'Bastos, Rue 1.042, Yaoundé, Cameroun',
+  defaultLaborRateXaf: 15000,
+  taxRatePct: 19.25,
+} as const;
+
+async function ensureDemoTenantAndGarage() {
+  const tenant = await prisma.tenant.upsert({
+    where: { slug: DEMO_TENANT.slug },
+    update: {
+      name: DEMO_TENANT.name,
+      email: DEMO_TENANT.email,
+      status: DEMO_TENANT.status,
+    },
+    create: { ...DEMO_TENANT },
+  });
+
+  let garage = await prisma.garage.findFirst({
+    where: {
+      tenantId: tenant.id,
+      slug: { in: ['demo', 'principal'] },
+    },
+  });
+
+  if (!garage) {
+    garage = await prisma.garage.create({
+      data: { tenantId: tenant.id, ...DEMO_GARAGE },
+    });
+  }
+
+  const settingsId = `garage_${garage.id}`;
+  await prisma.workshopSettings.upsert({
+    where: { id: settingsId },
+    update: {},
+    create: {
+      id: settingsId,
+      garageId: garage.id,
+      ...DEMO_WORKSHOP,
+    },
+  });
+
+  return { tenant, garage };
+}
+
 async function main() {
   console.log('🌱 Démarrage du seeding...\n');
 
@@ -83,13 +150,22 @@ async function main() {
   }
   console.log(`   ✅ ${rpCount} liaisons`);
 
-  // ── 4. Utilisateurs de test ──────────────────────────────────────────────────
+  // ── 4. Tenant + garage démo (comptes @atelier.cm) ───────────────────────────
+  console.log('→ Tenant default + garage démo...');
+  const { tenant: demoTenant, garage: demoGarage } = await ensureDemoTenantAndGarage();
+  console.log(`   ✅ tenant "${demoTenant.slug}" · garage "${demoGarage.name}" (${demoGarage.slug})`);
+
+  // ── 5. Utilisateurs de test ──────────────────────────────────────────────────
   console.log('→ Utilisateurs de test...');
   for (const u of TEST_USERS) {
     const passwordHash = await bcrypt.hash(u.password, 10);
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      update: { tempPassword: u.password },
+      update: {
+        tempPassword: u.password,
+        tenantId: demoTenant.id,
+        garageId: demoGarage.id,
+      },
       create: {
         employeeCode: u.employeeCode,
         firstName: u.firstName,
@@ -97,6 +173,8 @@ async function main() {
         email: u.email,
         passwordHash,
         tempPassword: u.password,
+        tenantId: demoTenant.id,
+        garageId: demoGarage.id,
       },
     });
     const role = await prisma.role.findUnique({ where: { code: u.role } });
@@ -109,7 +187,7 @@ async function main() {
     console.log(`   ✅ ${u.email} (${u.role})`);
   }
 
-  // ── 5. Catalogue main-d'œuvre ────────────────────────────────────────────────
+  // ── 6. Catalogue main-d'œuvre ────────────────────────────────────────────────
   console.log("→ Catalogue main-d'œuvre...");
   const labors = [
     { code: 'MO_MEC_01',  category: 'MÉCANIQUE',     descriptionFr: 'Vidange moteur + filtre huile',         unitPriceXaf: 15000, standardHours: 1.0 },
@@ -127,7 +205,7 @@ async function main() {
   }
   console.log(`   ✅ ${labors.length} prestations`);
 
-  // ── 6. Paramètres atelier (singleton) ───────────────────────────────────────
+  // ── 7. Paramètres atelier (singleton global — fallback app) ───────────────────
   console.log('→ Paramètres atelier...');
   await prisma.workshopSettings.upsert({
     where: { id: 'default' },

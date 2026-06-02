@@ -6,12 +6,15 @@ function makeDeps() {
       findMany: jest.fn().mockResolvedValue([]),
       create: jest.fn().mockResolvedValue({ id: 'sale-1' }),
     },
+    customer: { findFirst: jest.fn().mockResolvedValue({ id: 'cust-1' }) },
+    partsCatalog: { findFirst: jest.fn().mockResolvedValue({ id: 'p-1' }) },
   };
   const service = new CounterSalesService(prismaMock as any);
   return { service, prismaMock };
 }
 
 const SELLER = { id: 'user-caisse', roles: [] };
+const GARAGE_ID = 'garage-demo-1';
 
 // Extrait les champs fiscaux du dernier appel à prisma.counterSale.create
 function getCreatedData(prismaMock: ReturnType<typeof makeDeps>['prismaMock']) {
@@ -28,6 +31,7 @@ describe('CounterSalesService — calcul fiscal (TVA 19.25%, timbre)', () => {
     await service.create(
       { lines: [{ partId: 'p-1', quantity: 2, unitPriceXaf: 5000 }] },
       SELLER.id,
+      GARAGE_ID,
     );
     expect(getCreatedData(prismaMock).subtotalXaf).toBe(10000); // 2 × 5000
   });
@@ -37,6 +41,7 @@ describe('CounterSalesService — calcul fiscal (TVA 19.25%, timbre)', () => {
     await service.create(
       { lines: [{ partId: 'p-1', quantity: 1, unitPriceXaf: 10000, discountPct: 10 }] },
       SELLER.id,
+      GARAGE_ID,
     );
     // round(1 × 10000 × 0.90) = 9000
     expect(getCreatedData(prismaMock).subtotalXaf).toBe(9000);
@@ -52,6 +57,7 @@ describe('CounterSalesService — calcul fiscal (TVA 19.25%, timbre)', () => {
         ],
       },
       SELLER.id,
+      GARAGE_ID,
     );
     expect(getCreatedData(prismaMock).subtotalXaf).toBe(11000);
   });
@@ -64,6 +70,7 @@ describe('CounterSalesService — calcul fiscal (TVA 19.25%, timbre)', () => {
     await service.create(
       { lines: [{ partId: 'p-1', quantity: 2, unitPriceXaf: 10000 }] },
       SELLER.id,
+      GARAGE_ID,
     );
     expect(getCreatedData(prismaMock).taxAmountXaf).toBe(3850);
   });
@@ -74,6 +81,7 @@ describe('CounterSalesService — calcul fiscal (TVA 19.25%, timbre)', () => {
     await service.create(
       { lines: [{ partId: 'p-1', quantity: 1, unitPriceXaf: 9000 }] },
       SELLER.id,
+      GARAGE_ID,
     );
     expect(getCreatedData(prismaMock).taxAmountXaf).toBe(1733);
   });
@@ -86,6 +94,7 @@ describe('CounterSalesService — calcul fiscal (TVA 19.25%, timbre)', () => {
     await service.create(
       { lines: [{ partId: 'p-1', quantity: 2, unitPriceXaf: 10000 }] },
       SELLER.id,
+      GARAGE_ID,
     );
     const data = getCreatedData(prismaMock);
     expect(data.stampDutyXaf).toBe(1000);
@@ -98,6 +107,7 @@ describe('CounterSalesService — calcul fiscal (TVA 19.25%, timbre)', () => {
     await service.create(
       { lines: [{ partId: 'p-1', quantity: 1, unitPriceXaf: 9000 }] },
       SELLER.id,
+      GARAGE_ID,
     );
     const data = getCreatedData(prismaMock);
     expect(data.stampDutyXaf).toBe(0);
@@ -110,6 +120,7 @@ describe('CounterSalesService — calcul fiscal (TVA 19.25%, timbre)', () => {
     await service.create(
       { lines: [{ partId: 'p-1', quantity: 1, unitPriceXaf: 10000 }] },
       SELLER.id,
+      GARAGE_ID,
     );
     const data = getCreatedData(prismaMock);
     expect(data.stampDutyXaf).toBe(0);
@@ -123,6 +134,7 @@ describe('CounterSalesService — calcul fiscal (TVA 19.25%, timbre)', () => {
     await service.create(
       { lines: [{ partId: 'p-1', quantity: 1, unitPriceXaf: 5000 }] },
       'user-caisse-42',
+      GARAGE_ID,
     );
     expect(getCreatedData(prismaMock).soldBy).toBe('user-caisse-42');
   });
@@ -136,6 +148,7 @@ describe('CounterSalesService — calcul fiscal (TVA 19.25%, timbre)', () => {
         lines: [{ partId: 'p-1', quantity: 1, unitPriceXaf: 5000 }],
       },
       SELLER.id,
+      GARAGE_ID,
     );
     const data = getCreatedData(prismaMock);
     expect(data.walkInName).toBe('Jean Dupont');
@@ -150,15 +163,15 @@ describe('CounterSalesService.findAll()', () => {
 
   it('retourne toutes les ventes sans filtre', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.findAll(undefined);
+    await service.findAll(undefined, GARAGE_ID);
     expect(prismaMock.counterSale.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: {} }),
+      expect.objectContaining({ where: { garageId: GARAGE_ID } }),
     );
   });
 
   it('construit une clause OR sur référence, walkInName et lastName client', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.findAll('Dupont');
+    await service.findAll('Dupont', GARAGE_ID);
     const where = prismaMock.counterSale.findMany.mock.calls[0][0].where;
     expect(where.OR).toHaveLength(3);
     expect(where.OR[0]).toEqual({ reference: { contains: 'Dupont', mode: 'insensitive' } });
@@ -168,7 +181,7 @@ describe('CounterSalesService.findAll()', () => {
 
   it('include contient customer, lines avec part et vendeur (firstName+lastName)', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.findAll(undefined);
+    await service.findAll(undefined, GARAGE_ID);
     const call = prismaMock.counterSale.findMany.mock.calls[0][0];
     expect(call.include.customer).toBe(true);
     expect(call.include.lines.include.part).toBe(true);
@@ -178,7 +191,7 @@ describe('CounterSalesService.findAll()', () => {
 
   it('limite à 50 résultats', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.findAll(undefined);
+    await service.findAll(undefined, GARAGE_ID);
     expect(prismaMock.counterSale.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ take: 50 }),
     );
@@ -186,7 +199,7 @@ describe('CounterSalesService.findAll()', () => {
 
   it('tri par createdAt desc', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.findAll(undefined);
+    await service.findAll(undefined, GARAGE_ID);
     expect(prismaMock.counterSale.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ orderBy: { createdAt: 'desc' } }),
     );
@@ -201,6 +214,7 @@ describe('CounterSalesService.create() — champs optionnels null par défaut', 
     await service.create(
       { lines: [{ partId: 'p-1', quantity: 1, unitPriceXaf: 5000 }] },
       'user-1',
+      GARAGE_ID,
     );
     expect(getCreatedData(prismaMock).walkInPhone).toBeNull();
   });
@@ -210,6 +224,7 @@ describe('CounterSalesService.create() — champs optionnels null par défaut', 
     await service.create(
       { walkInPhone: '+237690000000', lines: [{ partId: 'p-1', quantity: 1, unitPriceXaf: 5000 }] },
       'user-1',
+      GARAGE_ID,
     );
     expect(getCreatedData(prismaMock).walkInPhone).toBe('+237690000000');
   });
@@ -219,6 +234,7 @@ describe('CounterSalesService.create() — champs optionnels null par défaut', 
     await service.create(
       { lines: [{ partId: 'p-1', quantity: 1, unitPriceXaf: 5000 }] },
       'user-1',
+      GARAGE_ID,
     );
     expect(getCreatedData(prismaMock).paymentRef).toBeNull();
   });
@@ -228,6 +244,7 @@ describe('CounterSalesService.create() — champs optionnels null par défaut', 
     await service.create(
       { lines: [{ partId: 'p-1', quantity: 1, unitPriceXaf: 5000 }] },
       'user-1',
+      GARAGE_ID,
     );
     expect(getCreatedData(prismaMock).notes).toBeNull();
   });
@@ -237,6 +254,7 @@ describe('CounterSalesService.create() — champs optionnels null par défaut', 
     await service.create(
       { lines: [{ partId: 'p-1', quantity: 1, unitPriceXaf: 5000 }] },
       'user-1',
+      GARAGE_ID,
     );
     expect(getCreatedData(prismaMock).paymentMethod).toBe('CASH');
   });
@@ -246,6 +264,7 @@ describe('CounterSalesService.create() — champs optionnels null par défaut', 
     await service.create(
       { lines: [{ partId: 'p-1', quantity: 1, unitPriceXaf: 5000 }] },
       'user-1',
+      GARAGE_ID,
     );
     const call = prismaMock.counterSale.create.mock.calls[0][0];
     expect(call.include.lines.include.part).toBe(true);

@@ -24,6 +24,13 @@ import {
   type WorkshopUser,
 } from './workshop-access.helpers';
 import { EventsService } from '../events/events.service';
+import {
+  assertCustomerInGarage,
+  assertOTInGarage,
+  assertVehicleInGarage,
+  garageWhere,
+  requireGarageId,
+} from '../../shared/garage/garage-scope';
 
 /** Statuts où un technicien assigné peut saisir un constat */
 const TECH_OBSERVATION_STATUSES: OTStatus[] = [
@@ -82,10 +89,9 @@ export class WorkshopService {
   ) {}
 
   listOTs(status?: OTStatus, search?: string, user?: WorkshopUser & { garageId?: string | null }) {
-    const garageId = user?.garageId;
     const where: Record<string, unknown> = {
       ...technicianAssignmentFilter(user),
-      ...(garageId ? { garageId } : {}),
+      ...garageWhere(user?.garageId),
     };
     if (status) where.status = status;
     if (search) {
@@ -109,9 +115,10 @@ export class WorkshopService {
     });
   }
 
-  async getOT(id: string, user?: WorkshopUser) {
-    const ot = await this.prisma.serviceOrder.findUnique({
-      where: { id },
+  async getOT(id: string, user?: WorkshopUser & { garageId?: string | null }) {
+    const g = requireGarageId(user?.garageId);
+    const ot = await this.prisma.serviceOrder.findFirst({
+      where: { id, garageId: g },
       include: {
         customer: true,
         vehicle: { include: { make: true, model: true } },
@@ -153,11 +160,15 @@ export class WorkshopService {
     return ot;
   }
 
-  async createOT(body: CreateServiceOrderDto, openedByUserId: string, garageId?: string) {
+  async createOT(body: CreateServiceOrderDto, openedByUserId: string, garageId?: string | null) {
+    const g = requireGarageId(garageId);
+    await assertCustomerInGarage(this.prisma, body.customerId, g);
+    await assertVehicleInGarage(this.prisma, body.vehicleId, g);
+
     const ot = await this.prisma.$transaction(async (tx) => {
       const created = await tx.serviceOrder.create({
         data: {
-          garageId: garageId ?? null,
+          garageId: g,
           vehicleId: body.vehicleId,
           customerId: body.customerId,
           openedBy: openedByUserId,
@@ -170,8 +181,8 @@ export class WorkshopService {
       });
 
       if (body.appointmentId) {
-        await tx.appointment.update({
-          where: { id: body.appointmentId },
+        await tx.appointment.updateMany({
+          where: { id: body.appointmentId, garageId: g },
           data: {
             serviceOrderId: created.id,
             status: 'COMPLETED',
@@ -185,7 +196,7 @@ export class WorkshopService {
     // Notifier les chefs d'atelier qu'un nouvel OT a été créé
     setImmediate(async () => {
       try {
-        const recipientIds = await this.notifications.getUserIdsByRoles([...OT_CREATED_NOTIFY_ROLES]);
+        const recipientIds = await this.notifications.getUserIdsByRoles([...OT_CREATED_NOTIFY_ROLES], g);
         if (recipientIds.length === 0) return;
         const vehicle = await this.prisma.vehicle.findUnique({
           where: { id: ot.vehicleId },
@@ -207,15 +218,20 @@ export class WorkshopService {
     this.events?.emitToRoles(['CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN'], {
       type: 'ot.created',
       otId: ot.id,
-    });
+    }, g);
 
     return ot;
   }
 
-  async addObservation(otId: string, user: WorkshopUser, body: CreateObservationDto) {
-    const ot = await this.prisma.serviceOrder.findUnique({
-      where: { id: otId },
-      select: { id: true, status: true, assignedChef: true, vehicleId: true },
+  async addObservation(
+    otId: string,
+    user: WorkshopUser & { garageId?: string | null },
+    body: CreateObservationDto,
+  ) {
+    await assertOTInGarage(this.prisma, otId, user.garageId);
+    const ot = await this.prisma.serviceOrder.findFirst({
+      where: { id: otId, garageId: requireGarageId(user.garageId) },
+      select: { id: true, status: true, assignedChef: true, vehicleId: true, garageId: true },
     });
 
     if (!ot) throw new NotFoundException('Ordre de travail introuvable');
@@ -249,7 +265,7 @@ export class WorkshopService {
     const vehicleId = ot.vehicleId;
     setImmediate(async () => {
       try {
-        const recipientIds = await this.notifications.getUserIdsByRoles(['CHEF_ATELIER']);
+        const recipientIds = await this.notifications.getUserIdsByRoles(['CHEF_ATELIER'], ot.garageId);
         if (recipientIds.length === 0) return;
         const vehicle = await this.prisma.vehicle.findUnique({
           where: { id: vehicleId },
@@ -271,7 +287,8 @@ export class WorkshopService {
     return observation;
   }
 
-  addWorkItem(otId: string, body: CreateWorkItemDto) {
+  async addWorkItem(otId: string, body: CreateWorkItemDto, garageId?: string | null) {
+    await assertOTInGarage(this.prisma, otId, garageId);
     return this.prisma.oTWorkItem.create({
       data: {
         serviceOrderId: otId,
@@ -283,7 +300,8 @@ export class WorkshopService {
     });
   }
 
-  async addReceptionCheck(otId: string, checkedByUserId: string, body: CreateReceptionCheckDto) {
+  async addReceptionCheck(otId: string, checkedByUserId: string, body: CreateReceptionCheckDto, garageId?: string | null) {
+    await assertOTInGarage(this.prisma, otId, garageId);
     const fuelLevel = body.fuelLevel ?? 4;
 
     let items = body.checkItems ?? [];
@@ -332,9 +350,11 @@ export class WorkshopService {
     });
   }
 
-  async assignChef(otId: string, assignedChefId: string) {
+  async assignChef(otId: string, assignedChefId: string, garageId?: string | null) {
+    await assertOTInGarage(this.prisma, otId, garageId);
+    const g = requireGarageId(garageId);
     const ot = await this.prisma.serviceOrder.update({
-      where: { id: otId },
+      where: { id: otId, garageId: g },
       data: { assignedChef: assignedChefId },
       include: { vehicle: { select: { plateNumber: true } } },
     });
@@ -356,7 +376,8 @@ export class WorkshopService {
     return ot;
   }
 
-  async addQualityControl(otId: string, performedByUserId: string, body: CreateQualityControlDto) {
+  async addQualityControl(otId: string, performedByUserId: string, body: CreateQualityControlDto, garageId?: string | null) {
+    await assertOTInGarage(this.prisma, otId, garageId);
     const rows = await this.prisma.$queryRaw<[{ max_round: number }]>`
       SELECT COALESCE(MAX(round), 0) AS max_round
       FROM quality_controls
@@ -377,7 +398,8 @@ export class WorkshopService {
     });
   }
 
-  removeWorkItem(otId: string, itemId: string) {
+  async removeWorkItem(otId: string, itemId: string, garageId?: string | null) {
+    await assertOTInGarage(this.prisma, otId, garageId);
     return this.prisma.oTWorkItem.delete({
       where: { id: itemId, serviceOrderId: otId },
     });
@@ -389,10 +411,11 @@ export class WorkshopService {
   async updateStatus(
     otId: string,
     targetStatus: OTStatus,
-    user: { id?: string; roles?: Array<{ role?: { code?: string }; code?: string }> },
+    user: { id?: string; garageId?: string | null; roles?: Array<{ role?: { code?: string }; code?: string }> },
     data: { reason?: string; cancellationReason?: string; partsReconciliation?: PartReconciliationItem[] },
     options?: { skipRbac?: boolean },
   ) {
+    await assertOTInGarage(this.prisma, otId, user.garageId);
     const userRoleCodes = (user.roles || []).map((ur) => ur.role?.code ?? (ur as { code?: string }).code ?? String(ur));
     return this.applyStatusChange(otId, targetStatus, user.id || 'SYSTEM', data, {
       ...options,
@@ -641,8 +664,8 @@ export class WorkshopService {
             : 'le client';
 
           const [receptionIds, caissierIds] = await Promise.all([
-            this.notifications.getUserIdsByRoles(['RECEPTIONNISTE']),
-            this.notifications.getUserIdsByRoles(['CAISSIER']),
+            this.notifications.getUserIdsByRoles(['RECEPTIONNISTE'], ot.garageId),
+            this.notifications.getUserIdsByRoles(['CAISSIER'], ot.garageId),
           ]);
 
           if (receptionIds.length > 0) {
@@ -674,7 +697,7 @@ export class WorkshopService {
     if (targetStatus === OTStatus.INVOICED) {
       setImmediate(async () => {
         try {
-          const recipientIds = await this.notifications.getUserIdsByRoles(['CAISSIER']);
+          const recipientIds = await this.notifications.getUserIdsByRoles(['CAISSIER'], ot.garageId);
           if (recipientIds.length === 0) return;
           const plate = ot.vehicle?.plateNumber ?? updatedOT.vehicleId;
           await this.notifications.createInApp({
@@ -699,7 +722,7 @@ export class WorkshopService {
             'CHEF_ATELIER',
             'ADMIN',
             'SUPER_ADMIN',
-          ]);
+          ], ot.garageId);
           const recipientIds = [
             ...byRoleIds,
             ...(ot.assignedChef ? [ot.assignedChef] : []),
@@ -728,7 +751,7 @@ export class WorkshopService {
         try {
           const byRoleIds = await this.notifications.getUserIdsByRoles([
             'CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN',
-          ]);
+          ], ot.garageId);
           const recipientIds = byRoleIds.filter((id) => id !== performedByUserId);
           if (recipientIds.length === 0) return;
 
@@ -767,7 +790,7 @@ export class WorkshopService {
       setImmediate(async () => {
         try {
           const recipientIds = (
-            await this.notifications.getUserIdsByRoles(['CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN'])
+            await this.notifications.getUserIdsByRoles(['CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN'], ot.garageId)
           ).filter((id) => id !== performedByUserId);
           if (recipientIds.length === 0) return;
 
@@ -816,7 +839,7 @@ export class WorkshopService {
           const motif = data.reason?.trim();
 
           const adminIds = (
-            await this.notifications.getUserIdsByRoles(['ADMIN', 'SUPER_ADMIN'])
+            await this.notifications.getUserIdsByRoles(['ADMIN', 'SUPER_ADMIN'], ot.garageId)
           ).filter((id) => id !== performedByUserId);
 
           const recipientIds = [
@@ -851,7 +874,7 @@ export class WorkshopService {
       setImmediate(async () => {
         try {
           const recipientIds = (
-            await this.notifications.getUserIdsByRoles(['CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN'])
+            await this.notifications.getUserIdsByRoles(['CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN'], ot.garageId)
           ).filter((id) => id !== performedByUserId);
           if (recipientIds.length === 0) return;
 
@@ -888,13 +911,14 @@ export class WorkshopService {
     this.events?.emitToRoles(
       ['CHEF_ATELIER', 'TECHNICIEN', 'RECEPTIONNISTE', 'CAISSIER', 'ADMIN', 'SUPER_ADMIN'],
       { type: 'ot.status_changed', otId, status: targetStatus },
+      ot.garageId,
     );
 
     return updatedOT;
   }
 
-  async updateOT(id: string, data: UpdateOTDto) {
-    const ot = await this.getOT(id);
+  async updateOT(id: string, data: UpdateOTDto, user?: WorkshopUser & { garageId?: string | null }) {
+    const ot = await this.getOT(id, user);
     if (ot.status !== OTStatus.DRAFT) {
       throw new BadRequestException('Seuls les OT en brouillon peuvent être modifiés (ORD-007)');
     }

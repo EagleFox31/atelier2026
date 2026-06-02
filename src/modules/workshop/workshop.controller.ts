@@ -22,27 +22,31 @@ export class WorkshopController {
   listOTs(
     @Query('status') status?: OTStatus,
     @Query('search') search?: string,
-    @CurrentUser() user?: WorkshopUser,
+    @CurrentUser() user?: WorkshopUser & { garageId?: string | null },
   ) {
     return this.workshopService.listOTs(status, search, user);
   }
 
   @Get('ot/:id')
   @RequirePermission('ORD_VIEW')
-  getOT(@Param('id') id: string, @CurrentUser() user?: WorkshopUser) {
+  getOT(@Param('id') id: string, @CurrentUser() user?: WorkshopUser & { garageId?: string | null }) {
     return this.workshopService.getOT(id, user);
   }
 
   @Post('ot')
   @RequirePermission('ORD_CREATE')
-  createOT(@CurrentUser() user: any, @Body() body: CreateServiceOrderDto) {
+  createOT(@CurrentUser() user: { id: string; garageId?: string | null }, @Body() body: CreateServiceOrderDto) {
     return this.workshopService.createOT(body, user.id, user.garageId);
   }
 
   @Patch('ot/:id')
   @RequirePermission('ORD_CREATE')
-  updateOT(@Param('id') id: string, @Body() body: UpdateOTDto) {
-    return this.workshopService.updateOT(id, body);
+  updateOT(
+    @Param('id') id: string,
+    @CurrentUser() user: WorkshopUser & { garageId?: string | null },
+    @Body() body: UpdateOTDto,
+  ) {
+    return this.workshopService.updateOT(id, body, user);
   }
 
   @Patch('ot/:id/status')
@@ -63,7 +67,7 @@ export class WorkshopController {
   @RequirePermission('ORD_VIEW')
   addObservation(
     @Param('id') id: string,
-    @CurrentUser() user: WorkshopUser,
+    @CurrentUser() user: WorkshopUser & { garageId?: string | null },
     @Body() body: CreateObservationDto,
   ) {
     return this.workshopService.addObservation(id, user, body);
@@ -71,18 +75,22 @@ export class WorkshopController {
 
   @Post('ot/:id/work-item')
   @RequirePermission('ORD_CREATE')
-  addWorkItem(@Param('id') id: string, @Body() body: CreateWorkItemDto) {
-    return this.workshopService.addWorkItem(id, body);
+  addWorkItem(
+    @Param('id') id: string,
+    @CurrentUser() user: { garageId?: string | null },
+    @Body() body: CreateWorkItemDto,
+  ) {
+    return this.workshopService.addWorkItem(id, body, user.garageId);
   }
 
   @Post('ot/:id/reception-check')
   @RequirePermission('ORD_CREATE')
   addReceptionCheck(
     @Param('id') id: string,
-    @CurrentUser() user: { id: string },
+    @CurrentUser() user: { id: string; garageId?: string | null },
     @Body() body: CreateReceptionCheckDto,
   ) {
-    return this.workshopService.addReceptionCheck(id, user.id, body);
+    return this.workshopService.addReceptionCheck(id, user.id, body, user.garageId);
   }
 
   @Get('labor-catalog')
@@ -99,23 +107,31 @@ export class WorkshopController {
 
   @Patch('ot/:id/assign')
   @RequirePermission('ORD_CREATE')
-  assignChef(@Param('id') id: string, @Body() body: { assignedChefId: string }) {
-    return this.workshopService.assignChef(id, body.assignedChefId);
+  assignChef(
+    @Param('id') id: string,
+    @CurrentUser() user: { garageId?: string | null },
+    @Body() body: { assignedChefId: string },
+  ) {
+    return this.workshopService.assignChef(id, body.assignedChefId, user.garageId);
   }
 
   @Post('ot/:id/quality-control')
   @RequirePermission('ORD_CREATE')
   addQualityControl(
     @Param('id') id: string,
-    @CurrentUser() user: { id: string },
+    @CurrentUser() user: { id: string; garageId?: string | null },
     @Body() body: CreateQualityControlDto,
   ) {
-    return this.workshopService.addQualityControl(id, user.id, body);
+    return this.workshopService.addQualityControl(id, user.id, body, user.garageId);
   }
 
   @Delete('ot/:id/work-item/:itemId')
   @RequirePermission('ORD_CREATE')
-  removeWorkItem(@Param('id') id: string, @Param('itemId') itemId: string) {
-    return this.workshopService.removeWorkItem(id, itemId);
+  removeWorkItem(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @CurrentUser() user: { garageId?: string | null },
+  ) {
+    return this.workshopService.removeWorkItem(id, itemId, user.garageId);
   }
 }

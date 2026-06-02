@@ -202,6 +202,7 @@ model Garage {
   tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   users     User[]
   workshopSettings WorkshopSettings[]
+  counterSales     CounterSale[]
 
   @@unique([tenantId, slug])
   @@map("garages")
@@ -930,6 +931,7 @@ model Payment {
 model CounterSale {
   id             String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   reference      String            @unique @default(dbgenerated("fn_next_ref('VCC', 'seq_counter')"))
+  garageId       String?           @map("garage_id") @db.Uuid
   customerId     String?           @map("customer_id") @db.Uuid
   walkInName     String?           @map("walk_in_name")
   walkInPhone    String?           @map("walk_in_phone")
@@ -947,12 +949,14 @@ model CounterSale {
   createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
   customer       Customer?         @relation(fields: [customerId], references: [id])
+  garage         Garage?           @relation(fields: [garageId], references: [id])
   seller         User              @relation("CounterSaleSold", fields: [soldBy], references: [id])
   validator      User?             @relation("CounterSaleValidated", fields: [validatedBy], references: [id])
   lines          CounterSaleLine[]
   stockMovements StockMovement[]
 
   @@index([createdAt])
+  @@index([garageId])
   @@map("counter_sales")
 }
 
