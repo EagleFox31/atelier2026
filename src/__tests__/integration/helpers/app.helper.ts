@@ -11,6 +11,7 @@ import { JwtSecretsService } from '../../../modules/auth/jwt-secrets.service';
 // Même valeur que JwtSecretsService.DEV_FALLBACK_SECRET
 // Utilisé quand JWT_SECRET n'est pas défini dans l'env — c'est le cas en tests
 const TEST_JWT_SECRET = 'atelier-cm-dev-only-secret-do-not-use-in-prod';
+export const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
 
 /** Génère un JWT valide signé avec le secret fallback dev */
 export function signTestToken(userId: string, version = 1): string {
@@ -35,6 +36,7 @@ export function makeDbUser(
     tokenVersion: 1,
     firstName: 'Test',
     lastName: 'User',
+    garageId: TEST_GARAGE_ID,
     roles: roleCodes.map((code) => ({
       role: {
         code,

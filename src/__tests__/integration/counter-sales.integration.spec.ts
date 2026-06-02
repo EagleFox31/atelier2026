@@ -27,6 +27,9 @@ function makeCounterSalesPrismaMock() {
       findMany: jest.fn().mockResolvedValue([]),
       create:   jest.fn(),
     },
+    partsCatalog: {
+      findFirst: jest.fn().mockResolvedValue({ id: PART_ID }),
+    },
   };
 }
 

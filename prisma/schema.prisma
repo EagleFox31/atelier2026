@@ -203,6 +203,7 @@ model Garage {
   users     User[]
   workshopSettings WorkshopSettings[]
   counterSales     CounterSale[]
+  smsNotifications SMSNotification[]
 
   @@unique([tenantId, slug])
   @@map("garages")
@@ -677,7 +678,7 @@ model Supplier {
 model PartsCatalog {
   id                  String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   garageId            String?           @map("garage_id") @db.Uuid
-  reference           String            @unique
+  reference           String
   oemReference        String?           @map("oem_reference")
   barcode             String?           @unique
   nameFr              String            @map("name_fr")
@@ -705,6 +706,7 @@ model PartsCatalog {
   aspPurchases        ASPPurchase[]
   counterSaleLines    CounterSaleLine[]
 
+  @@unique([garageId, reference], name: "parts_catalog_garage_reference_key")
   @@index([reference])
   @@index([oemReference])
   @@index([category])
@@ -1002,6 +1004,7 @@ model Appointment {
 
 model SMSNotification {
   id             String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  garageId       String?       @map("garage_id") @db.Uuid
   serviceOrderId String?       @map("service_order_id") @db.Uuid
   customerId     String?       @map("customer_id") @db.Uuid
   phoneTo        String        @map("phone_to")
@@ -1018,8 +1021,10 @@ model SMSNotification {
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
   serviceOrder   ServiceOrder? @relation(fields: [serviceOrderId], references: [id])
   customer       Customer?     @relation(fields: [customerId], references: [id])
+  garage         Garage?       @relation(fields: [garageId], references: [id])
 
   @@index([createdAt])
+  @@index([garageId])
   @@map("sms_notifications")
 }
 

@@ -1,6 +1,7 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { requireGarageId } from '../garage/garage-scope';
 
 @Injectable()
 export class AuditService {
@@ -41,12 +42,18 @@ export class AuditService {
     });
   }
 
-  async getLogs(query: { limit?: number; offset?: number; entityType?: string; entityId?: string; performedBy?: string; action?: string }) {
+  async getLogs(
+    query: { limit?: number; offset?: number; entityType?: string; entityId?: string; performedBy?: string; action?: string },
+    garageId?: string | null,
+  ) {
     const where: any = {};
     if (query.entityType) where.entityType = query.entityType;
     if (query.entityId) where.entityId = query.entityId;
     if (query.performedBy) where.performedBy = query.performedBy;
     if (query.action) where.action = query.action;
+    if (garageId) {
+      where.performer = { garageId: requireGarageId(garageId) };
+    }
 
     return this.prisma.auditLog.findMany({
       where,

@@ -11,15 +11,21 @@ export class NotificationsController {
 
   @Get('sms')
   @RequireRole('ADMIN')
-  getSmsHistory(@Query('phone') phone?: string) {
-    return this.notificationsService.getSmsHistory(phone);
+  getSmsHistory(
+    @CurrentUser() user: { garageId?: string | null },
+    @Query('phone') phone?: string,
+  ) {
+    return this.notificationsService.getSmsHistory(phone, user?.garageId);
   }
 
   @Post('sms/send')
   @RequireRole('ADMIN')
   @HttpCode(201)
-  sendSms(@Body() body: SendSmsDto) {
-    return this.notificationsService.sendSms(body);
+  sendSms(
+    @Body() body: SendSmsDto,
+    @CurrentUser() user: { garageId?: string | null },
+  ) {
+    return this.notificationsService.sendSms(body, user?.garageId);
   }
 
   // ─── In-App ──────────────────────────────────────────────────────────────────

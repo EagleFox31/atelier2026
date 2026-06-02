@@ -151,9 +151,14 @@ export class PartsFlowService {
 
     if (missing.length > 0) {
       try {
+        // Récupère le garageId depuis l'OT pour notifier uniquement ce garage
+        const otGarage = await this.prisma.serviceOrder.findUnique({
+          where: { id: params.serviceOrderId },
+          select: { garageId: true },
+        });
         const recipientIds = await this.notifications.getUserIdsByRoles([
           'CHEF_ATELIER', 'ADMIN', 'SUPER_ADMIN',
-        ]);
+        ], otGarage?.garageId ?? null);
         const otRef = params.otReference ? `OT ${params.otReference}` : 'OT';
         const detail = missing
           .slice(0, 3)

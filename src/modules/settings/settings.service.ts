@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { UpdateWorkshopSettingsDto } from './dto/workshop-settings.dto';
+import { requireGarageId } from '../../shared/garage/garage-scope';
 
 export const DEFAULT_WORKSHOP_SETTINGS = {
   id: 'default',
@@ -50,13 +51,14 @@ export class SettingsService {
   }
 
   async updateWorkshopSettings(body: UpdateWorkshopSettingsDto, userId: string, garageId?: string | null) {
-    const settingsId = garageId ? `garage_${garageId}` : 'default';
+    const g = requireGarageId(garageId);
+    const settingsId = `garage_${g}`;
     const row = await this.prisma.workshopSettings.upsert({
       where: { id: settingsId },
       create: {
         ...DEFAULT_WORKSHOP_SETTINGS,
         id: settingsId,
-        ...(garageId ? { garageId } : {}),
+        garageId: g,
         shopName: body.shopName,
         tagline: body.tagline ?? DEFAULT_WORKSHOP_SETTINGS.tagline,
         niu: body.niu ?? null,
@@ -83,31 +85,33 @@ export class SettingsService {
   }
 
   async updateLogo(logoUrl: string | null, userId: string, garageId?: string | null) {
-    const settingsId = garageId ? `garage_${garageId}` : 'default';
+    const g = requireGarageId(garageId);
+    const settingsId = `garage_${g}`;
     const existing = await this.resolveSettings(garageId);
     return toResponse(
       await this.prisma.workshopSettings.upsert({
         where: { id: existing?.id ?? settingsId },
-        create: { ...DEFAULT_WORKSHOP_SETTINGS, id: settingsId, garageId: garageId ?? null, logoUrl, updatedById: userId },
+        create: { ...DEFAULT_WORKSHOP_SETTINGS, id: settingsId, garageId: g, logoUrl, updatedById: userId },
         update: { logoUrl, updatedById: userId },
       }),
     );
   }
 
-  /** Cherche les settings par garageId, fallback sur 'default' */
+  /** Settings du garage connecté — création auto au premier accès si absent. */
   private async resolveSettings(garageId?: string | null) {
-    if (garageId) {
-      const garageSettings = await this.prisma.workshopSettings.findFirst({
-        where: { garageId },
-      });
-      if (garageSettings) return garageSettings;
-    }
-
-    const existing = await this.prisma.workshopSettings.findUnique({ where: { id: 'default' } });
+    const g = requireGarageId(garageId);
+    const existing = await this.prisma.workshopSettings.findFirst({
+      where: { garageId: g },
+    });
     if (existing) return existing;
 
     return this.prisma.workshopSettings.create({
-      data: { ...DEFAULT_WORKSHOP_SETTINGS, updatedById: null },
+      data: {
+        ...DEFAULT_WORKSHOP_SETTINGS,
+        id: `garage_${g}`,
+        garageId: g,
+        updatedById: null,
+      },
     });
   }
 }

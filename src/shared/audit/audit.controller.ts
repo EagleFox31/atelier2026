@@ -1,6 +1,6 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { AuditService } from './audit.service';
-import { RequireRole } from '../../decorators/auth.decorator';
+import { RequireRole, CurrentUser } from '../../decorators/auth.decorator';
 
 @Controller('audit')
 export class AuditController {
@@ -9,6 +9,7 @@ export class AuditController {
     @Get()
     @RequireRole('ADMIN')
     getLogs(
+        @CurrentUser() user: { garageId?: string | null },
         @Query('limit') limit?: string,
         @Query('offset') offset?: string,
         @Query('entityType') entityType?: string,
@@ -23,6 +24,6 @@ export class AuditController {
             entityId,
             performedBy,
             action,
-        });
+        }, user?.garageId);
     }
 }

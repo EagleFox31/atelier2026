@@ -5,6 +5,7 @@ import { PrismaService } from '../../shared/prisma/prisma.service';
 import { SendSmsDto } from './dto/notifications.dto';
 import { resolveSmsMessage } from './sms-templates';
 import { EventsService } from '../events/events.service';
+import { assertCustomerInGarage, garageWhere, requireGarageId } from '../../shared/garage/garage-scope';
 
 @Injectable()
 export class NotificationsService {
@@ -16,8 +17,8 @@ export class NotificationsService {
 
   // ─── SMS ────────────────────────────────────────────────────────────────────
 
-  getSmsHistory(phone?: string) {
-    const where: Record<string, unknown> = {};
+  getSmsHistory(phone?: string, garageId?: string | null) {
+    const where: Record<string, unknown> = { ...garageWhere(garageId) };
     if (phone) where.phoneTo = { contains: phone };
 
     return this.prisma.sMSNotification.findMany({
@@ -33,7 +34,12 @@ export class NotificationsService {
     });
   }
 
-  async sendSms(data: SendSmsDto) {
+  async sendSms(data: SendSmsDto, garageId?: string | null) {
+    const g = requireGarageId(garageId);
+    if (data.customerId) {
+      await assertCustomerInGarage(this.prisma, data.customerId, g);
+    }
+
     const lang = data.lang ?? 'fr';
     let message: string;
     try {
@@ -44,6 +50,7 @@ export class NotificationsService {
 
     const notification = await this.prisma.sMSNotification.create({
       data: {
+        garageId: g,
         phoneTo: data.phoneTo,
         templateCode: data.templateCode,
         messageBody: message,

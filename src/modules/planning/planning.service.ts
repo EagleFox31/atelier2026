@@ -17,7 +17,9 @@ export class PlanningService {
   async create(data: CreateAppointmentDto, garageId?: string | null) {
     const g = requireGarageId(garageId);
     await assertCustomerInGarage(this.prisma, data.customerId, g);
-    await assertVehicleInGarage(this.prisma, data.vehicleId, g);
+    if (data.vehicleId) {
+      await assertVehicleInGarage(this.prisma, data.vehicleId, g);
+    }
     return this.prisma.appointment.create({
       data: { ...data, garageId: g },
     });
