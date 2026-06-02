@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { TeamService } from './team.service';
 import { RequirePermission, RequireRole } from '../../decorators/auth.decorator';
-import { CreateTeamMemberDto, UpdateTeamMemberDto, AssignRoleDto } from './dto/team.dto';
+import { CreateTeamMemberDto, UpdateTeamMemberDto, AssignRoleDto, ResetPasswordDto } from './dto/team.dto';
 
 @Controller('team')
 export class TeamController {
@@ -35,6 +35,12 @@ export class TeamController {
     @RequireRole('ADMIN')
     assignRole(@Param('id') id: string, @Body() body: AssignRoleDto) {
         return this.teamService.assignRole(id, body.roleCode);
+    }
+
+    @Post(':id/reset-password')
+    @RequireRole('ADMIN', 'CHEF_ATELIER')
+    resetPassword(@Param('id') id: string, @Body() body: ResetPasswordDto) {
+        return this.teamService.resetPassword(id, body.password);
     }
 
     @Delete(':id')

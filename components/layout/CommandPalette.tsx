@@ -69,7 +69,7 @@ export function CommandPalette() {
         </CommandGroup>
         <CommandSeparator />
         <CommandGroup heading="Navigation">
-          <CommandItem onSelect={() => runCommand(() => router.push("/"))}>
+          <CommandItem onSelect={() => runCommand(() => router.push("/dashboard"))}>
             <Search className="mr-2 h-4 w-4" />
             <span>Tableau de bord</span>
           </CommandItem>

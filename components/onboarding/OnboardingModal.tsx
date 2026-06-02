@@ -353,7 +353,7 @@ export function OnboardingModal({ onDone }: OnboardingModalProps) {
               <div className="w-7 h-7 bg-brand rounded-lg flex items-center justify-center shadow-md shadow-brand/30">
                 <Wrench size={14} className="text-white" />
               </div>
-              <span className="text-sm font-bold text-foreground">Atelier<span className="text-brand">2026</span></span>
+              <span className="text-sm font-bold text-foreground">Atelier<span className="text-brand"> Maître</span></span>
             </div>
             <button
               onClick={onDone}

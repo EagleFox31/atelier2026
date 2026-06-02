@@ -208,15 +208,18 @@ model User {
   firstName               String                  @map("first_name")
   lastName                String                  @map("last_name")
   email                   String?                 @unique
-  phone                   String?
-  passwordHash            String                  @map("password_hash")
-  status                  UserStatus              @default(ACTIVE)
-  tokenVersion            Int                     @default(0) @map("token_version")
-  lastLoginAt             DateTime?               @map("last_login_at") @db.Timestamptz
-  onboardingCompletedAt   DateTime?               @map("onboarding_completed_at") @db.Timestamptz
-  createdAt               DateTime                @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt               DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt               DateTime?               @map("deleted_at") @db.Timestamptz
+  phone                        String?
+  passwordHash                 String                  @map("password_hash")
+  tempPassword                 String?                 @map("temp_password")
+  specialty                    String?
+  status                       UserStatus              @default(ACTIVE)
+  tokenVersion                 Int                     @default(0) @map("token_version")
+  lastLoginAt                  DateTime?               @map("last_login_at") @db.Timestamptz
+  onboardingCompletedAt        DateTime?               @map("onboarding_completed_at") @db.Timestamptz
+  passwordResetRequestedAt     DateTime?               @map("password_reset_requested_at") @db.Timestamptz
+  createdAt                    DateTime                @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                    DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt                    DateTime?               @map("deleted_at") @db.Timestamptz
   roles                   UserRole[]              @relation("UserRoles")
   assignedRoles           UserRole[]              @relation("AssignedBy")
   revokedRoles            UserRole[]              @relation("RevokedBy")

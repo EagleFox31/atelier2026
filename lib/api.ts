@@ -57,7 +57,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     localStorage.removeItem('atelier_token');
     localStorage.removeItem('atelier_user');
     const returnPath = window.location.pathname + window.location.search;
-    if (returnPath && returnPath !== '/login') {
+    const pathOnly = returnPath.split('?')[0];
+    const skipReturn = ['/', '/accueil', '/login', '/forgot-password', '/demo'];
+    if (returnPath && !skipReturn.includes(pathOnly)) {
       sessionStorage.setItem('atelier_return_url', returnPath);
     }
     window.location.href = '/login';
@@ -171,12 +173,13 @@ export const billingApi = {
 
 // ─── Team ──────────────────────────────────────────────────────────────────
 export const teamApi = {
-  list:   (params?: { search?: string; roleId?: string }) =>
+  list:          (params?: { search?: string; roleId?: string }) =>
     get(`/team${toQuery(params)}`),
-  get:    (id: string) => get(`/team/${id}`),
-  create: (body: unknown) => post('/team', body),
-  update: (id: string, body: unknown) => patch(`/team/${id}`, body),
-  delete: (id: string) => del(`/team/${id}`),
+  get:           (id: string) => get(`/team/${id}`),
+  create:        (body: unknown) => post('/team', body),
+  update:        (id: string, body: unknown) => patch(`/team/${id}`, body),
+  resetPassword: (id: string, password?: string) => post(`/team/${id}/reset-password`, { password }),
+  delete:        (id: string) => del(`/team/${id}`),
 };
 
 // ─── Planning ──────────────────────────────────────────────────────────────
@@ -259,6 +262,21 @@ function toQuery(params?: Record<string, unknown>): string {
  * @param err       - L'erreur capturée (any)
  * @param fallback  - Message par défaut si err ne contient pas de message
  */
+// ─── Marketing (public) ─────────────────────────────────────────────────────
+export interface DemoBookingPayload {
+  fullName: string;
+  email: string;
+  phone: string;
+  garageName: string;
+  city?: string;
+  message?: string;
+}
+
+export const marketingApi = {
+  requestDemo: (body: DemoBookingPayload) =>
+    post<{ received: true }>('/public/demo-booking', body),
+};
+
 export function handleApiError(err: unknown, fallback = 'Une erreur inattendue est survenue'): void {
   import('sonner').then(({ toast }) => {
     if (err instanceof ApiError && err.status === 401) return;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -10,8 +10,16 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { teamApi } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
-import { Eye, EyeOff, ShieldCheck, Wrench, Settings, UserCheck, CreditCard, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import {
+  Eye, EyeOff, ShieldCheck, Wrench, Settings, UserCheck,
+  CreditCard, ChevronRight, ChevronLeft, Check, Copy,
+} from 'lucide-react';
 import { cn } from "@/lib/utils";
+import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronsUpDown } from 'lucide-react';
 
 // ── Config rôles ──────────────────────────────────────────────────────────────
 
@@ -52,28 +60,39 @@ type RoleCode = keyof typeof ROLE_CONFIG;
 
 const CREATABLE_BY: Record<string, RoleCode[]> = {
   SUPER_ADMIN: ['ADMIN', 'CHEF_ATELIER', 'TECHNICIEN', 'RECEPTIONNISTE', 'CAISSIER'],
-  ADMIN:       ['CHEF_ATELIER', 'TECHNICIEN', 'RECEPTIONNISTE', 'CAISSIER'],
+  ADMIN:        ['CHEF_ATELIER', 'TECHNICIEN', 'RECEPTIONNISTE', 'CAISSIER'],
   CHEF_ATELIER: ['TECHNICIEN', 'RECEPTIONNISTE'],
 };
+
+const SPECIALTIES = ['Mécanique', 'Électricité', 'Carrosserie', 'Climatisation', 'Pneumatiques', 'Diagnostic', 'Autre'];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function generatePassword(firstName: string): string {
+  const digits = Math.floor(1000 + Math.random() * 9000);
+  const base = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+  return `${base}${digits}!`;
+}
+
+function toEmployeeCode(first: string, last: string): string {
+  const n = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z]/g, '');
+  return `${n(first)}.${n(last)}`;
+}
 
 // ── Schéma ────────────────────────────────────────────────────────────────────
 
 const infoSchema = z.object({
   firstName: z.string().min(2, "Prénom requis"),
   lastName:  z.string().min(2, "Nom requis"),
+  specialty: z.string().optional(),
   phone:     z.string().optional(),
   email:     z.string().email("Email invalide").optional().or(z.literal("")),
 });
 type InfoValues = z.infer<typeof infoSchema>;
 
-const accessSchema = z.object({
-  password: z.string().min(6, "Minimum 6 caractères").optional().or(z.literal("")),
-});
-type AccessValues = z.infer<typeof accessSchema>;
+// ── Stepper indicator ─────────────────────────────────────────────────────────
 
-// ── Composant stepper ─────────────────────────────────────────────────────────
-
-const STEPS = ['Type de compte', 'Informations', 'Accès'];
+const STEPS = ['Type de compte', 'Informations', 'Récapitulatif'];
 
 function StepIndicator({ current }: { current: number }) {
   return (
@@ -83,16 +102,14 @@ function StepIndicator({ current }: { current: number }) {
           <div className="flex items-center gap-1.5">
             <div className={cn(
               "w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all",
-              i < current  ? "bg-brand border-brand text-white" :
+              i < current   ? "bg-brand border-brand text-white" :
               i === current ? "border-brand text-brand bg-white" :
-                             "border-slate-200 text-slate-400 bg-white"
+                              "border-slate-200 text-slate-400 bg-white"
             )}>
               {i < current ? <Check size={13} /> : i + 1}
             </div>
-            <span className={cn(
-              "text-xs font-medium hidden sm:block",
-              i === current ? "text-brand" : "text-slate-400"
-            )}>{label}</span>
+            <span className={cn("text-xs font-medium hidden sm:block",
+              i === current ? "text-brand" : "text-slate-400")}>{label}</span>
           </div>
           {i < STEPS.length - 1 && (
             <div className={cn("h-px w-8 transition-all", i < current ? "bg-brand" : "bg-slate-200")} />
@@ -103,69 +120,100 @@ function StepIndicator({ current }: { current: number }) {
   );
 }
 
-// ── Props ─────────────────────────────────────────────────────────────────────
+// ── Combobox spécialité ───────────────────────────────────────────────────────
 
-interface TeamMemberFormProps {
-  onSuccess?: () => void;
+function SpecialtyCombobox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [input, setInput] = useState('');
+
+  const options = SPECIALTIES.filter(s => !input || s.toLowerCase().includes(input.toLowerCase()));
+  const showCreate = input && !SPECIALTIES.some(s => s.toLowerCase() === input.toLowerCase());
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        className="w-full flex items-center justify-between h-10 px-3 py-2 rounded-md border border-slate-200 bg-white text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand/20">
+        {value || 'Sélectionner ou saisir'}
+        <ChevronsUpDown size={14} className="ml-2 text-slate-400" />
+      </PopoverTrigger>
+      <PopoverContent className="w-full p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Rechercher ou saisir..." value={input}
+            onValueChange={setInput} />
+          <CommandEmpty>Aucun résultat</CommandEmpty>
+          <CommandGroup>
+            {options.map(s => (
+              <CommandItem key={s} value={s} onSelect={() => { onChange(s); setInput(''); setOpen(false); }}>
+                <Check size={14} className={cn("mr-2", value === s ? "opacity-100" : "opacity-0")} />
+                {s}
+              </CommandItem>
+            ))}
+            {showCreate && (
+              <CommandItem value={input} onSelect={() => { onChange(input); setInput(''); setOpen(false); }}>
+                <span className="text-brand mr-2">+</span> Ajouter «{input}»
+              </CommandItem>
+            )}
+          </CommandGroup>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
 }
+
+// ── Composant principal ───────────────────────────────────────────────────────
+
+interface TeamMemberFormProps { onSuccess?: () => void; }
 
 export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
   const { hasRole } = useAuth();
-  const [step, setStep]           = useState(0);
-  const [selectedRole, setRole]   = useState<RoleCode | null>(null);
-  const [showPassword, setShowPwd] = useState(false);
+  const [step, setStep]             = useState(0);
+  const [selectedRole, setRole]     = useState<RoleCode | null>(null);
+  const [generatedPwd, setGenPwd]   = useState('');
+  const [showPwd, setShowPwd]       = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [copied, setCopied]         = useState(false);
 
   const infoForm = useForm<InfoValues>({
     resolver: zodResolver(infoSchema) as any,
-    defaultValues: { firstName: '', lastName: '', phone: '', email: '' },
-  });
-  const accessForm = useForm<AccessValues>({
-    resolver: zodResolver(accessSchema) as any,
-    defaultValues: { password: '' },
+    defaultValues: { firstName: '', lastName: '', specialty: '', phone: '', email: '' },
   });
 
-  // Rôles que l'utilisateur connecté peut créer
-  const availableRoles = Object.entries(CREATABLE_BY)
-    .filter(([creatorRole]) => hasRole(creatorRole))
-    .flatMap(([, roles]) => roles)
-    .filter((v, i, a) => a.indexOf(v) === i) as RoleCode[];
-
-  // Preview identifiant
   const { firstName, lastName } = infoForm.watch();
-  const previewCode = firstName && lastName
-    ? `${firstName}.${lastName}`
-        .toLowerCase()
-        .normalize('NFD').replace(/[̀-ͯ]/g, '')
-        .replace(/[^a-z.]/g, '')
-    : null;
+  const previewCode = firstName && lastName ? toEmployeeCode(firstName, lastName) : null;
 
-  async function handleFinalSubmit() {
-    const infoValid = await infoForm.trigger();
-    if (!infoValid || !selectedRole) return;
+  // Génère le mot de passe dès que le prénom est saisi
+  useEffect(() => {
+    if (firstName?.length >= 2) setGenPwd(generatePassword(firstName));
+  }, [firstName]);
 
-    const infoValues  = infoForm.getValues();
-    const accessValues = accessForm.getValues();
+  const availableRoles = (Object.entries(CREATABLE_BY) as [string, RoleCode[]][])
+    .filter(([r]) => hasRole(r))
+    .flatMap(([, roles]) => roles)
+    .filter((v, i, a) => a.indexOf(v) === i);
 
+  function copyPassword() {
+    navigator.clipboard.writeText(generatedPwd);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleCreate() {
+    if (!selectedRole) return;
+    const info = infoForm.getValues();
     setSubmitting(true);
     try {
       const created = await teamApi.create({
-        firstName: infoValues.firstName,
-        lastName:  infoValues.lastName,
-        phone:     infoValues.phone  || undefined,
-        email:     infoValues.email  || undefined,
+        firstName: info.firstName,
+        lastName:  info.lastName,
+        phone:     info.phone     || undefined,
+        email:     info.email     || undefined,
+        specialty: info.specialty || undefined,
         roleCode:  selectedRole,
-        password:  accessValues.password || undefined,
+        password:  generatedPwd,
       }) as any;
-
-      toast.success(
-        `${infoValues.firstName} ${infoValues.lastName} créé — identifiant : ${created.employeeCode}`,
-        { duration: 8000 }
-      );
+      toast.success(`Compte créé — identifiant : ${created.employeeCode}`, { duration: 8000 });
       infoForm.reset();
-      accessForm.reset();
-      setStep(0);
-      setRole(null);
+      setStep(0); setRole(null); setGenPwd('');
       onSuccess?.();
     } catch {
       toast.error("Erreur lors de la création");
@@ -178,7 +226,7 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
     <div className="min-w-0">
       <StepIndicator current={step} />
 
-      {/* ── Étape 1 : Choix du rôle ── */}
+      {/* ── Étape 1 : Rôle ── */}
       {step === 0 && (
         <div className="space-y-3">
           <p className="text-sm text-slate-500 text-center mb-4">
@@ -188,17 +236,11 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
             const cfg = ROLE_CONFIG[code];
             const Icon = cfg.icon;
             return (
-              <button
-                key={code}
-                type="button"
-                onClick={() => setRole(code)}
+              <button key={code} type="button" onClick={() => setRole(code)}
                 className={cn(
                   "w-full flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all",
-                  selectedRole === code
-                    ? `${cfg.color} shadow-sm`
-                    : "border-slate-100 hover:border-slate-200 bg-white"
-                )}
-              >
+                  selectedRole === code ? `${cfg.color} shadow-sm` : "border-slate-100 hover:border-slate-200 bg-white"
+                )}>
                 <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0", cfg.color)}>
                   <Icon size={20} />
                 </div>
@@ -218,7 +260,7 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
         </div>
       )}
 
-      {/* ── Étape 2 : Informations personnelles ── */}
+      {/* ── Étape 2 : Informations ── */}
       {step === 1 && (
         <Form {...infoForm}>
           <form onSubmit={e => { e.preventDefault(); infoForm.trigger().then(ok => ok && setStep(2)); }}
@@ -240,16 +282,33 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
               )} />
             </div>
 
+            {/* Preview identifiant + mdp */}
             {previewCode && (
-              <div className="rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center text-brand font-bold text-sm">
-                  {firstName[0]?.toUpperCase()}
+              <div className="rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 space-y-1.5">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-500">Identifiant</span>
+                  <span className="font-mono font-semibold text-brand">{previewCode}</span>
                 </div>
-                <div>
-                  <p className="text-xs text-slate-500">Identifiant de connexion généré</p>
-                  <p className="font-mono font-semibold text-slate-800">{previewCode}</p>
-                </div>
+                {generatedPwd && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Mot de passe</span>
+                    <span className="font-mono font-semibold text-slate-700">{generatedPwd}</span>
+                  </div>
+                )}
               </div>
+            )}
+
+            {/* Spécialité — uniquement pour TECHNICIEN */}
+            {selectedRole === 'TECHNICIEN' && (
+              <FormField control={infoForm.control} name="specialty" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Spécialité</FormLabel>
+                  <FormControl>
+                    <SpecialtyCombobox value={field.value ?? ''} onChange={field.onChange} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
             )}
 
             <div className="grid grid-cols-2 gap-4">
@@ -281,61 +340,55 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
         </Form>
       )}
 
-      {/* ── Étape 3 : Accès ── */}
+      {/* ── Étape 3 : Récapitulatif ── */}
       {step === 2 && selectedRole && (
         <div className="space-y-4">
-          {/* Récap */}
-          <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-2 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Rôle</span>
-              <span className="font-semibold">{ROLE_CONFIG[selectedRole].label}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Nom</span>
-              <span className="font-semibold">{infoForm.getValues('firstName')} {infoForm.getValues('lastName')}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-slate-500">Identifiant</span>
-              <span className="font-mono font-semibold text-brand">{previewCode}</span>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 divide-y divide-slate-100 text-sm overflow-hidden">
+            {[
+              { label: 'Rôle',        value: ROLE_CONFIG[selectedRole].label },
+              { label: 'Nom complet', value: `${infoForm.getValues('firstName')} ${infoForm.getValues('lastName')}` },
+              ...(infoForm.getValues('specialty') ? [{ label: 'Spécialité', value: infoForm.getValues('specialty')! }] : []),
+              ...(infoForm.getValues('phone') ? [{ label: 'Téléphone', value: infoForm.getValues('phone')! }] : []),
+              { label: 'Identifiant', value: previewCode ?? '' },
+            ].map(({ label, value }) => (
+              <div key={label} className="flex items-center justify-between px-4 py-2.5">
+                <span className="text-slate-500">{label}</span>
+                <span className={cn("font-semibold", label === 'Identifiant' && "font-mono text-brand")}>{value}</span>
+              </div>
+            ))}
+
+            {/* Mot de passe avec bouton révéler + copier */}
+            <div className="flex items-center justify-between px-4 py-2.5">
+              <span className="text-slate-500">Mot de passe</span>
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-semibold text-slate-700">
+                  {showPwd ? generatedPwd : '••••••••'}
+                </span>
+                <button type="button" onClick={() => setShowPwd(v => !v)}
+                  className="text-slate-400 hover:text-slate-600">
+                  {showPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+                <button type="button" onClick={copyPassword}
+                  className="text-slate-400 hover:text-brand transition-colors">
+                  {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                </button>
+              </div>
             </div>
           </div>
 
-          <Form {...accessForm}>
-            <form onSubmit={e => { e.preventDefault(); handleFinalSubmit(); }} className="space-y-4">
-              <FormField control={accessForm.control} name="password" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    Mot de passe&nbsp;
-                    <span className="text-slate-400 font-normal text-xs">(défaut : Atelier2026!)</span>
-                  </FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="Laisser vide pour le mot de passe par défaut"
-                        {...field}
-                      />
-                      <button type="button" onClick={() => setShowPwd(v => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+          <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+            ⚠️ Notez ce mot de passe maintenant — vous pourrez toujours le voir depuis la page Équipe.
+          </p>
 
-              <div className="flex justify-between pt-2">
-                <Button type="button" variant="outline" onClick={() => setStep(1)}>
-                  <ChevronLeft size={16} className="mr-1" /> Retour
-                </Button>
-                <Button type="submit" disabled={submitting} className="bg-brand hover:bg-brand-hover">
-                  {submitting ? 'Création...' : 'Créer le compte'}
-                  {!submitting && <Check size={16} className="ml-1" />}
-                </Button>
-              </div>
-            </form>
-          </Form>
+          <div className="flex justify-between pt-2">
+            <Button type="button" variant="outline" onClick={() => setStep(1)}>
+              <ChevronLeft size={16} className="mr-1" /> Retour
+            </Button>
+            <Button onClick={handleCreate} disabled={submitting} className="bg-brand hover:bg-brand-hover">
+              {submitting ? 'Création...' : 'Créer le compte'}
+              {!submitting && <Check size={16} className="ml-1" />}
+            </Button>
+          </div>
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
@@ -12,12 +12,19 @@ import { resolvePostLoginRoute } from '@/lib/role-routing';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, isAuthenticated, isLoading, user } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Session déjà active sur cet appareil → aller directement à l'app
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace(resolvePostLoginRoute(user));
+    }
+  }, [isLoading, isAuthenticated, user, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,6 +50,14 @@ export default function LoginPage() {
   }
 
   const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || 'dev';
+
+  if (isLoading || isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -138,10 +153,13 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-10 text-center">
+          <div className="mt-10 text-center space-y-2">
             <p className="text-sm text-slate-400">
               © {new Date().getFullYear()} Atelier Maître. CEMAC Compliant.
             </p>
+            <Link href="/" className="text-sm font-medium text-brand hover:underline">
+              Découvrir la plateforme
+            </Link>
           </div>
         </div>
       </div>

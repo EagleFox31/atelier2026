@@ -5,7 +5,7 @@
 import { test, expect } from '@playwright/test';
 
 const PAGES = [
-  { path: '/',                 heading: /bonjour/i },
+  { path: '/dashboard',        heading: /bonjour/i },
   { path: '/planning',         heading: /planning/i },
   { path: '/team',             heading: /équipe/i },
   { path: '/workshop',         heading: /ordres de travail|atelier/i },

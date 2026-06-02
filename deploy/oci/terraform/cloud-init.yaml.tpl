@@ -11,7 +11,7 @@ packages:
 write_files:
   - path: /etc/motd.atelier
     content: |
-      Atelier 2026 — VM provisionnee par Terraform (OCI Always Free)
+      Atelier Maître — VM provisionnee par Terraform (OCI Always Free)
       Deploy : voir deploy/README.md dans le repo
 
 runcmd:

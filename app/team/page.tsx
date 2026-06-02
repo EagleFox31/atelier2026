@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  Users, Wrench, CheckCircle2, UserPlus, Activity, History, TrendingUp,
-  Search, RefreshCw, AlertCircle, Clock
+  Users, Wrench, CheckCircle2, UserPlus, Activity, TrendingUp,
+  Search, RefreshCw, AlertCircle, Eye, EyeOff, KeyRound, Copy, Check,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -17,16 +17,67 @@ import {
 import { TeamMemberForm } from "@/components/forms/TeamMemberForm";
 import { teamApi } from "@/lib/api";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 interface TeamMember {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
+  phone?: string;
+  specialty?: string;
   employeeCode: string;
   status: string;
+  tempPassword?: string | null;
+  passwordResetRequestedAt?: string | null;
   roles: { role: { label: string; code: string } }[];
-  serviceOrdersAsChef?: { id: string; reference: string; status: string }[];
+  assignedOTs?: { id: string; reference: string; status: string }[];
+}
+
+function PasswordCell({ member, onReset }: { member: TeamMember; onReset: () => void }) {
+  const [show, setShow] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [resetting, setResetting] = useState(false);
+
+  async function handleReset() {
+    setResetting(true);
+    try {
+      const result = await teamApi.resetPassword(member.id) as any;
+      toast.success(`Nouveau mot de passe : ${result.tempPassword}`, { duration: 10000 });
+      onReset();
+    } catch {
+      toast.error("Erreur lors du reset");
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  function copy() {
+    if (!member.tempPassword) return;
+    navigator.clipboard.writeText(member.tempPassword);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 mt-2 p-2 bg-slate-50 rounded-lg border border-slate-100">
+      <span className="font-mono text-[11px] text-slate-600 flex-1 truncate">
+        {show ? (member.tempPassword ?? '—') : '••••••••'}
+      </span>
+      <button onClick={() => setShow(v => !v)} className="text-slate-400 hover:text-slate-600 flex-shrink-0">
+        {show ? <EyeOff size={12} /> : <Eye size={12} />}
+      </button>
+      {member.tempPassword && (
+        <button onClick={copy} className="text-slate-400 hover:text-brand flex-shrink-0">
+          {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+        </button>
+      )}
+      <button onClick={handleReset} disabled={resetting}
+        className="text-slate-400 hover:text-amber-500 flex-shrink-0" title="Générer nouveau mot de passe">
+        <KeyRound size={12} />
+      </button>
+    </div>
+  );
 }
 
 export default function TeamPage() {
@@ -54,7 +105,7 @@ export default function TeamPage() {
     return () => clearTimeout(t);
   }, [fetchTeam]);
 
-  const busyCount = members.filter(m => m.status === 'ACTIVE' && (m.serviceOrdersAsChef?.some(o => ['IN_PROGRESS', 'DIAGNOSING', 'REPAIRING'].includes(o.status)))).length;
+  const busyCount = members.filter(m => m.status === 'ACTIVE' && (m.assignedOTs?.some((o: { status: string }) => ['IN_PROGRESS', 'DIAGNOSING', 'REPAIRING'].includes(o.status)))).length;
   const totalCount = members.length;
 
   return (
@@ -175,10 +226,12 @@ export default function TeamPage() {
               const initials = `${member.firstName?.[0] ?? ''}${member.lastName?.[0] ?? ''}`;
               const rawRole = member.roles?.[0]?.role?.label ?? '—';
               const role = rawRole === 'Réceptionniste' ? 'Réceptionnaire' : rawRole;
-              const activeOTs = member.serviceOrdersAsChef?.filter(o =>
+              const activeOTs = member.assignedOTs?.filter(o =>
                 ['IN_PROGRESS', 'DIAGNOSING', 'REPAIRING'].includes(o.status)
               ) ?? [];
               const isBusy = activeOTs.length > 0;
+
+              const needsReset = !!member.passwordResetRequestedAt;
 
               return (
                 <motion.div
@@ -187,32 +240,48 @@ export default function TeamPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <Card className="border-none shadow-sm hover:ring-1 hover:ring-brand/20 transition-all cursor-pointer group">
+                  <Card className={cn(
+                    "border-none shadow-sm hover:ring-1 transition-all",
+                    needsReset ? "ring-2 ring-red-300 hover:ring-red-400" : "hover:ring-brand/20"
+                  )}>
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-full bg-brand/10 flex items-center justify-center text-sm font-bold text-brand border-2 border-brand/20">
+                          <div className={cn(
+                            "w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold border-2",
+                            needsReset ? "bg-red-50 text-red-600 border-red-200" : "bg-brand/10 text-brand border-brand/20"
+                          )}>
                             {initials}
                           </div>
                           <div>
-                            <h3 className="font-bold text-foreground">{member.firstName} {member.lastName}</h3>
-                            <p className="text-xs text-muted-foreground">{role}</p>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-bold text-foreground">{member.firstName} {member.lastName}</h3>
+                              {needsReset && (
+                                <span className="text-[10px] bg-red-100 text-red-600 font-semibold px-1.5 py-0.5 rounded-full animate-pulse">
+                                  Reset demandé
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">{role}{member.specialty ? ` · ${member.specialty}` : ''}</p>
                             <p className="text-[10px] font-mono text-muted-foreground">{member.employeeCode}</p>
                           </div>
                         </div>
                         <Badge className={cn(
                           "text-[10px] font-bold px-2 py-0.5 rounded-full border-none",
                           member.status === 'ACTIVE'
-                            ? isBusy ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40" : "bg-green-100 text-green-700 dark:bg-green-900/40"
+                            ? isBusy ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
                             : "bg-muted text-muted-foreground"
                         )}>
                           {member.status !== 'ACTIVE' ? 'Suspendu' : isBusy ? 'En cours' : 'Disponible'}
                         </Badge>
                       </div>
 
+                      {/* Mot de passe */}
+                      <PasswordCell member={member} onReset={fetchTeam} />
+
                       {activeOTs.length > 0 && (
-                        <div className="mt-4 p-3 bg-muted rounded-lg flex items-center gap-2">
-                          <Wrench size={14} className="text-brand" />
+                        <div className="mt-2 p-2.5 bg-muted rounded-lg flex items-center gap-2">
+                          <Wrench size={13} className="text-brand" />
                           <span className="text-xs font-medium text-foreground truncate">
                             {activeOTs[0].reference}
                           </span>
