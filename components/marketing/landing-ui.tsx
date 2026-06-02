@@ -96,8 +96,11 @@ export function LandingHeader() {
           <a href="#fonctionnalites" className={navLinkClass}>
             Fonctionnalités
           </a>
-          <a href="#multi-garages" className={navLinkClass}>
-            Multi-garages
+          <a href="#comment-ca-marche" className={navLinkClass}>
+            Démarrage
+          </a>
+          <a href="#tarifs" className={navLinkClass}>
+            Tarifs
           </a>
           <a href="#faq" className={navLinkClass}>
             FAQ
