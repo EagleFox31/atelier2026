@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InvoiceStatus, OTStatus, WorkItemStatus } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+
+const MONTH_LABELS = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
 
 @Injectable()
 export class ReportsService {
@@ -94,5 +96,97 @@ export class ReportsService {
         { title: 'Chiffre d\'affaires', value: formattedRevenue,              trend: '-' },
       ],
     };
+  }
+
+  // ── Objectifs mensuels ─────────────────────────────────────────────────────
+
+  async getTargetsHistory(year: number, garageId?: string | null) {
+    const garageFilter = garageId ? { garageId } : {};
+
+    // Récupérer les objectifs définis pour l'année
+    const targets = await this.prisma.monthlyTarget.findMany({
+      where: { ...garageFilter, year },
+      orderBy: { month: 'asc' },
+    });
+
+    // Récupérer les revenus réels par mois
+    const start = new Date(year, 0, 1);
+    const end   = new Date(year + 1, 0, 1);
+
+    const invoices = await this.prisma.invoice.findMany({
+      where: {
+        ...garageFilter,
+        status: InvoiceStatus.PAID,
+        paidAt: { gte: start, lt: end },
+      },
+      select: { paidAt: true, totalXaf: true },
+    });
+
+    const revenueByMonth: number[] = Array(12).fill(0);
+    for (const inv of invoices) {
+      if (!inv.paidAt) continue;
+      const m = inv.paidAt.getMonth(); // 0-based
+      revenueByMonth[m] += Number(inv.totalXaf);
+    }
+
+    return Array.from({ length: 12 }, (_, i) => {
+      const month   = i + 1;
+      const label   = MONTH_LABELS[i];
+      const revenue = revenueByMonth[i];
+      const target  = targets.find(t => t.month === month);
+      const targetXaf = target ? Number(target.targetXaf) : null;
+      const pct = targetXaf && targetXaf > 0
+        ? Math.round((revenue / targetXaf) * 100)
+        : null;
+
+      return {
+        month,
+        label: `${label} ${year}`,
+        shortLabel: label,
+        revenue,
+        targetXaf,
+        targetId: target?.id ?? null,
+        achievementPct: pct,
+        status: pct === null ? 'none'
+          : pct >= 100 ? 'exceeded'
+          : pct >= 80  ? 'close'
+          : 'missed',
+      };
+    });
+  }
+
+  async upsertTarget(data: {
+    year: number;
+    month: number;
+    targetXaf: number;
+    garageId?: string | null;
+    userId?: string;
+  }) {
+    return this.prisma.monthlyTarget.upsert({
+      where: {
+        garageId_year_month: {
+          garageId: (data.garageId ?? '') as string,
+          year: data.year,
+          month: data.month,
+        },
+      },
+      create: {
+        garageId: data.garageId ?? null,
+        year: data.year,
+        month: data.month,
+        targetXaf: data.targetXaf,
+        createdById: data.userId ?? null,
+      },
+      update: {
+        targetXaf: data.targetXaf,
+      },
+    });
+  }
+
+  async deleteTarget(id: string, garageId?: string | null) {
+    const target = await this.prisma.monthlyTarget.findUnique({ where: { id } });
+    if (!target) throw new NotFoundException('Objectif introuvable');
+    if (garageId && target.garageId !== garageId) throw new NotFoundException('Objectif introuvable');
+    return this.prisma.monthlyTarget.delete({ where: { id } });
   }
 }

@@ -216,11 +216,26 @@ export interface InAppNotification {
 }
 
 // ─── Reports ───────────────────────────────────────────────────────────────
+export interface MonthlyTargetRow {
+  month: number;
+  label: string;
+  shortLabel: string;
+  revenue: number;
+  targetXaf: number | null;
+  targetId: string | null;
+  achievementPct: number | null;
+  status: 'none' | 'exceeded' | 'close' | 'missed';
+}
+
 export const reportsApi = {
   revenue:        (params?: { startDate?: string; endDate?: string }) =>
     get(`/reports/revenue${toQuery(params)}`),
   performance:    () => get('/reports/workshop-performance'),
   dashboardStats: () => get<{ stats: { title: string; value: string; trend: string }[] }>('/reports/dashboard-stats'),
+  targets:        (year?: number) => get<MonthlyTargetRow[]>(`/reports/targets${year ? `?year=${year}` : ''}`),
+  upsertTarget:   (body: { year: number; month: number; targetXaf: number }) =>
+    post('/reports/targets', body),
+  deleteTarget:   (id: string) => del(`/reports/targets/${id}`),
 };
 
 // ─── Settings ────────────────────────────────────────────────────────────────

@@ -281,3 +281,12 @@
     scroll-behavior: auto;
   }
 }
+
+/* Tour interactif (driver.js) — au-dessus sidebar / modales */
+.driver-popover.atelier-driver-popover {
+  z-index: 100000;
+  max-width: min(92vw, 22rem);
+}
+.driver-active-element {
+  z-index: 100001 !important;
+}

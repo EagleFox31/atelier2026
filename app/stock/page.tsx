@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { stockApi } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMarkGettingStartedVisit } from '@/hooks/use-mark-getting-started-visit';
 
 interface Part {
   id: string;
@@ -40,6 +41,7 @@ interface StockSummary {
 }
 
 export default function StockPage() {
+  useMarkGettingStartedVisit('stock');
   const router = useRouter();
   const { hasPermission } = useAuth();
   const canManageStock = hasPermission('STK_CREATE');

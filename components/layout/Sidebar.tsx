@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { NAV_ITEMS, SETTINGS_ITEMS, type NavItem } from '@/lib/constants';
+import { NAV_TOUR_TARGET_BY_HREF } from '@/lib/getting-started';
 import { motion } from 'motion/react';
 import { LogOut, ChevronLeft, ChevronRight, Wrench, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -98,8 +99,10 @@ function NavLink({
   badge?: number;
   onClick?: () => void;
 }) {
+  const tourTarget = NAV_TOUR_TARGET_BY_HREF[item.href];
+
   return (
-    <Link key={item.href} href={item.href} onClick={onClick}>
+    <Link key={item.href} href={item.href} onClick={onClick} data-tour={tourTarget}>
       <div className={cn(
         "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative",
         isActive
@@ -438,8 +441,14 @@ export function BottomNav({ onOpenMenu }: { onOpenMenu: () => void }) {
         const isActive = item.href === '/dashboard'
           ? pathname === '/dashboard'
           : pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const tourTarget = NAV_TOUR_TARGET_BY_HREF[item.href];
         return (
-          <Link key={item.href} href={href} className="flex flex-col items-center justify-center w-16 h-full relative group">
+          <Link
+            key={item.href}
+            href={href}
+            data-tour={tourTarget}
+            className="flex flex-col items-center justify-center w-16 h-full relative group"
+          >
             <item.icon size={22} className={cn("mb-1 transition-colors", isActive ? "text-brand" : "text-muted-foreground group-hover:text-foreground")} />
             <span className={cn("text-[10px] font-medium transition-colors", isActive ? "text-brand font-bold" : "text-muted-foreground group-hover:text-foreground")}>
               {item.title}

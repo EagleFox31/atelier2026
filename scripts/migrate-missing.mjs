@@ -111,6 +111,7 @@ async function main() {
   await migrateDemoRequests();
   await migrateMultiTenant();
   await migrateGarageIdColumns();
+  await migrateMonthlyTargets();
 
   console.log('\n✅ Migration terminée.');
 }
@@ -251,6 +252,29 @@ async function migrateMultiTenant() {
   } else {
     console.log('   ⏭️  workshop_settings.garage_id existe déjà');
   }
+}
+
+async function migrateMonthlyTargets() {
+  const { rows } = await q(`
+    SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='monthly_targets'
+  `);
+  if (rows.length > 0) { console.log('   ⏭️  Table monthly_targets existe déjà'); return; }
+
+  await q(`
+    CREATE TABLE public.monthly_targets (
+      id              UUID          NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
+      garage_id       UUID          REFERENCES garages(id) ON DELETE CASCADE,
+      year            INT           NOT NULL,
+      month           INT           NOT NULL CHECK (month BETWEEN 1 AND 12),
+      target_xaf      NUMERIC(15,2) NOT NULL,
+      created_by_id   UUID          REFERENCES users(id) ON DELETE SET NULL,
+      created_at      TIMESTAMPTZ   NOT NULL DEFAULT now(),
+      updated_at      TIMESTAMPTZ   NOT NULL DEFAULT now(),
+      UNIQUE(garage_id, year, month)
+    )
+  `);
+  await q(`CREATE INDEX idx_monthly_targets_garage_year ON public.monthly_targets(garage_id, year DESC)`);
+  console.log('   ✅ Table monthly_targets créée');
 }
 
 async function migrateGarageIdColumns() {
