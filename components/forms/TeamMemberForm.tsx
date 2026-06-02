@@ -166,12 +166,14 @@ interface TeamMemberFormProps { onSuccess?: () => void; }
 
 export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
   const { hasRole } = useAuth();
-  const [step, setStep]             = useState(0);
-  const [selectedRole, setRole]     = useState<RoleCode | null>(null);
-  const [generatedPwd, setGenPwd]   = useState('');
-  const [showPwd, setShowPwd]       = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [copied, setCopied]         = useState(false);
+  const [step, setStep]               = useState(0);
+  const [selectedRole, setRole]       = useState<RoleCode | null>(null);
+  const [generatedPwd, setGenPwd]     = useState('');
+  const [showPwd, setShowPwd]         = useState(false);
+  const [submitting, setSubmitting]   = useState(false);
+  const [copied, setCopied]           = useState(false);
+  const [duplicates, setDuplicates]   = useState<any[]>([]);
+  const [checkingDup, setCheckingDup] = useState(false);
 
   const infoForm = useForm<InfoValues>({
     resolver: zodResolver(infoSchema) as any,
@@ -263,7 +265,23 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
       {/* ── Étape 2 : Informations ── */}
       {step === 1 && (
         <Form {...infoForm}>
-          <form onSubmit={e => { e.preventDefault(); infoForm.trigger().then(ok => ok && setStep(2)); }}
+          <form onSubmit={async e => {
+              e.preventDefault();
+              const ok = await infoForm.trigger();
+              if (!ok) return;
+              const { firstName, lastName } = infoForm.getValues();
+              setCheckingDup(true);
+              try {
+                const results = await teamApi.list({ search: `${firstName} ${lastName}` }) as any[];
+                const found = results.filter((m: any) =>
+                  m.firstName.toLowerCase() === firstName.toLowerCase() &&
+                  m.lastName.toLowerCase() === lastName.toLowerCase()
+                );
+                setDuplicates(found);
+              } catch { setDuplicates([]); }
+              finally { setCheckingDup(false); }
+              setStep(2);
+            }}
             className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <FormField control={infoForm.control} name="firstName" render={({ field }) => (
@@ -380,12 +398,31 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
             ⚠️ Notez ce mot de passe maintenant — vous pourrez toujours le voir depuis la page Équipe.
           </p>
 
+          {/* Alerte doublons */}
+          {checkingDup && (
+            <p className="text-xs text-slate-500 text-center animate-pulse">Vérification des doublons...</p>
+          )}
+          {!checkingDup && duplicates.length > 0 && (
+            <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2.5 text-sm">
+              <p className="font-semibold text-orange-700 mb-1">
+                ⚠️ {duplicates.length === 1 ? 'Un employé' : 'Des employés'} du même nom exist{duplicates.length === 1 ? 'e' : 'ent'} déjà :
+              </p>
+              {duplicates.map((d: any) => (
+                <p key={d.id} className="text-orange-600 font-mono text-xs">
+                  {d.firstName} {d.lastName} — <span className="font-semibold">{d.employeeCode}</span>
+                  {d.roles?.[0]?.role?.label && <span className="ml-1 text-orange-500">({d.roles[0].role.label})</span>}
+                </p>
+              ))}
+              <p className="mt-1.5 text-orange-600 text-xs">Vous pouvez quand même créer ce compte si c&apos;est intentionnel.</p>
+            </div>
+          )}
+
           <div className="flex justify-between pt-2">
-            <Button type="button" variant="outline" onClick={() => setStep(1)}>
+            <Button type="button" variant="outline" onClick={() => { setStep(1); setDuplicates([]); }}>
               <ChevronLeft size={16} className="mr-1" /> Retour
             </Button>
             <Button onClick={handleCreate} disabled={submitting} className="bg-brand hover:bg-brand-hover">
-              {submitting ? 'Création...' : 'Créer le compte'}
+              {submitting ? 'Création...' : duplicates.length > 0 ? 'Créer quand même' : 'Créer le compte'}
               {!submitting && <Check size={16} className="ml-1" />}
             </Button>
           </div>

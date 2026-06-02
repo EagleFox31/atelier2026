@@ -101,10 +101,17 @@ function PasswordCell({ member, onReset }: { member: TeamMember; onReset: () => 
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const hasStoredPassword = Boolean(member.tempPassword);
+
   return (
-    <div className="flex items-center gap-1.5 mt-2 p-2 bg-slate-50 rounded-lg border border-slate-100">
+    <div className="mt-2 space-y-1">
+    <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-lg border border-slate-100">
       <span className="font-mono text-[11px] text-slate-600 flex-1 truncate">
-        {show ? (member.tempPassword ?? '—') : '••••••••'}
+        {show
+          ? hasStoredPassword
+            ? member.tempPassword
+            : '—'
+          : '••••••••'}
       </span>
       <button onClick={() => setShow(v => !v)} className="text-slate-400 hover:text-slate-600 flex-shrink-0">
         {show ? <EyeOff size={12} /> : <Eye size={12} />}
@@ -118,6 +125,13 @@ function PasswordCell({ member, onReset }: { member: TeamMember; onReset: () => 
         className="text-slate-400 hover:text-amber-500 flex-shrink-0" title="Générer nouveau mot de passe">
         <KeyRound size={12} />
       </button>
+    </div>
+    {show && !hasStoredPassword && (
+      <p className="text-[10px] leading-snug text-muted-foreground px-0.5">
+        Mot de passe non stocké (inscription ou compte existant). Utilisez la clé pour en générer un nouveau
+        affichable ici.
+      </p>
+    )}
     </div>
   );
 }
@@ -185,7 +199,7 @@ export default function TeamPage() {
               <DialogHeader>
                 <DialogTitle>Ajouter un nouveau membre à l&apos;équipe</DialogTitle>
               </DialogHeader>
-              <TeamMemberForm onSuccess={() => setIsTeamModalOpen(false)} />
+              <TeamMemberForm onSuccess={() => { setIsTeamModalOpen(false); void fetchTeam(); }} />
             </DialogContent>
           </Dialog>
         </div>
