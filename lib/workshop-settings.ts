@@ -6,6 +6,7 @@ export interface WorkshopSettings {
   email: string;
   phone: string;
   address: string;
+  logoUrl?: string | null;
   defaultLaborRateXaf: number | null;
   taxRatePct: number;
   updatedAt: string;

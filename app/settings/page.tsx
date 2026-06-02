@@ -45,6 +45,8 @@ export default function SettingsPage() {
 
   const [loading, setLoading] = useState(true);
   const [savingGeneral, setSavingGeneral] = useState(false);
+  const [logoUrl, setLogoUrl]           = useState<string | null>(null);
+  const [savingLogo, setSavingLogo]     = useState(false);
   const [savingBusiness, setSavingBusiness] = useState(false);
   const [settings, setSettings] = useState<WorkshopSettings | null>(null);
 
@@ -74,6 +76,7 @@ export default function SettingsPage() {
     settingsApi.getWorkshop()
       .then(data => {
         setSettings(data);
+        setLogoUrl(data.logoUrl ?? null);
         setGeneral({
           shopName: data.shopName,
           tagline: data.tagline,
@@ -118,6 +121,36 @@ export default function SettingsPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  // ── Logo ─────────────────────────────────────────────────────────────────
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 500_000) { toast.error('Logo trop volumineux — maximum 500 KB'); return; }
+    if (!file.type.startsWith('image/')) { toast.error('Format invalide — image uniquement'); return; }
+    setSavingLogo(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const dataUrl = ev.target?.result as string;
+        const updated = await settingsApi.updateLogo(dataUrl);
+        setLogoUrl(updated.logoUrl ?? null);
+        toast.success('Logo enregistré');
+        setSavingLogo(false);
+      };
+      reader.readAsDataURL(file);
+    } catch { toast.error('Erreur lors de l\'upload'); setSavingLogo(false); }
+  }
+
+  async function removeLogo() {
+    setSavingLogo(true);
+    try {
+      await settingsApi.updateLogo(null);
+      setLogoUrl(null);
+      toast.success('Logo supprimé');
+    } catch { toast.error('Erreur lors de la suppression'); }
+    finally { setSavingLogo(false); }
   }
 
   // ── Objectifs mensuels ────────────────────────────────────────────────────
@@ -225,6 +258,47 @@ export default function SettingsPage() {
             </TabsList>
 
             <TabsContent value="general">
+              {/* Logo */}
+              {canEdit && (
+                <Card className="border-none shadow-sm mb-4">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-base flex items-center gap-2">
+                          Logo de l&apos;atelier
+                          <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Prochainement payant</span>
+                        </CardTitle>
+                        <CardDescription className="text-xs mt-0.5">Affiché sur vos devis et factures · PNG, JPG ou SVG · max 500 KB</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-4">
+                      {logoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={logoUrl} alt="Logo" className="h-16 max-w-[140px] object-contain rounded-lg border border-slate-100 p-1 bg-white shadow-sm" />
+                      ) : (
+                        <div className="h-16 w-16 rounded-xl bg-brand/10 flex items-center justify-center text-brand text-2xl font-black border border-brand/20">
+                          {settings?.shopName?.charAt(0)?.toUpperCase() ?? 'A'}
+                        </div>
+                      )}
+                      <div className="flex flex-col gap-2">
+                        <label className={`cursor-pointer inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors ${savingLogo ? 'opacity-50 pointer-events-none' : ''}`}>
+                          {savingLogo ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                          {logoUrl ? 'Changer le logo' : 'Importer un logo'}
+                          <input type="file" accept="image/*" className="sr-only" onChange={handleLogoUpload} disabled={savingLogo} />
+                        </label>
+                        {logoUrl && (
+                          <button onClick={removeLogo} disabled={savingLogo} className="text-xs text-red-500 hover:text-red-700 text-left disabled:opacity-50">
+                            Supprimer le logo
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               <Card className="border-none shadow-sm">
                 <CardHeader>
                   <CardTitle>Informations de l&apos;Atelier</CardTitle>

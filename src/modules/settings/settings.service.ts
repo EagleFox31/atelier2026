@@ -21,6 +21,7 @@ function toResponse(row: {
   email: string;
   phone: string;
   address: string;
+  logoUrl?: string | null;
   defaultLaborRateXaf: { toNumber(): number } | null;
   taxRatePct: { toNumber(): number };
   updatedAt: Date;
@@ -32,6 +33,7 @@ function toResponse(row: {
     email: row.email,
     phone: row.phone,
     address: row.address,
+    logoUrl: row.logoUrl ?? null,
     defaultLaborRateXaf: row.defaultLaborRateXaf?.toNumber() ?? null,
     taxRatePct: row.taxRatePct.toNumber(),
     updatedAt: row.updatedAt.toISOString(),
@@ -78,6 +80,18 @@ export class SettingsService {
       },
     });
     return toResponse(row);
+  }
+
+  async updateLogo(logoUrl: string | null, userId: string, garageId?: string | null) {
+    const settingsId = garageId ? `garage_${garageId}` : 'default';
+    const existing = await this.resolveSettings(garageId);
+    return toResponse(
+      await this.prisma.workshopSettings.upsert({
+        where: { id: existing?.id ?? settingsId },
+        create: { ...DEFAULT_WORKSHOP_SETTINGS, id: settingsId, garageId: garageId ?? null, logoUrl, updatedById: userId },
+        update: { logoUrl, updatedById: userId },
+      }),
+    );
   }
 
   /** Cherche les settings par garageId, fallback sur 'default' */
