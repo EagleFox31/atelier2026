@@ -93,12 +93,15 @@ export default function ReportsPage() {
         const preRev = Number(revenuePrev?.totalRevenue || 0);
         setRevenueMtd(curRev);
 
-        if (preRev > 0) {
+        if (curRev === 0 && preRev === 0) {
+          setRevenueChange('—');
+          setRevenueTrend('up');
+        } else if (preRev > 0) {
           const diff = ((curRev - preRev) / preRev) * 100;
           setRevenueChange(diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`);
           setRevenueTrend(diff >= 0 ? 'up' : 'down');
         } else {
-          setRevenueChange('+100%');
+          setRevenueChange('Nouveau');
           setRevenueTrend('up');
         }
 
@@ -115,10 +118,14 @@ export default function ReportsPage() {
         const techCount = Object.keys(perfData).length;
         const avgTime = techCount > 0 ? (totalAct / techCount) : 0;
         setAvgInterventionTime(avgTime);
-        // Compare to target standard (e.g. 4.0 hours)
-        const timeDiff = ((avgTime - 4.0) / 4.0) * 100;
-        setAvgInterventionChange(timeDiff <= 0 ? `${timeDiff.toFixed(1)}%` : `+${timeDiff.toFixed(1)}%`);
-        setAvgInterventionTrend(timeDiff <= 0 ? 'down' : 'up');
+        if (techCount === 0 || avgTime === 0) {
+          setAvgInterventionChange('—');
+          setAvgInterventionTrend('down');
+        } else {
+          const timeDiff = ((avgTime - 4.0) / 4.0) * 100;
+          setAvgInterventionChange(timeDiff <= 0 ? `${timeDiff.toFixed(1)}%` : `+${timeDiff.toFixed(1)}%`);
+          setAvgInterventionTrend(timeDiff <= 0 ? 'down' : 'up');
+        }
 
         // 3. Fetch New Customers count
         const customers = await customersApi.list() as any[];
@@ -129,12 +136,15 @@ export default function ReportsPage() {
         }).length;
 
         setNewCustomersCount(curCust);
-        if (preCust > 0) {
+        if (curCust === 0 && preCust === 0) {
+          setNewCustomersChange('—');
+          setNewCustomersTrend('up');
+        } else if (preCust > 0) {
           const diff = ((curCust - preCust) / preCust) * 100;
           setNewCustomersChange(diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`);
           setNewCustomersTrend(diff >= 0 ? 'up' : 'down');
         } else {
-          setNewCustomersChange('+100%');
+          setNewCustomersChange('Nouveau');
           setNewCustomersTrend('up');
         }
 
