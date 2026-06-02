@@ -285,7 +285,7 @@ export function generateQuotePdfBlobUrl(data: BillingDocumentData): string {
   pdf.setFontSize(6);
   pdf.setTextColor(180, 180, 180);
   pdf.text(
-    `Document genere par ${pdfText(data.workshop.shopName)} - ${pdfText(data.reference)}`,
+    `Document genere par ${pdfText(data.workshop.shopName)} · ${pdfText(data.reference)} · Atelier Maitre`,
     pageWidth / 2,
     pdf.internal.pageSize.getHeight() - 8,
     { align: 'center' },
