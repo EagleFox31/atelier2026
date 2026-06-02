@@ -246,6 +246,10 @@ export interface ApiUser {
   roles: string[];
   permissions: string[];
   onboardingCompletedAt: string | null;
+  tenantId: string | null;
+  garageId: string | null;
+  garage: { id: string; name: string; slug: string } | null;
+  tenant: { id: string; name: string; slug: string } | null;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
