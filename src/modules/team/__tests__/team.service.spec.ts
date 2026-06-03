@@ -1,3 +1,4 @@
+const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
 import { NotFoundException } from '@nestjs/common';
 import { TeamService } from '../team.service';
 
@@ -9,7 +10,7 @@ function makeDeps() {
   const prismaMock = {
     user: {
       findMany: jest.fn(),
-      findFirst: jest.fn(),
+      findFirst: jest.fn().mockResolvedValue({ id: 'u-1', garageId: TEST_GARAGE_ID, deletedAt: null }), // assertion only
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
@@ -33,10 +34,10 @@ describe('TeamService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.user.findMany.mockResolvedValue([]);
 
-      await service.findAll();
+      await service.findAll(undefined, undefined, TEST_GARAGE_ID);
 
       expect(prismaMock.user.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { deletedAt: null } }),
+        expect.objectContaining({ where: expect.objectContaining({ deletedAt: null }) }),
       );
     });
 
@@ -44,7 +45,7 @@ describe('TeamService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.user.findMany.mockResolvedValue([]);
 
-      await service.findAll('Jean');
+      await service.findAll('Jean', undefined, TEST_GARAGE_ID);
 
       const where = prismaMock.user.findMany.mock.calls[0][0].where;
       expect(where.OR).toHaveLength(4);
@@ -54,7 +55,7 @@ describe('TeamService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.user.findMany.mockResolvedValue([]);
 
-      await service.findAll(undefined, 'role-1');
+      await service.findAll(undefined, 'role-1', TEST_GARAGE_ID);
 
       expect(prismaMock.user.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -69,7 +70,7 @@ describe('TeamService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.user.findMany.mockResolvedValue([]);
 
-      await service.findAll();
+      await service.findAll(undefined, undefined, TEST_GARAGE_ID);
 
       expect(prismaMock.user.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ orderBy: { firstName: 'asc' } }),
@@ -80,7 +81,7 @@ describe('TeamService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.user.findMany.mockResolvedValue([]);
 
-      await service.findAll();
+      await service.findAll(undefined, undefined, TEST_GARAGE_ID);
 
       const call = prismaMock.user.findMany.mock.calls[0][0];
       expect(call.select.id).toBe(true);
@@ -98,7 +99,7 @@ describe('TeamService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.user.findMany.mockResolvedValue([]);
 
-      await service.findAll();
+      await service.findAll(undefined, undefined, TEST_GARAGE_ID);
 
       const call = prismaMock.user.findMany.mock.calls[0][0];
       expect(call.select.roles.where).toEqual({ revokedAt: null });
@@ -109,7 +110,7 @@ describe('TeamService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.user.findMany.mockResolvedValue([]);
 
-      await service.findAll('Jean');
+      await service.findAll('Jean', undefined, TEST_GARAGE_ID);
 
       const where = prismaMock.user.findMany.mock.calls[0][0].where;
       expect(where.OR[0]).toEqual({ firstName: { contains: 'Jean', mode: 'insensitive' } });
@@ -122,9 +123,11 @@ describe('TeamService', () => {
   describe('findOne()', () => {
     it('lève NotFoundException si membre introuvable', async () => {
       const { service, prismaMock } = makeDeps();
+      prismaMock.user.findFirst.mockResolvedValue(null);
+      prismaMock.user.findFirst.mockResolvedValue(null);
       prismaMock.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOne('inexistant')).rejects.toThrow(
+      await expect(service.findOne('inexistant', TEST_GARAGE_ID)).rejects.toThrow(
         new NotFoundException("Membre de l'équipe introuvable"),
       );
     });
@@ -132,20 +135,24 @@ describe('TeamService', () => {
     it('retourne le membre avec ses rôles actifs', async () => {
       const { service, prismaMock } = makeDeps();
       const user = { id: 'u-1', firstName: 'Jean', roles: [], assignedOTs: [], workItems: [] };
-      prismaMock.user.findUnique.mockResolvedValue(user);
+      prismaMock.user.findFirst
+        .mockResolvedValueOnce({ id: 'u-1', garageId: TEST_GARAGE_ID }) // assertion
+        .mockResolvedValueOnce(user); // data
 
-      const result = await service.findOne('u-1');
+      const result = await service.findOne('u-1', TEST_GARAGE_ID);
 
       expect(result).toEqual(user);
     });
 
     it('select contient lastLoginAt, rôles actifs, OTs assignés et workItems en cours', async () => {
       const { service, prismaMock } = makeDeps();
-      prismaMock.user.findUnique.mockResolvedValue({ id: 'u-1', roles: [], assignedOTs: [], workItems: [] });
+      prismaMock.user.findFirst
+        .mockResolvedValueOnce({ id: 'u-1', garageId: TEST_GARAGE_ID }) // assertion
+        .mockResolvedValueOnce({ id: 'u-1', roles: [], assignedOTs: [], workItems: [] }); // data
 
-      await service.findOne('u-1');
+      await service.findOne('u-1', TEST_GARAGE_ID);
 
-      const call = prismaMock.user.findUnique.mock.calls[0][0];
+      const call = prismaMock.user.findFirst.mock.calls[1][0];
       expect(call.select.id).toBe(true);
       expect(call.select.email).toBe(true);
       expect(call.select.phone).toBe(true);
@@ -172,7 +179,7 @@ describe('TeamService', () => {
         id: 'u-1', firstName: 'Jean', lastName: 'Dupont', employeeCode: 'jean.dupont',
       });
 
-      await service.create({ firstName: 'Jean', lastName: 'Dupont', password: 'Secret123!' });
+      await service.create({ firstName: 'Jean', lastName: 'Dupont', password: 'Secret123!', garageId: TEST_GARAGE_ID });
 
       expect(bcrypt.hash).toHaveBeenCalledWith('Secret123!', 10);
       expect(prismaMock.user.create).toHaveBeenCalledWith(
@@ -187,7 +194,7 @@ describe('TeamService', () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
       prismaMock.user.create.mockResolvedValue({ id: 'u-1', employeeCode: 'test.user' });
 
-      await service.create({ firstName: 'Test', lastName: 'User' });
+      await service.create({ firstName: 'Test', lastName: 'User', garageId: TEST_GARAGE_ID });
 
       expect(prismaMock.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -201,7 +208,7 @@ describe('TeamService', () => {
       prismaMock.user.findUnique.mockResolvedValue(null);
       prismaMock.user.create.mockResolvedValue({ id: 'u-1' });
 
-      await service.create({ firstName: 'Test', lastName: 'User' });
+      await service.create({ firstName: 'Test', lastName: 'User', garageId: TEST_GARAGE_ID });
 
       // Le mot de passe auto est TestNNNN! (prénom + 4 chiffres + !)
       expect(bcrypt.hash).toHaveBeenCalledWith(
@@ -221,6 +228,7 @@ describe('TeamService', () => {
         firstName: 'Paul',
         lastName: 'Tech',
         roleCode: 'TECHNICIEN',
+        garageId: TEST_GARAGE_ID,
       });
 
       expect(prismaMock.userRole.create).toHaveBeenCalledWith({
@@ -233,7 +241,7 @@ describe('TeamService', () => {
       prismaMock.$queryRaw.mockResolvedValue([{ employee_code: 'EMP-005' }]);
       prismaMock.user.create.mockResolvedValue({ id: 'u-1' });
 
-      await service.create({ firstName: 'Test', lastName: 'User' });
+      await service.create({ firstName: 'Test', lastName: 'User', garageId: TEST_GARAGE_ID });
 
       expect(prismaMock.userRole.create).not.toHaveBeenCalled();
     });
@@ -243,7 +251,7 @@ describe('TeamService', () => {
       prismaMock.$queryRaw.mockResolvedValue([{ employee_code: 'EMP-005' }]);
       prismaMock.user.create.mockResolvedValue({ id: 'u-1' });
 
-      await service.create({ firstName: 'Test', lastName: 'User' });
+      await service.create({ firstName: 'Test', lastName: 'User', garageId: TEST_GARAGE_ID });
 
       const call = prismaMock.user.create.mock.calls[0][0];
       expect(call.select.id).toBe(true);
@@ -259,9 +267,11 @@ describe('TeamService', () => {
   describe('update()', () => {
     it('lève NotFoundException si le membre est introuvable', async () => {
       const { service, prismaMock } = makeDeps();
+      prismaMock.user.findFirst.mockResolvedValue(null);
+      prismaMock.user.findFirst.mockResolvedValue(null);
       prismaMock.user.findUnique.mockResolvedValue(null);
 
-      await expect(service.update('inexistant', {})).rejects.toThrow(NotFoundException);
+      await expect(service.update('inexistant', {}, TEST_GARAGE_ID)).rejects.toThrow(NotFoundException);
     });
 
     it('appelle user.update si le membre existe', async () => {
@@ -269,7 +279,7 @@ describe('TeamService', () => {
       prismaMock.user.findUnique.mockResolvedValue({ id: 'u-1', deletedAt: null });
       prismaMock.user.update.mockResolvedValue({ id: 'u-1', firstName: 'Jean' });
 
-      await service.update('u-1', { phone: '699001122' });
+      await service.update('u-1', { phone: '699001122' }, TEST_GARAGE_ID);
 
       const call = prismaMock.user.update.mock.calls[0][0];
       expect(call.where).toEqual({ id: 'u-1' });
@@ -293,7 +303,7 @@ describe('TeamService', () => {
         .mockResolvedValueOnce(null);               // test.user2 → libre
       prismaMock.user.create.mockResolvedValue({ id: 'u-1', employeeCode: 'test.user2' });
 
-      await service.create({ firstName: 'Test', lastName: 'User' });
+      await service.create({ firstName: 'Test', lastName: 'User', garageId: TEST_GARAGE_ID });
 
       expect(prismaMock.user.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -306,12 +316,14 @@ describe('TeamService', () => {
   describe('assignRole()', () => {
     it('révoque les rôles actifs puis assigne le nouveau', async () => {
       const { service, prismaMock } = makeDeps();
-      prismaMock.user.findUnique.mockResolvedValue({ id: 'u-1', deletedAt: null });
+      prismaMock.user.findFirst
+        .mockResolvedValueOnce({ id: 'u-1', garageId: TEST_GARAGE_ID }) // assertion
+        .mockResolvedValueOnce({ id: 'u-1', roles: [], assignedOTs: [], workItems: [] }); // data
       prismaMock.role.findUnique.mockResolvedValue({ id: 'role-chef', code: 'CHEF_ATELIER' });
       prismaMock.userRole.updateMany.mockResolvedValue({ count: 1 });
       prismaMock.userRole.create.mockResolvedValue({ role: { code: 'CHEF_ATELIER' } });
 
-      await service.assignRole('u-1', 'CHEF_ATELIER');
+      await service.assignRole('u-1', 'CHEF_ATELIER', TEST_GARAGE_ID);
 
       expect(prismaMock.userRole.updateMany).toHaveBeenCalledWith({
         where: { userId: 'u-1', revokedAt: null },
@@ -327,10 +339,13 @@ describe('TeamService', () => {
 
     it('lève NotFoundException si rôle inconnu', async () => {
       const { service, prismaMock } = makeDeps();
-      prismaMock.user.findUnique.mockResolvedValue({ id: 'u-1', deletedAt: null });
+      prismaMock.user.findFirst
+        .mockResolvedValueOnce({ id: 'u-1', garageId: TEST_GARAGE_ID }) // assertion
+        .mockResolvedValueOnce({ id: 'u-1', roles: [], assignedOTs: [], workItems: [] }); // data
+
       prismaMock.role.findUnique.mockResolvedValue(null);
 
-      await expect(service.assignRole('u-1', 'INEXISTANT')).rejects.toThrow(NotFoundException);
+      await expect(service.assignRole('u-1', 'INEXISTANT', TEST_GARAGE_ID)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -340,7 +355,7 @@ describe('TeamService', () => {
       prismaMock.user.findUnique.mockResolvedValue({ id: 'u-1', deletedAt: null });
       prismaMock.user.update.mockResolvedValue({ id: 'u-1' });
 
-      await service.remove('u-1');
+      await service.remove('u-1', TEST_GARAGE_ID);
 
       expect(prismaMock.user.update).toHaveBeenCalledWith({
         where: { id: 'u-1' },

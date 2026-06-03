@@ -1,3 +1,4 @@
+const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
 import { NotFoundException } from '@nestjs/common';
 import { CustomersService } from '../customers.service';
 
@@ -23,10 +24,10 @@ describe('CustomersService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.customer.findMany.mockResolvedValue([]);
 
-      await service.findAll();
+      await service.findAll(undefined, undefined, TEST_GARAGE_ID);
 
       expect(prismaMock.customer.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { deletedAt: null } }),
+        expect.objectContaining({ where: expect.objectContaining({ deletedAt: null }) }),
       );
     });
 
@@ -34,7 +35,7 @@ describe('CustomersService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.customer.findMany.mockResolvedValue([]);
 
-      await service.findAll();
+      await service.findAll(undefined, undefined, TEST_GARAGE_ID);
 
       const where = prismaMock.customer.findMany.mock.calls[0][0].where;
       expect(where).not.toHaveProperty('customerType');
@@ -44,7 +45,7 @@ describe('CustomersService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.customer.findMany.mockResolvedValue([]);
 
-      await service.findAll();
+      await service.findAll(undefined, undefined, TEST_GARAGE_ID);
 
       const where = prismaMock.customer.findMany.mock.calls[0][0].where;
       expect(where).not.toHaveProperty('OR');
@@ -54,7 +55,7 @@ describe('CustomersService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.customer.findMany.mockResolvedValue([]);
 
-      await service.findAll();
+      await service.findAll(undefined, undefined, TEST_GARAGE_ID);
 
       expect(prismaMock.customer.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ orderBy: { createdAt: 'desc' } }),
@@ -65,7 +66,7 @@ describe('CustomersService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.customer.findMany.mockResolvedValue([]);
 
-      await service.findAll('Dupont', 'INDIVIDUAL');
+      await service.findAll('Dupont', 'INDIVIDUAL' as any, TEST_GARAGE_ID);
 
       expect(prismaMock.customer.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -82,7 +83,7 @@ describe('CustomersService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.customer.findMany.mockResolvedValue([]);
 
-      await service.findAll('Dupont');
+      await service.findAll('Dupont', undefined, TEST_GARAGE_ID);
 
       const where = prismaMock.customer.findMany.mock.calls[0][0].where;
       expect(where.OR[0]).toEqual({ firstName: { contains: 'Dupont', mode: 'insensitive' } });
@@ -98,7 +99,7 @@ describe('CustomersService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.customer.findFirst.mockResolvedValue(null);
 
-      await expect(service.findOne('inexistant')).rejects.toThrow(
+      await expect(service.findOne('inexistant', TEST_GARAGE_ID)).rejects.toThrow(
         new NotFoundException('Client introuvable'),
       );
     });
@@ -107,7 +108,7 @@ describe('CustomersService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.customer.findFirst.mockResolvedValue({ id: 'c-1', vehicles: [], serviceOrders: [] });
 
-      await service.findOne('c-1');
+      await service.findOne('c-1', TEST_GARAGE_ID);
 
       const call = prismaMock.customer.findFirst.mock.calls[0][0];
       expect(call.include.vehicles).toBe(true);
@@ -122,7 +123,7 @@ describe('CustomersService', () => {
       prismaMock.customer.findFirst.mockResolvedValue({ id: 'c-1', deletedAt: null });
       prismaMock.customer.update.mockResolvedValue({ id: 'c-1', deletedAt: new Date() });
 
-      await service.remove('c-1');
+      await service.remove('c-1', TEST_GARAGE_ID);
 
       expect(prismaMock.customer.update).toHaveBeenCalledWith({
         where: { id: 'c-1' },
