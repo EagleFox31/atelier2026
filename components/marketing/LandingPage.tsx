@@ -935,7 +935,7 @@ export function LandingPage() {
 
       {/* ── CTA FINAL ── */}
       <section ref={ctaRef} className={`${sectionClass} relative overflow-hidden text-center`} style={{
-        background: 'linear-gradient(135deg, rgba(26,18,9,0.90) 0%, rgba(45,27,9,0.88) 50%, rgba(61,35,16,0.85) 100%)',
+        background: 'linear-gradient(135deg, rgba(26,18,9,0.75) 0%, rgba(45,27,9,0.72) 50%, rgba(61,35,16,0.68) 100%)',
       }}>
         <motion.div style={{
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
@@ -986,7 +986,7 @@ export function LandingPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer style={{ background: 'rgba(18,10,4,0.93)', borderTop: 'none' }}>
+      <footer style={{ background: 'rgba(18,10,4,0.80)', borderTop: 'none' }}>
         <LandingKenteBar />
         <div className="landing-inner landing-px py-10 sm:py-12">
           <div className="landing-footer-row">
