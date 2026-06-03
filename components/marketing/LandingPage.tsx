@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useScroll, useTransform, useReducedMotion, MotionValue, AnimatePresence, useMotionValueEvent } from 'motion/react';
@@ -302,6 +302,32 @@ export function LandingPage() {
   const [activePainStep, setActivePainStep] = useState(0);
   const [activeStepsStep, setActiveStepsStep] = useState(0);
   const stepsStoryRef = useRef<HTMLDivElement>(null);
+
+  const [activeFeature, setActiveFeature] = useState(0);
+  const [deviceView, setDeviceView] = useState<'macbook' | 'phone'>('macbook');
+  const featuresStoryRef = useRef<HTMLDivElement>(null);
+
+  // Sur mobile → toujours vue téléphone
+  useEffect(() => {
+    if (window.innerWidth < 768) setDeviceView('phone');
+    const onResize = () => { if (window.innerWidth < 768) setDeviceView('phone'); };
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // Détection scroll horizontal (trackpad / touch) → bascule MacBook ↔ Phone
+  const handleFeaturesWheel = useCallback((e: WheelEvent) => {
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY) * 0.6 && Math.abs(e.deltaX) > 20) {
+      setDeviceView(e.deltaX > 0 ? 'phone' : 'macbook');
+    }
+  }, []);
+
+  useEffect(() => {
+    const el = featuresStoryRef.current;
+    if (!el) return;
+    el.addEventListener('wheel', handleFeaturesWheel, { passive: true });
+    return () => el.removeEventListener('wheel', handleFeaturesWheel);
+  }, [handleFeaturesWheel]);
   const painStoryRef = useRef<HTMLDivElement>(null);
   // painRef réutilisé comme ref div pour le sticky inner
 
@@ -356,6 +382,15 @@ export function LandingPage() {
     if (v < 0.30) setActiveStepsStep(0);
     else if (v < 0.62) setActiveStepsStep(1);
     else setActiveStepsStep(2);
+  });
+
+  /* ── Scroll features ── */
+  const { scrollYProgress: featuresScroll } = useScroll({
+    target: featuresStoryRef,
+    offset: ['start start', 'end end'],
+  });
+  useMotionValueEvent(featuresScroll, 'change', (v) => {
+    setActiveFeature(Math.min(5, Math.floor(v * 6)));
   });
 
   /* ── Scroll rôles ── */
@@ -874,37 +909,162 @@ export function LandingPage() {
         );
       })()}
 
-      {/* ── FEATURES ── */}
-      <section id="fonctionnalites" className={sectionClass} style={{ background: C.white }}>
-        <div className="landing-inner">
-          <Eyebrow>Plateforme</Eyebrow>
-          <SectionHeading>Tout l&apos;atelier. Une seule plateforme.</SectionHeading>
-          <Lead style={{ maxWidth: 520 }}>Inspiré des meilleurs logiciels garage — adapté au terrain camerounais, sans complexité inutile.</Lead>
-          <div className="landing-grid-3 mt-12">
-            {FEATURES.map(({ Icon, color, bg, title, desc }, i) => (
-              <motion.div
-                key={title}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.35, delay: (i % 3) * 0.08 }}
-                whileHover={{ y: -4, boxShadow: `0 16px 40px ${color}22` }}
-                style={{
-                  background: C.white, border: `1px solid rgba(200,81,26,0.1)`,
-                  borderRadius: 20, padding: '1.75rem',
-                  transition: 'border-color 0.25s',
-                }}
-              >
-                <div style={{ width: 44, height: 44, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
-                  <Icon size={22} color={color} />
+      {/* ── FEATURES — mockup scroll storytelling ── */}
+      {(() => {
+        const DEMOS = [
+          { Icon: BarChart3,    color: C.brand,  bg: '#FEE2C5', title: 'Tableau de bord live',  desc: 'CA, OT en cours, stock bas — tout en un coup d\'œil. Décisions en temps réel.', desktop: '/features/dashboard-desktop.png',  mobile: '/features/dashboard-mobile.jpg' },
+          { Icon: ClipboardList,color: C.earth,  bg: '#E5E0D8', title: 'Ordres de travail',      desc: 'De la réception au contrôle qualité. Statuts, historique, signature client.', desktop: '/features/workshop-desktop.png',   mobile: '/features/workshop-mobile.jpg' },
+          { Icon: FileText,     color: C.gold,   bg: '#FEF3C7', title: 'Devis & factures',       desc: 'TVA 19,25 %, timbre fiscal, PDF en XAF — sans ressaisie, sans erreur.', desktop: '/features/billing-desktop.png',   mobile: '/features/billing-mobile.jpg' },
+          { Icon: Package,      color: C.green,  bg: '#D1FAE5', title: 'Stock pièces',           desc: 'Alertes seuil, mouvements liés aux OT, vente comptoir en temps réel.', desktop: '/features/stock-desktop.png',     mobile: '/features/stock-mobile.jpg' },
+          { Icon: CalendarDays, color: C.brandDeep, bg: '#FEE2C5', title: 'Planning atelier',   desc: 'Rendez-vous, charge atelier, vue réception optimisée pour le mobile.', desktop: '/features/planning-desktop.png',  mobile: '/features/planning-mobile.jpg' },
+          { Icon: TrendingUp,   color: C.red,    bg: '#FEE2E2', title: 'Rapports & performances',desc: 'CA, performance techniciens, factures en attente — indicateurs clés.', desktop: '/features/reports-desktop.png',   mobile: '/features/reports-mobile.jpg' },
+        ];
+
+        const isMacbook = deviceView === 'macbook';
+
+        return (
+          <div ref={featuresStoryRef} id="fonctionnalites" style={{ height: '750vh', position: 'relative', background: 'rgba(255,255,255,0.55)' }}>
+            <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%', display: 'grid',
+                gridTemplateColumns: '38% 1fr',
+                gap: '0', maxWidth: 1300, margin: '0 auto',
+                padding: '0 4%', alignItems: 'center',
+              }}>
+
+                {/* ── GAUCHE : liste features ── */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '3rem' }}>
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <Eyebrow>Plateforme</Eyebrow>
+                    <p style={{ fontFamily: '"Playfair Display", serif', fontSize: 'clamp(1.5rem, 2.2vw, 2rem)', fontWeight: 900, color: C.earth, lineHeight: 1.2, marginTop: '0.4rem' }}>
+                      Tout l&apos;atelier.<br />Une seule plateforme.
+                    </p>
+                  </div>
+
+                  {DEMOS.map(({ Icon, color, bg, title, desc }, i) => {
+                    const active = i === activeFeature;
+                    return (
+                      <motion.div
+                        key={title}
+                        animate={{
+                          opacity: active ? 1 : 0.30,
+                          x: active ? 0 : -6,
+                          background: active ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.40)',
+                          borderColor: active ? `${color}33` : 'rgba(200,81,26,0.05)',
+                          boxShadow: active ? `0 4px 24px ${color}18` : 'none',
+                        }}
+                        transition={{ duration: 0.35 }}
+                        style={{ borderRadius: 14, padding: '0.875rem 1rem', border: '1px solid', cursor: 'default' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <motion.div
+                            animate={{ background: active ? bg : 'rgba(200,81,26,0.06)' }}
+                            style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                          >
+                            <Icon size={16} color={active ? color : C.muted} />
+                          </motion.div>
+                          <div>
+                            <p style={{ fontWeight: 700, fontSize: '0.88rem', color: active ? C.earth : C.muted, lineHeight: 1.2 }}>{title}</p>
+                            {active && (
+                              <motion.p initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} transition={{ duration: 0.25 }}
+                                style={{ fontSize: '0.78rem', color: C.muted, lineHeight: 1.5, marginTop: '0.25rem' }}>
+                                {desc}
+                              </motion.p>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+
+                  {/* Hint horizontal */}
+                  <p style={{ fontSize: '0.65rem', color: C.muted, marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.375rem', opacity: 0.6 }}>
+                    <span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
+                      {isMacbook ? '← Glisse pour voir sur mobile' : '→ Glisse pour voir sur desktop'}
+                    </span>
+                  </p>
                 </div>
-                <h3 style={{ fontWeight: 700, fontSize: '0.95rem', color: C.earth, marginBottom: '0.5rem' }}>{title}</h3>
-                <p style={{ fontSize: '0.845rem', color: C.muted, lineHeight: 1.65 }}>{desc}</p>
-              </motion.div>
-            ))}
+
+                {/* ── DROITE : mockup device ── */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', position: 'relative' }}>
+
+                  <AnimatePresence mode="wait">
+                    {isMacbook ? (
+                      /* ── FRAME MACBOOK ── */
+                      <motion.div key="macbook"
+                        initial={{ opacity: 0, scale: 0.96, x: 30 }}
+                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.96, x: 30 }}
+                        transition={{ duration: 0.3, ease: 'easeOut' }}
+                        style={{ width: '100%', maxWidth: 640 }}
+                      >
+                        {/* Écran */}
+                        <div style={{
+                          background: '#1A1209', borderRadius: '14px 14px 0 0',
+                          padding: '10px 10px 0', boxShadow: '0 32px 80px rgba(0,0,0,0.35)',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                        }}>
+                          {/* Barre titre */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px 8px' }}>
+                            {['#ff5f57','#ffbd2e','#28ca41'].map(c => <span key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c, flexShrink: 0 }} />)}
+                            <div style={{ flex: 1, height: 18, background: 'rgba(255,255,255,0.07)', borderRadius: 6, marginLeft: 8 }} />
+                          </div>
+                          {/* Screen */}
+                          <div style={{ borderRadius: '6px 6px 0 0', overflow: 'hidden', position: 'relative', aspectRatio: '16/10' }}>
+                            <AnimatePresence mode="wait">
+                              <motion.div key={activeFeature} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} style={{ position: 'absolute', inset: 0 }}>
+                                <Image src={DEMOS[activeFeature].desktop} alt={DEMOS[activeFeature].title} fill sizes="640px" style={{ objectFit: 'cover', objectPosition: 'top' }} />
+                              </motion.div>
+                            </AnimatePresence>
+                          </div>
+                        </div>
+                        {/* Base clavier */}
+                        <div style={{ background: 'linear-gradient(to bottom, #2a2a2a, #1a1a1a)', height: 22, borderRadius: '0 0 4px 4px', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }} />
+                        <div style={{ background: '#111', height: 6, borderRadius: '0 0 12px 12px', margin: '0 5%', boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }} />
+                      </motion.div>
+                    ) : (
+                      /* ── FRAME TÉLÉPHONE ── */
+                      <motion.div key="phone"
+                        initial={{ opacity: 0, scale: 0.96, x: -30 }}
+                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.96, x: -30 }}
+                        transition={{ duration: 0.3, ease: 'easeOut' }}
+                        style={{ width: 260, flexShrink: 0 }}
+                      >
+                        <div style={{
+                          background: '#1A1209', borderRadius: 40,
+                          padding: '10px 8px', position: 'relative',
+                          boxShadow: '0 32px 80px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.08)',
+                          border: '1px solid rgba(255,255,255,0.06)',
+                        }}>
+                          {/* Dynamic island */}
+                          <div style={{ width: 80, height: 24, background: '#000', borderRadius: 20, margin: '0 auto 6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#1a1a1a', border: '1px solid #333' }} />
+                          </div>
+                          {/* Screen */}
+                          <div style={{ borderRadius: 28, overflow: 'hidden', position: 'relative', aspectRatio: '9/19.5' }}>
+                            <AnimatePresence mode="wait">
+                              <motion.div key={activeFeature} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} style={{ position: 'absolute', inset: 0 }}>
+                                <Image src={DEMOS[activeFeature].mobile} alt={DEMOS[activeFeature].title} fill sizes="260px" style={{ objectFit: 'cover', objectPosition: 'top' }} />
+                              </motion.div>
+                            </AnimatePresence>
+                          </div>
+                          {/* Home indicator */}
+                          <div style={{ width: 80, height: 4, background: 'rgba(255,255,255,0.25)', borderRadius: 99, margin: '8px auto 2px' }} />
+                        </div>
+                        {/* Boutons côté */}
+                        <div style={{ position: 'absolute', right: -3, top: '25%', width: 3, height: 40, background: '#333', borderRadius: '0 2px 2px 0' }} />
+                        <div style={{ position: 'absolute', left: -3, top: '20%', width: 3, height: 28, background: '#333', borderRadius: '2px 0 0 2px' }} />
+                        <div style={{ position: 'absolute', left: -3, top: '28%', width: 3, height: 28, background: '#333', borderRadius: '2px 0 0 2px' }} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        );
+      })()}
 
       {/* ── STATS ── */}
       <div className="landing-stats-band" style={{ background: `linear-gradient(135deg, ${C.brand} 0%, ${C.brandDeep} 100%)` }}>
