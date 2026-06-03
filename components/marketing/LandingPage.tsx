@@ -1492,37 +1492,106 @@ export function LandingPage() {
             </ul>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            style={{ background: C.white, borderRadius: 20, padding: '1.5rem', border: '1px solid rgba(200,81,26,0.1)' }}
-          >
-            <p style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.muted, marginBottom: '1rem' }}>
-              Compte Groupe · Kams Motors
-            </p>
-            {['Garage Douala — Akwa', 'Garage Yaoundé — Bastos', 'Garage Bafoussam — Centre'].map((g) => (
-              <div
-                key={g}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '0.875rem 1rem', borderRadius: 10,
-                  border: '1px solid rgba(200,81,26,0.08)', marginBottom: '0.625rem',
-                  background: C.surface,
-                }}
+          {(() => {
+            const GARAGES = [
+              { name: 'Garage Douala — Akwa',       ca: '5 820 000' },
+              { name: 'Garage Yaoundé — Bastos',     ca: '4 310 000' },
+              { name: 'Garage Bafoussam — Centre',   ca: '2 320 000' },
+            ];
+            const TOTAL = 12450000;
+
+            function CountUp({ target, inView }: { target: number; inView: boolean }) {
+              const [val, setVal] = useState(0);
+              useEffect(() => {
+                if (!inView) return;
+                let start = 0;
+                const step = target / 60;
+                const id = setInterval(() => {
+                  start += step;
+                  if (start >= target) { setVal(target); clearInterval(id); }
+                  else setVal(Math.floor(start));
+                }, 20);
+                return () => clearInterval(id);
+              }, [inView, target]);
+              return <>{String(val).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}</>;
+            }
+
+            return (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                style={{ background: C.white, borderRadius: 20, padding: '1.5rem', border: '1px solid rgba(200,81,26,0.1)' }}
               >
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: C.earth }}>
-                  <Building2 size={16} color={C.muted} />
-                  {g}
-                </span>
-                <ChevronRight size={16} color={C.muted} />
-              </div>
-            ))}
-            <div style={{ marginTop: '1.25rem', padding: '1rem', background: C.sand, borderRadius: 10 }}>
-              <p style={{ fontSize: '0.78rem', fontWeight: 700, color: C.muted, marginBottom: '0.25rem' }}>CA Groupe · Juin 2026</p>
-              <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '1.75rem', fontWeight: 900, color: C.brand }}>12 450 000 XAF</p>
-            </div>
-          </motion.div>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.muted }}>
+                    Compte Groupe · Kams Motors
+                  </p>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.65rem', fontWeight: 700, color: C.green }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.green, display: 'inline-block' }} />
+                    En ligne
+                  </span>
+                </div>
+
+                {/* Garages — entrent un par un */}
+                {GARAGES.map((g, i) => (
+                  <motion.div
+                    key={g.name}
+                    initial={{ opacity: 0, x: 16 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: 0.15 + i * 0.18 }}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '0.875rem 1rem', borderRadius: 10,
+                      border: '1px solid rgba(200,81,26,0.08)', marginBottom: '0.625rem',
+                      background: C.surface,
+                    }}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: C.earth }}>
+                      <Building2 size={16} color={C.muted} />
+                      {g.name}
+                    </span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: C.brand }}>{g.ca} XAF</span>
+                  </motion.div>
+                ))}
+
+                {/* CA total — compteur animé */}
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.7 }}
+                  style={{ marginTop: '1.25rem', padding: '1rem', background: C.sand, borderRadius: 10 }}
+                >
+                  <p style={{ fontSize: '0.78rem', fontWeight: 700, color: C.muted, marginBottom: '0.25rem' }}>CA Groupe · Juin 2026</p>
+                  <motion.p
+                    style={{ fontFamily: '"Playfair Display", serif', fontSize: '1.75rem', fontWeight: 900, color: C.brand }}
+                  >
+                    <motion.span
+                      initial={{ opacity: 0 }}
+                      whileInView={{ opacity: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 0.8 }}
+                    >
+                      {(() => {
+                        const [inView, setInView] = useState(false);
+                        return (
+                          <motion.span
+                            onViewportEnter={() => setInView(true)}
+                            viewport={{ once: true }}
+                          >
+                            <CountUp target={TOTAL} inView={inView} /> XAF
+                          </motion.span>
+                        );
+                      })()}
+                    </motion.span>
+                  </motion.p>
+                </motion.div>
+              </motion.div>
+            );
+          })()}
         </div>
       </section>
 
