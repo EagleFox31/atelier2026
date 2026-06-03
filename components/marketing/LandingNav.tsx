@@ -68,7 +68,7 @@ export function LandingNav({ btnPrimary }: LandingNavProps) {
           <div className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/login"
-              className="hidden sm:inline-flex hover:bg-[rgb(200_81_26/0.08)]"
+              className="hidden md:inline-flex hover:bg-[rgb(200_81_26/0.08)]"
               style={btnOutline}
             >
               Connexion
