@@ -408,7 +408,7 @@ export function LandingPage() {
 
   /* ── Background pleine page ── */
   const { scrollY } = useScroll();
-  const bgParallaxY = useTransform(scrollY, [0, 5000], reduceMotion ? [0, 0] : [0, -320]);
+  const bgParallaxY = useTransform(scrollY, [0, 20000], reduceMotion ? [0, 0] : [0, -400]);
 
   /* ── Scroll hero ── */
   const { scrollYProgress: heroScroll } = useScroll({
@@ -529,7 +529,7 @@ export function LandingPage() {
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden' }}>
         <motion.div style={{
           position: 'absolute',
-          inset: '-12%',
+          inset: '-30%',
           backgroundImage: 'url(/landing/hero.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
