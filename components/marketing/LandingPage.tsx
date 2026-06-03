@@ -1339,16 +1339,29 @@ export function LandingPage() {
               </div>{/* fin centre */}
 
               {/* ── DEUX COLONNES DROITE — une monte, l'autre descend ── */}
-              {/* Carousel horizontal sur mobile */}
-              {isMobile && (
-                <div style={{ position: 'absolute', bottom: '3rem', left: 0, right: 0, overflowX: 'auto', overflowY: 'hidden', scrollSnapType: 'x mandatory', display: 'flex', gap: '0.75rem', padding: '0 1.5rem', zIndex: 2, scrollbarWidth: 'none' }}>
-                  {[...PAIN_STORIES.map(s=>s.image), '/landing/gérant_garage.jpg', '/landing/chef_atelier.jpg', '/landing/mecanicien.jpg', '/landing/reception.jpg'].map((src, i) => (
-                    <div key={i} style={{ flexShrink: 0, width: 120, height: 160, borderRadius: 14, overflow: 'hidden', scrollSnapAlign: 'start', position: 'relative' }}>
-                      <Image src={src} alt="" fill sizes="120px" style={{ objectFit: 'cover' }} />
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Marquee horizontal automatique sur mobile */}
+              {isMobile && (() => {
+                const ALL_IMGS = [
+                  'arrive_en_atelier','ot_30s','process_digitalise','service_transparent',
+                  'devis_envoye_instantanement_au_client','retour_vehicule_client','visibilite_dashboard','adopter_atelier_maitre',
+                ];
+                const doubled = [...ALL_IMGS, ...ALL_IMGS];
+                return (
+                  <div style={{ position: 'absolute', bottom: '4rem', left: 0, right: 0, overflow: 'hidden', zIndex: 2 }}>
+                    <motion.div
+                      animate={{ x: ['0%', '-50%'] }}
+                      transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                      style={{ display: 'flex', gap: '0.625rem', width: 'max-content' }}
+                    >
+                      {doubled.map((name, i) => (
+                        <div key={i} style={{ flexShrink: 0, width: 100, height: 140, borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
+                          <Image src={`/landing/text-revealing/${name}.jpg`} alt="" fill sizes="100px" style={{ objectFit: 'cover' }} />
+                        </div>
+                      ))}
+                    </motion.div>
+                  </div>
+                );
+              })()}
               {!isMobile && <div style={{ display: 'flex', gap: '0.625rem', overflow: 'hidden', padding: '0.75rem 0.75rem 0.75rem 0' }}>
                 {[
                   {
