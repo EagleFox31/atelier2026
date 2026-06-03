@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 
 const PLAN_LABELS: Record<string, { label: string; color: string }> = {
   starter:    { label: 'Starter',    color: 'bg-slate-100 text-slate-600' },
-  pro:        { label: 'Pro',        color: 'bg-blue-100 text-blue-700' },
+  pro:        { label: 'Pro',        color: 'bg-brand-light text-brand-hover' },
   enterprise: { label: 'Enterprise', color: 'bg-purple-100 text-purple-700' },
 };
 

@@ -666,7 +666,7 @@ export default function DashboardPage() {
               ? <div className="space-y-4">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10" />)}</div>
               : <div className="space-y-5">
                   {team.map((m, idx) => {
-                    const colors = ['bg-blue-500','bg-green-500','bg-amber-500','bg-purple-500'];
+                    const colors = ['bg-brand','bg-green-600','bg-amber-600','bg-[#d4a432]'];
                     return (
                       <div key={m.id} className="flex items-center justify-between">
                         <div className="flex items-center gap-3">

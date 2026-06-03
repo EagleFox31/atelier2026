@@ -25,7 +25,7 @@ import { useRealtimeEvents } from "@/hooks/use-realtime-events";
 const PRIORITY_STYLE: Record<string, string> = {
   URGENT: 'bg-red-500/10 text-red-600 border-red-200',
   HIGH:   'bg-orange-500/10 text-orange-600 border-orange-200',
-  NORMAL: 'bg-blue-500/10 text-blue-600 border-blue-200',
+  NORMAL: 'bg-brand/10 text-brand border-brand/20',
   LOW:    'bg-slate-500/10 text-slate-500 border-slate-200',
 };
 
@@ -79,8 +79,8 @@ function makeColumns(router: AppRouterInstance): DataTableColumn[] {
       sortValue: (o) => vehicleName(o.vehicle),
       render: (o) => (
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-            <Car size={14} className="text-blue-500" />
+          <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
+            <Car size={14} className="text-brand" />
           </div>
           <div>
             <p className="text-sm font-bold text-foreground leading-tight">{vehicleName(o.vehicle)}</p>
@@ -209,8 +209,8 @@ function OtMobileList({
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-                  <Car size={16} className="text-blue-500" />
+                <div className="w-9 h-9 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
+                  <Car size={16} className="text-brand" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-bold text-sm truncate">{vehicleName(o.vehicle)}</p>

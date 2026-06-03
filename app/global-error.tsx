@@ -1,5 +1,6 @@
 'use client';
 
+import './globals.css';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ShieldAlert, RefreshCw } from 'lucide-react';
@@ -21,7 +22,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
 
   return (
     <html lang="fr">
-      <body style={{ margin: 0, background: '#0D1B2E', color: '#e2e8f0', fontFamily: 'system-ui, sans-serif' }}>
+      <body style={{ margin: 0, background: '#1A1209', color: '#e2e8f0', fontFamily: 'system-ui, sans-serif' }}>
         <div style={{
           display: 'flex',
           flexDirection: 'column',
@@ -56,7 +57,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             )}
           </div>
 
-          <Button onClick={reset} className="gap-2" style={{ background: '#3B82F6' }}>
+          <Button onClick={reset} className="gap-2 bg-brand hover:bg-brand-hover">
             <RefreshCw size={14} />
             Recharger l&apos;application
           </Button>

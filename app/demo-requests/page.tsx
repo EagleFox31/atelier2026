@@ -47,7 +47,7 @@ const STATUS_META: Record<
   { label: string; className: string }
 > = {
   NEW: { label: 'Nouvelle', className: 'bg-amber-50 text-amber-800 border-amber-200' },
-  CONTACTED: { label: 'Contactée', className: 'bg-blue-50 text-blue-800 border-blue-200' },
+  CONTACTED: { label: 'Contactée', className: 'bg-brand-light text-brand-hover border-brand/20' },
   SCHEDULED: { label: 'Démo planifiée', className: 'bg-violet-50 text-violet-800 border-violet-200' },
   CONVERTED: { label: 'Convertie', className: 'bg-green-50 text-green-800 border-green-200' },
   REJECTED: { label: 'Refusée', className: 'bg-slate-100 text-slate-600 border-slate-200' },

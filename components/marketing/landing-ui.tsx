@@ -131,7 +131,7 @@ export function LandingHeader() {
               href="/demo"
               className={cn(
                 buttonVariants(),
-                'rounded-xl bg-gradient-to-r from-brand to-[#1a5f7a] text-white shadow-md shadow-brand/15 ring-1 ring-[var(--afrique-gold)]/25 transition-all duration-200 hover:from-brand-hover hover:to-[#155a87] hover:shadow-lg',
+                'rounded-xl bg-brand text-white shadow-md shadow-brand/15 ring-1 ring-[var(--afrique-gold)]/25 transition-all duration-200 hover:bg-brand-hover hover:shadow-lg',
               )}
             >
               Demander une démo

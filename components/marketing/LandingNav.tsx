@@ -13,6 +13,21 @@ const NAV_LINKS = [
   ['#faq', 'FAQ'],
 ] as const;
 
+const btnOutline: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '0.5rem 1.25rem',
+  borderRadius: 12,
+  border: `1px solid ${C.brand}`,
+  background: 'transparent',
+  color: C.brand,
+  fontWeight: 600,
+  fontSize: '0.875rem',
+  textDecoration: 'none',
+  transition: 'background 0.2s, color 0.2s',
+};
+
 type LandingNavProps = {
   btnPrimary: React.CSSProperties;
 };
@@ -50,7 +65,14 @@ export function LandingNav({ btnPrimary }: LandingNavProps) {
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              href="/login"
+              className="hidden sm:inline-flex hover:bg-[rgb(200_81_26/0.08)]"
+              style={btnOutline}
+            >
+              Connexion
+            </Link>
             <Link
               href="/demo"
               className="hidden sm:inline-flex"
@@ -88,6 +110,14 @@ export function LandingNav({ btnPrimary }: LandingNavProps) {
                   {label}
                 </Link>
               ))}
+              <Link
+                href="/login"
+                className="mt-2 inline-flex items-center justify-center rounded-xl py-3 text-sm font-semibold"
+                style={{ ...btnOutline, width: '100%' }}
+                onClick={() => setMenuOpen(false)}
+              >
+                Connexion
+              </Link>
               <Link
                 href="/demo"
                 className="mt-2 inline-flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white"

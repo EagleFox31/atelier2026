@@ -3,7 +3,7 @@ import { autoTable } from 'jspdf-autotable';
 import type { BillingDocumentData } from '@/components/billing/BillingDocument';
 import { workshopContactLine } from '@/lib/workshop-settings';
 
-const BRAND: [number, number, number] = [29, 111, 164];
+const BRAND: [number, number, number] = [200, 81, 26];
 const SLATE: [number, number, number] = [51, 65, 85];
 const MUTED: [number, number, number] = [100, 116, 139];
 

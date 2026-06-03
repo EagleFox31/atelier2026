@@ -24,7 +24,7 @@ import { FiscalHintLabel } from "@/components/fiscal/FiscalHintLabel";
 
 const INVOICE_STATUS: Record<string, { label: string; color: string }> = {
   DRAFT:     { label: 'Brouillon',         color: 'bg-slate-100 text-slate-600' },
-  ISSUED:    { label: 'Émise',             color: 'bg-blue-50 text-blue-700' },
+  ISSUED:    { label: 'Émise',             color: 'bg-brand-light text-brand-hover' },
   PARTIAL:   { label: 'Partiellement payée', color: 'bg-amber-50 text-amber-700' },
   PAID:      { label: 'Payée',             color: 'bg-green-50 text-green-700' },
   DISPUTED:  { label: 'Contestée',         color: 'bg-orange-50 text-orange-700' },

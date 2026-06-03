@@ -130,13 +130,13 @@ export default function StockPage() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-none shadow-sm bg-blue-50/80 dark:bg-blue-950/20 border-l-4 border-l-blue-500">
+        <Card className="border-none shadow-sm bg-brand-light/80 dark:bg-brand/10 border-l-4 border-l-brand">
           <CardContent className="p-3 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4">
-            <div className="p-2 md:p-3 bg-blue-100 dark:bg-blue-900/40 rounded-xl text-blue-600 shrink-0">
+            <div className="p-2 md:p-3 bg-brand/15 dark:bg-brand/25 rounded-xl text-brand shrink-0">
               <Package size={20} className="md:w-6 md:h-6" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] md:text-sm font-medium text-blue-700 dark:text-blue-400 leading-tight">Références</p>
+              <p className="text-[11px] md:text-sm font-medium text-brand-hover dark:text-brand leading-tight">Références</p>
               <p className="text-xl md:text-2xl font-bold text-foreground">
                 {loading ? <Skeleton className="h-7 w-12 inline-block" /> : summary.totalParts}
               </p>

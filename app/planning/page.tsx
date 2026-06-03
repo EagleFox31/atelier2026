@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const APT_STATUS: Record<string, { label: string; color: string }> = {
-  SCHEDULED:  { label: 'Planifié',  color: 'bg-blue-50 text-blue-700' },
+  SCHEDULED:  { label: 'Planifié',  color: 'bg-brand-light text-brand-hover' },
   CONFIRMED:  { label: 'Confirmé', color: 'bg-green-50 text-green-700' },
   CANCELLED:  { label: 'Annulé',   color: 'bg-red-50 text-red-600' },
   NO_SHOW:    { label: 'Absent',   color: 'bg-slate-100 text-slate-500' },

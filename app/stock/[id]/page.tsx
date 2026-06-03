@@ -15,7 +15,7 @@ import { formatXAF, cn } from "@/lib/utils";
 
 const MOVEMENT_TYPES: Record<string, { label: string; color: string }> = {
   PURCHASE:       { label: 'Achat',       color: 'text-green-600' },
-  OT_CONSUMPTION: { label: 'Conso. OT',   color: 'text-blue-600' },
+  OT_CONSUMPTION: { label: 'Conso. OT',   color: 'text-brand' },
   ADJUSTMENT:     { label: 'Ajustement',  color: 'text-amber-600' },
   COUNTER_SALE:   { label: 'Vente',       color: 'text-orange-600' },
   RETURN:         { label: 'Retour',      color: 'text-teal-600' },

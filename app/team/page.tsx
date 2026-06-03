@@ -207,18 +207,18 @@ export default function TeamPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="border-none shadow-sm bg-blue-50/50 dark:bg-blue-950/20">
+        <Card className="border-none shadow-sm bg-brand-light/50 dark:bg-brand/10">
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-brand/15 dark:bg-brand/25 text-brand flex items-center justify-center">
               <Activity size={24} />
             </div>
             <div>
-              <p className="text-sm font-medium text-blue-600">Actifs maintenant</p>
+              <p className="text-sm font-medium text-brand">Actifs maintenant</p>
               <p className="text-2xl font-bold text-foreground">
                 {loading ? '—' : `${onlineNowCount} / ${totalCount}`}
               </p>
               {!loading && busyCount > 0 && (
-                <p className="text-[11px] text-blue-600/80">
+                <p className="text-[11px] text-brand/80">
                   {busyCount} en intervention sur un OT
                 </p>
               )}
@@ -336,7 +336,7 @@ export default function TeamPage() {
                         <Badge className={cn(
                           "text-[10px] font-bold px-2 py-0.5 rounded-full border-none",
                           member.status === 'ACTIVE'
-                            ? isBusy ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
+                            ? isBusy ? "bg-brand-light text-brand-hover" : "bg-green-100 text-green-700"
                             : "bg-muted text-muted-foreground"
                         )}>
                           {member.status !== 'ACTIVE' ? 'Suspendu' : isBusy ? 'En cours' : 'Disponible'}

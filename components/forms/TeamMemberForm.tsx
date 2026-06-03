@@ -34,7 +34,7 @@ const ROLE_CONFIG = {
     label: "Chef d'Atelier",
     description: "Gestion des OT, supervision technique et stock",
     icon: Wrench,
-    color: 'text-blue-600 bg-blue-50 border-blue-200',
+    color: 'text-brand bg-brand-light border-brand/20',
   },
   TECHNICIEN: {
     label: 'Technicien',

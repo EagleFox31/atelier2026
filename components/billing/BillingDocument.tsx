@@ -53,7 +53,8 @@ interface BillingDocumentProps {
   data: BillingDocumentData;
 }
 
-const BRAND = '#1D6FA4';
+const BRAND = '#C8511A';
+const BRAND_DEEP = '#8B3210';
 const DEFAULT_TERMS =
   "Garantie 6 mois sur pièces neuves · Main d'œuvre garantie 3 mois · TVA 19,25 % · Paiement à réception du véhicule sauf accord contraire · Tribunal compétent : Yaoundé.";
 
@@ -74,7 +75,7 @@ export function BillingDocument({ type, data }: BillingDocumentProps) {
       {/* Bandeau */}
       <div
         className="rounded-t-xl h-1.5 w-full mb-6"
-        style={{ background: `linear-gradient(90deg, ${BRAND} 0%, #155A87 100%)` }}
+        style={{ background: `linear-gradient(90deg, ${BRAND} 0%, ${BRAND_DEEP} 100%)` }}
       />
 
       {/* En-tête */}

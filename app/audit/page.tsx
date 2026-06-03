@@ -11,7 +11,7 @@ import { History, Search, Clock, RefreshCw, AlertCircle } from "lucide-react";
 import { auditApi, handleApiError } from "@/lib/api";
 
 const ACTION_COLORS: Record<string, string> = {
-  STATUS_CHANGE:   'bg-blue-50 text-blue-700 border-blue-200',
+  STATUS_CHANGE:   'bg-brand-light text-brand-hover border-brand/20',
   CREATE:          'bg-green-50 text-green-700 border-green-200',
   UPDATE:          'bg-amber-50 text-amber-700 border-amber-200',
   DELETE:          'bg-red-50 text-red-700 border-red-200',
