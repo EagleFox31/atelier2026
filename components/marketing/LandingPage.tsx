@@ -1196,7 +1196,7 @@ export function LandingPage() {
         return (
           <div
             ref={statsStoryRef}
-            style={{ height: '500vh', position: 'relative' }}
+            style={{ height: '500vh', position: 'relative', background: 'rgba(8,4,1,0.85)' }}
           >
             <div style={{
               position: 'sticky', top: 0, height: '100vh',
@@ -1215,7 +1215,7 @@ export function LandingPage() {
                 ];
                 const doubled = [...IMGS_L, ...IMGS_L];
                 return (
-                  <div style={{ overflow: 'hidden', padding: '0.5rem', maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)' }}>
+                  <div style={{ overflow: 'hidden', padding: '0.5rem' }}>
                     <motion.div
                       animate={{ y: ['0%', '-50%'] }}
                       transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
@@ -1329,7 +1329,7 @@ export function LandingPage() {
                 ];
                 const doubled = [...IMGS_R, ...IMGS_R];
                 return (
-                  <div style={{ overflow: 'hidden', padding: '0.5rem', maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)' }}>
+                  <div style={{ overflow: 'hidden', padding: '0.5rem' }}>
                     <motion.div
                       animate={{ y: ['-25%', '-75%'] }}
                       transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}
