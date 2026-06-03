@@ -247,51 +247,54 @@ function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
       viewport={{ once: true }}
       transition={{ duration: 0.35, delay: index * 0.06 }}
       style={{
-        background: C.white,
-        borderRadius: 12,
-        border: `1px solid rgba(200,81,26,0.1)`,
+        borderRadius: 14,
+        border: `1px solid ${open ? `${C.brand}30` : 'rgba(200,81,26,0.1)'}`,
         overflow: 'hidden',
+        background: open ? '#FFF8F4' : C.white,
+        transition: 'background 0.25s, border-color 0.25s',
       }}
     >
       <button
         onClick={() => setOpen((o) => !o)}
         style={{
-          width: '100%',
-          padding: '1rem 1.125rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '1rem',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          textAlign: 'left',
-          fontWeight: 600,
-          fontSize: '0.925rem',
-          color: C.earth,
-          fontFamily: 'inherit',
+          width: '100%', padding: '1.1rem 1.25rem',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          gap: '1rem', background: 'none', border: 'none', cursor: 'pointer',
+          textAlign: 'left', fontWeight: 600, fontSize: '0.925rem',
+          color: open ? C.earth : C.earth, fontFamily: 'inherit',
         }}
       >
-        {q}
-        <Plus
-          size={18}
-          color={C.brand}
-          style={{ flexShrink: 0, transition: 'transform 0.3s', transform: open ? 'rotate(45deg)' : 'none' }}
-        />
-      </button>
-      {open && (
-        <div
-          style={{
-            padding: '0 1.5rem 1.125rem',
-            fontSize: '0.875rem',
-            color: C.muted,
-            lineHeight: 1.75,
-            borderTop: `1px solid rgba(200,81,26,0.06)`,
-          }}
+        <span style={{ color: open ? C.brand : C.earth, transition: 'color 0.25s' }}>{q}</span>
+        <motion.div
+          animate={{ rotate: open ? 45 : 0 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          style={{ flexShrink: 0 }}
         >
-          {a}
-        </div>
-      )}
+          <Plus size={18} color={open ? C.brand : C.muted} />
+        </motion.div>
+      </button>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="answer"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div style={{
+              padding: '0 1.25rem 1.1rem',
+              fontSize: '0.875rem', color: C.muted,
+              lineHeight: 1.75,
+              borderTop: `1px solid rgba(200,81,26,0.08)`,
+            }}>
+              {a}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -1813,17 +1816,32 @@ export function LandingPage() {
 
       {/* ── FAQ ── */}
       <section id="faq" className={sectionClass} style={{ background: C.white }}>
-        <div className="landing-inner text-center">
-          <Eyebrow>Questions fréquentes</Eyebrow>
-          <SectionHeading>Ce que les garages demandent</SectionHeading>
-          <Lead style={{ maxWidth: 480, margin: '0.875rem auto 0', textAlign: 'center' }}>
-            Les réponses aux questions les plus courantes avant une démo.
-          </Lead>
-          <div style={{ maxWidth: 720, margin: '2.5rem auto 0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div className="landing-inner landing-grid-2" style={{ alignItems: 'start', gap: '4rem' }}>
+
+          {/* Gauche — titre + CTA */}
+          <div style={{ position: 'sticky', top: '6rem' }}>
+            <Eyebrow>Questions fréquentes</Eyebrow>
+            <SectionHeading>Ce que les garages demandent</SectionHeading>
+            <Lead style={{ maxWidth: 360, marginTop: '0.875rem' }}>
+              Les réponses aux questions les plus courantes avant une démo.
+            </Lead>
+            <div style={{ marginTop: '2.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <Link href="/demo" style={{ ...btnPrimary, alignSelf: 'flex-start' }}>
+                Réserver une démo <ArrowRight size={15} />
+              </Link>
+              <p style={{ fontSize: '0.78rem', color: C.muted }}>
+                Réponse sous 48h · Support en français
+              </p>
+            </div>
+          </div>
+
+          {/* Droite — accordéon */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
             {FAQ.map((item, i) => (
               <FaqItem key={item.q} q={item.q} a={item.a} index={i} />
             ))}
           </div>
+
         </div>
       </section>
 
