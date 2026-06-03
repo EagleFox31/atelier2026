@@ -1203,7 +1203,6 @@ export function LandingPage() {
               display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
               overflow: 'hidden', padding: '0 6%',
-              background: 'rgba(20,10,4,0.45)',
             }}>
               {/* Glow décoratif */}
               <div style={{
