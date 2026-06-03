@@ -1196,7 +1196,7 @@ export function LandingPage() {
         return (
           <div
             ref={statsStoryRef}
-            style={{ height: '500vh', position: 'relative', background: '#0A0503' }}
+            style={{ height: '500vh', position: 'relative' }}
           >
             <div style={{
               position: 'sticky', top: 0, height: '100vh',
