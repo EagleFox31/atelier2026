@@ -717,10 +717,10 @@ export function LandingPage() {
           {hoveredRolePhoto && (
             <motion.div
               key={hoveredRolePhoto}
-              initial={{ opacity: 0, scale: 1.06 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.04 }}
-              transition={{ duration: 0.45, ease: 'easeOut' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
               style={{
                 position: 'absolute', inset: 0,
                 pointerEvents: 'none', zIndex: 0,
@@ -730,14 +730,14 @@ export function LandingPage() {
                 src={hoveredRolePhoto}
                 alt=""
                 fill
+                priority
                 sizes="100vw"
                 style={{ objectFit: 'cover', objectPosition: 'center 20%' }}
               />
-              {/* Voile pour garder le contenu lisible */}
+              {/* Voile léger sans blur */}
               <div style={{
                 position: 'absolute', inset: 0,
-                background: 'rgba(245,240,233,0.72)',
-                backdropFilter: 'blur(2px)',
+                background: 'rgba(245,240,233,0.60)',
               }} />
             </motion.div>
           )}
