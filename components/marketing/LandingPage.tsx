@@ -364,7 +364,8 @@ function SplitFlap({ value, active, color = '#F2C95A' }: { value: string; active
 /* ─── COMPOSANT PRINCIPAL ───────────────────────────────────────────────── */
 
 export function LandingPage() {
-  const [hoveredRolePhoto, setHoveredRolePhoto] = useState<string | null>(null);
+  const DEFAULT_ROLE_PHOTO = '/landing/gérant_garage.jpg';
+  const [hoveredRolePhoto, setHoveredRolePhoto] = useState<string>(DEFAULT_ROLE_PHOTO);
   const [activePainStep, setActivePainStep] = useState(0);
   const [activeStepsStep, setActiveStepsStep] = useState(0);
   const stepsStoryRef = useRef<HTMLDivElement>(null);
@@ -1346,8 +1347,7 @@ export function LandingPage() {
 
         {/* Photo du rôle survolé en fond de section */}
         <AnimatePresence>
-          {hoveredRolePhoto && (
-            <motion.div
+          <motion.div
               key={hoveredRolePhoto}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1372,7 +1372,6 @@ export function LandingPage() {
                 background: 'rgba(245,240,233,0.60)',
               }} />
             </motion.div>
-          )}
         </AnimatePresence>
 
         <div className="landing-inner text-center relative z-[1]">
@@ -1392,8 +1391,8 @@ export function LandingPage() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.07 }}
                 onHoverStart={() => setHoveredRolePhoto(photo)}
-                onHoverEnd={() => setHoveredRolePhoto(null)}
-                onTap={() => setHoveredRolePhoto(p => p === photo ? null : photo)}
+                onHoverEnd={() => setHoveredRolePhoto(DEFAULT_ROLE_PHOTO)}
+                onTap={() => setHoveredRolePhoto(p => p === photo ? DEFAULT_ROLE_PHOTO : photo)}
                 whileHover={{
                   y: -10,
                   boxShadow: '0 32px 64px rgba(200,81,26,0.35)',
