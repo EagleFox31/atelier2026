@@ -10,7 +10,7 @@ function makeDeps() {
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      findFirst: jest.fn().mockResolvedValue({ id: 'q-1' }),
+      findFirst: jest.fn().mockResolvedValue({ id: 'q-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c', status: 'SENT' }),
     },
     invoice: {
       findMany: jest.fn().mockResolvedValue([]),
@@ -43,23 +43,23 @@ describe('BillingService.listQuotes()', () => {
 
   it('liste tous les devis sans filtre (where vide)', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.listQuotes();
+    await service.listQuotes(undefined, TEST_GARAGE_ID);
     expect(prismaMock.quote.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: {} }),
+      expect.objectContaining({ where: expect.objectContaining({}) }),
     );
   });
 
   it('filtre par serviceOrderId quand fourni', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.listQuotes('ot-1');
+    await service.listQuotes('ot-1', TEST_GARAGE_ID);
     expect(prismaMock.quote.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { serviceOrderId: 'ot-1' } }),
+      expect.objectContaining({ where: expect.objectContaining({ serviceOrderId: 'ot-1' }) }),
     );
   });
 
   it('tri par createdAt desc', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.listQuotes();
+    await service.listQuotes(undefined, TEST_GARAGE_ID);
     expect(prismaMock.quote.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ orderBy: { createdAt: 'desc' } }),
     );
@@ -67,7 +67,7 @@ describe('BillingService.listQuotes()', () => {
 
   it('include contient customer, lines, serviceOrder.reference et creator.firstName/lastName', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.listQuotes();
+    await service.listQuotes(undefined, TEST_GARAGE_ID);
     const call = prismaMock.quote.findMany.mock.calls[0][0];
     expect(call.include.customer).toBe(true);
     expect(call.include.lines).toBe(true);
@@ -93,7 +93,7 @@ describe('BillingService.createQuote()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.quote.create.mockResolvedValue({ id: 'q-new', status: 'DRAFT' });
 
-    await service.createQuote(BASE, 'user-chef');
+    await service.createQuote(BASE, 'user-chef', TEST_GARAGE_ID);
 
     expect(prismaMock.quote.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -107,7 +107,7 @@ describe('BillingService.createQuote()', () => {
     prismaMock.quote.create.mockResolvedValue({ id: 'q-new' });
 
     // subtotal=20000 → tax=3850, stamp=1000 (23850 > 20000), total=24850
-    await service.createQuote({ ...BASE, subtotal: 20000, lines: [] }, 'user-1');
+    await service.createQuote({ ...BASE, subtotal: 20000, lines: [] }, 'user-1', TEST_GARAGE_ID);
 
     const data = prismaMock.quote.create.mock.calls[0][0].data;
     expect(data.subtotalXaf).toBe(20000);
@@ -127,9 +127,7 @@ describe('BillingService.createQuote()', () => {
           { lineType: 'LABOR', description: 'Vidange', quantity: 1, unitPriceXaf: 10000, discountPct: 0 },
           { lineType: 'PART',  description: 'Filtre',  quantity: 2, unitPriceXaf: 5000,  discountPct: 10 },
         ],
-      },
-      'user-1',
-    );
+      }, 'user-1', TEST_GARAGE_ID);
 
     const lines = prismaMock.quote.create.mock.calls[0][0].data.lines.create;
     expect(lines[0]).not.toHaveProperty('lineTotalXaf');
@@ -140,16 +138,13 @@ describe('BillingService.createQuote()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.quote.create.mockResolvedValue({ id: 'q-new' });
 
-    await service.createQuote(
-      {
+    await service.createQuote({
         ...BASE,
         lines: [
           { lineType: 'LABOR', description: 'A', quantity: 1, unitPriceXaf: 5000 },
           { lineType: 'LABOR', description: 'B', quantity: 1, unitPriceXaf: 3000 },
         ],
-      },
-      'user-1',
-    );
+      }, 'user-1', TEST_GARAGE_ID);
 
     const lines = prismaMock.quote.create.mock.calls[0][0].data.lines.create;
     expect(lines[0].sortOrder).toBe(0);
@@ -160,15 +155,12 @@ describe('BillingService.createQuote()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.quote.create.mockResolvedValue({ id: 'q-new' });
 
-    await service.createQuote(
-      {
+    await service.createQuote({
         ...BASE,
         notes: 'Forfait diagnostic démarrage',
         validUntil: '2026-06-24T00:00:00.000Z',
         lines: [],
-      },
-      'user-1',
-    );
+      }, 'user-1', TEST_GARAGE_ID);
 
     const data = prismaMock.quote.create.mock.calls[0][0].data;
     expect(data.notes).toBe('Forfait diagnostic démarrage');
@@ -179,13 +171,10 @@ describe('BillingService.createQuote()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.quote.create.mockResolvedValue({ id: 'q-new' });
 
-    await service.createQuote(
-      {
+    await service.createQuote({
         ...BASE,
         lines: [{ lineType: 'LABOR', description: 'Vidange', quantity: 1, unitPriceXaf: 10000 }],
-      },
-      'user-1',
-    );
+      }, 'user-1', TEST_GARAGE_ID);
 
     const lines = prismaMock.quote.create.mock.calls[0][0].data.lines.create;
     expect(lines[0].discountPct).toBe(0);
@@ -201,11 +190,11 @@ describe('BillingService.approveQuote()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.quote.update.mockResolvedValue({ id: 'q-1', status: 'APPROVED' });
 
-    await service.approveQuote('q-1', {}, 'user-1');
+    await service.approveQuote('q-1', {}, 'user-1', TEST_GARAGE_ID);
 
     expect(prismaMock.quote.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'q-1' },
+        where: expect.objectContaining({ id: 'q-1' }),
         data: expect.objectContaining({
           status: 'APPROVED',
           approvedByClientAt: expect.any(Date),
@@ -218,7 +207,7 @@ describe('BillingService.approveQuote()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.quote.update.mockResolvedValue({ id: 'q-1' });
 
-    await service.approveQuote('q-1', {}, 'user-1');
+    await service.approveQuote('q-1', {}, 'user-1', TEST_GARAGE_ID);
 
     const data = prismaMock.quote.update.mock.calls[0][0].data;
     expect(data.clientApprovalMethod).toBe('VERBAL_NOTED');
@@ -228,7 +217,7 @@ describe('BillingService.approveQuote()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.quote.update.mockResolvedValue({ id: 'q-1' });
 
-    await service.approveQuote('q-1', { clientApprovalMethod: 'DIGITAL' }, 'user-1');
+    await service.approveQuote('q-1', { clientApprovalMethod: 'DIGITAL' }, 'user-1', TEST_GARAGE_ID);
 
     const data = prismaMock.quote.update.mock.calls[0][0].data;
     expect(data.clientApprovalMethod).toBe('DIGITAL');
@@ -238,7 +227,7 @@ describe('BillingService.approveQuote()', () => {
     const { service } = makeDeps();
 
     await expect(
-      service.approveQuote('q-1', { clientApprovalMethod: 'SIGNATURE' }, 'user-1'),
+      service.approveQuote('q-1', { clientApprovalMethod: 'SIGNATURE' }, 'user-1', TEST_GARAGE_ID),
     ).rejects.toThrow(BadRequestException);
   });
 });
@@ -250,33 +239,33 @@ describe('BillingService.listInvoices()', () => {
 
   it('liste toutes les factures sans filtre', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.listInvoices();
+    await service.listInvoices(undefined, undefined, TEST_GARAGE_ID);
     expect(prismaMock.invoice.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: {} }),
+      expect.objectContaining({ where: expect.objectContaining({}) }),
     );
   });
 
   it('filtre par customerId', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.listInvoices('cust-1');
+    await service.listInvoices('cust-1', undefined, TEST_GARAGE_ID);
     expect(prismaMock.invoice.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { customerId: 'cust-1' } }),
+      expect.objectContaining({ where: expect.objectContaining({ customerId: 'cust-1' }) }),
     );
   });
 
   it('filtre par status', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.listInvoices(undefined, 'PAID');
+    await service.listInvoices(undefined, 'PAID', TEST_GARAGE_ID);
     expect(prismaMock.invoice.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { status: 'PAID' } }),
+      expect.objectContaining({ where: expect.objectContaining({ status: 'PAID' }) }),
     );
   });
 
   it('filtre par customerId et status combinés', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.listInvoices('cust-1', 'PARTIAL');
+    await service.listInvoices('cust-1', 'PARTIAL', TEST_GARAGE_ID);
     expect(prismaMock.invoice.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { customerId: 'cust-1', status: 'PARTIAL' } }),
+      expect.objectContaining({ where: expect.objectContaining({ customerId: 'cust-1', status: 'PARTIAL' }) }),
     );
   });
 });
@@ -290,7 +279,7 @@ describe('BillingService.getQuote()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.quote.findUnique.mockResolvedValue({ id: 'q-1' });
 
-    await service.getQuote('q-1');
+    await service.getQuote('q-1', TEST_GARAGE_ID);
 
     const call = prismaMock.quote.findUnique.mock.calls[0][0];
     expect(call.where).toEqual({ id: 'q-1' });

@@ -43,6 +43,7 @@ function makeBillingPrismaMock() {
     },
     technicianObservation: { updateMany: jest.fn().mockResolvedValue({}) },
   };
+  const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
   return {
     ...base,
     quote: {
@@ -50,10 +51,12 @@ function makeBillingPrismaMock() {
       update: jest.fn(),
       findMany: jest.fn().mockResolvedValue([]),
       findUnique: jest.fn(),
+      findFirst: jest.fn().mockResolvedValue({ id: QUOTE_ID, garageId: TEST_GARAGE_ID, status: 'SENT' }),
     },
     invoice: {
       findMany: jest.fn().mockResolvedValue([]),
-      findUnique: jest.fn(),
+      findUnique: jest.fn().mockResolvedValue({ id: '66666666-6666-4666-8666-666666666666', garageId: TEST_GARAGE_ID, totalXaf: 10000, status: 'ISSUED' }),
+      findFirst: jest.fn().mockResolvedValue({ id: '66666666-6666-4666-8666-666666666666', garageId: TEST_GARAGE_ID }),
       create: jest.fn(),
       update: jest.fn().mockResolvedValue({}),
     },

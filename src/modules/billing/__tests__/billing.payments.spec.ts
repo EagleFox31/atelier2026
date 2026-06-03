@@ -1,3 +1,4 @@
+const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PaymentMethod } from '@prisma/client';
 import { BillingService } from '../billing.service';
@@ -10,11 +11,13 @@ function makePrismaMock() {
     },
     invoice: {
       findUnique: jest.fn(),
+      findFirst: jest.fn().mockResolvedValue({ id: 'inv-1', garageId: TEST_GARAGE_ID }),
       update: jest.fn(),
       create: jest.fn(),
     },
     quote: {
       findUnique: jest.fn(),
+      findFirst: jest.fn().mockResolvedValue({ id: 'q-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c', status: 'APPROVED' }),
       update: jest.fn(),
     },
     technicianObservation: {
@@ -44,6 +47,7 @@ describe('BillingService.recordPayment()', () => {
     method: PaymentMethod.CASH,
     userId: 'user-1',
     idempotencyKey: 'key-abc123',
+    garageId: TEST_GARAGE_ID,
   };
 
   beforeEach(() => jest.clearAllMocks());
@@ -62,6 +66,7 @@ describe('BillingService.recordPayment()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.payment.create.mockResolvedValue({ id: 'pay-1' });
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 10000 } });
+    prismaMock.invoice.findFirst.mockResolvedValue(null);
     prismaMock.invoice.findUnique.mockResolvedValue(null);
 
     await expect(service.recordPayment(basePayload)).rejects.toThrow(
@@ -73,6 +78,7 @@ describe('BillingService.recordPayment()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.payment.create.mockResolvedValue({ id: 'pay-1' });
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 5000 } });
+    prismaMock.invoice.findFirst.mockResolvedValue({ id: 'inv-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c' });
     prismaMock.invoice.findUnique.mockResolvedValue({
       id: 'inv-1',
       totalXaf: 24850,
@@ -95,6 +101,7 @@ describe('BillingService.recordPayment()', () => {
     const { service, prismaMock, workshopMock } = makeDeps();
     prismaMock.payment.create.mockResolvedValue({ id: 'pay-1' });
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 24850 } });
+    prismaMock.invoice.findFirst.mockResolvedValue({ id: 'inv-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c' });
     prismaMock.invoice.findUnique.mockResolvedValue({
       id: 'inv-1',
       totalXaf: 24850,
@@ -127,6 +134,7 @@ describe('BillingService.recordPayment()', () => {
     const { service, prismaMock, workshopMock } = makeDeps();
     prismaMock.payment.create.mockResolvedValue({ id: 'pay-1' });
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 5000 } });
+    prismaMock.invoice.findFirst.mockResolvedValue({ id: 'inv-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c' });
     prismaMock.invoice.findUnique.mockResolvedValue({
       id: 'inv-1',
       totalXaf: 24850,
@@ -144,6 +152,7 @@ describe('BillingService.recordPayment()', () => {
     const { service, prismaMock, workshopMock } = makeDeps();
     prismaMock.payment.create.mockResolvedValue({ id: 'pay-1' });
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 24850 } });
+    prismaMock.invoice.findFirst.mockResolvedValue({ id: 'inv-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c' });
     prismaMock.invoice.findUnique.mockResolvedValue({
       id: 'inv-1',
       totalXaf: 24850,
@@ -162,6 +171,7 @@ describe('BillingService.recordPayment()', () => {
     const createdPayment = { id: 'pay-1', amountXaf: 24850 };
     prismaMock.payment.create.mockResolvedValue(createdPayment);
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 24850 } });
+    prismaMock.invoice.findFirst.mockResolvedValue({ id: 'inv-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c' });
     prismaMock.invoice.findUnique.mockResolvedValue({
       id: 'inv-1',
       totalXaf: 24850,
@@ -183,6 +193,7 @@ describe('BillingService.recordPayment()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.payment.create.mockResolvedValue({ id: 'pay-1' });
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 99999 } });
+    prismaMock.invoice.findFirst.mockResolvedValue({ id: 'inv-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c' });
     prismaMock.invoice.findUnique.mockResolvedValue({
       id: 'inv-1',
       totalXaf: 24850,
@@ -203,6 +214,7 @@ describe('BillingService.recordPayment()', () => {
     const createdPayment = { id: 'pay-1', amountXaf: 10000 };
     prismaMock.payment.create.mockResolvedValue(createdPayment);
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 10000 } });
+    prismaMock.invoice.findFirst.mockResolvedValue({ id: 'inv-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c' });
     prismaMock.invoice.findUnique.mockResolvedValue({
       id: 'inv-1',
       totalXaf: 24850,
@@ -219,6 +231,7 @@ describe('BillingService.recordPayment()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.payment.create.mockResolvedValue({ id: 'pay-1' });
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 10000 } });
+    prismaMock.invoice.findFirst.mockResolvedValue({ id: 'inv-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c' });
     prismaMock.invoice.findUnique.mockResolvedValue({
       id: 'inv-1', totalXaf: 24850, status: 'ISSUED', serviceOrderId: null,
     });
@@ -244,6 +257,7 @@ describe('BillingService.recordPayment()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.payment.create.mockResolvedValue({ id: 'pay-1' });
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 10000 } });
+    prismaMock.invoice.findFirst.mockResolvedValue({ id: 'inv-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c' });
     prismaMock.invoice.findUnique.mockResolvedValue({
       id: 'inv-1', totalXaf: 24850, status: 'ISSUED', serviceOrderId: null,
     });
@@ -263,6 +277,7 @@ describe('BillingService.recordPayment()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.payment.create.mockResolvedValue({ id: 'pay-1' });
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 10000 } });
+    prismaMock.invoice.findFirst.mockResolvedValue({ id: 'inv-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c' });
     prismaMock.invoice.findUnique.mockResolvedValue({
       id: 'inv-1', totalXaf: 24850, status: 'ISSUED', serviceOrderId: null,
     });
@@ -287,6 +302,7 @@ describe('BillingService.recordPayment()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.payment.create.mockResolvedValue({ id: 'pay-1' });
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 24850 } });
+    prismaMock.invoice.findFirst.mockResolvedValue({ id: 'inv-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c' });
     prismaMock.invoice.findUnique.mockResolvedValue({
       id: 'inv-1', totalXaf: 24850, status: 'ISSUED', serviceOrderId: null,
     });
@@ -302,6 +318,7 @@ describe('BillingService.recordPayment()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.payment.create.mockResolvedValue({ id: 'pay-1' });
     prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 5000 } });
+    prismaMock.invoice.findFirst.mockResolvedValue({ id: 'inv-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c' });
     prismaMock.invoice.findUnique.mockResolvedValue({
       id: 'inv-1', totalXaf: 24850, status: 'ISSUED', serviceOrderId: null,
     });
@@ -321,15 +338,17 @@ describe('BillingService.createInvoiceFromQuote()', () => {
 
   it('lève NotFoundException si le devis est introuvable', async () => {
     const { service, prismaMock } = makeDeps();
+    prismaMock.quote.findFirst.mockResolvedValue(null);
     prismaMock.quote.findUnique.mockResolvedValue(null);
 
-    await expect(service.createInvoiceFromQuote('quote-inexistant', 'user-1')).rejects.toThrow(
+    await expect(service.createInvoiceFromQuote('quote-inexistant', 'user-1', TEST_GARAGE_ID)).rejects.toThrow(
       new NotFoundException('Devis introuvable'),
     );
   });
 
   it('lève BadRequestException si le devis n\'est pas APPROVED', async () => {
     const { service, prismaMock } = makeDeps();
+    prismaMock.quote.findFirst.mockResolvedValue({ id: 'q-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c', status: 'APPROVED' });
     prismaMock.quote.findUnique.mockResolvedValue({
       id: 'q-1',
       status: 'PENDING',
@@ -338,13 +357,14 @@ describe('BillingService.createInvoiceFromQuote()', () => {
       serviceOrder: null,
     });
 
-    await expect(service.createInvoiceFromQuote('q-1', 'user-1')).rejects.toThrow(
+    await expect(service.createInvoiceFromQuote('q-1', 'user-1', TEST_GARAGE_ID)).rejects.toThrow(
       new BadRequestException('Le devis doit être APPROUVÉ'),
     );
   });
 
   it('crée la facture avec statut ISSUED si devis APPROVED', async () => {
     const { service, prismaMock } = makeDeps();
+    prismaMock.quote.findFirst.mockResolvedValue({ id: 'q-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c', status: 'APPROVED' });
     prismaMock.quote.findUnique.mockResolvedValue({
       id: 'q-1',
       status: 'APPROVED',
@@ -361,7 +381,7 @@ describe('BillingService.createInvoiceFromQuote()', () => {
     prismaMock.invoice.create.mockResolvedValue({ id: 'inv-new', status: 'ISSUED' });
     prismaMock.quote.update.mockResolvedValue({});
 
-    const result = await service.createInvoiceFromQuote('q-1', 'user-1');
+    const result = await service.createInvoiceFromQuote('q-1', 'user-1', TEST_GARAGE_ID);
 
     expect(prismaMock.invoice.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -377,6 +397,7 @@ describe('BillingService.createInvoiceFromQuote()', () => {
   it('dueDate est à 7 jours dans le futur', async () => {
     const { service, prismaMock } = makeDeps();
     const before = Date.now();
+    prismaMock.quote.findFirst.mockResolvedValue({ id: 'q-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c', status: 'APPROVED' });
     prismaMock.quote.findUnique.mockResolvedValue({
       id: 'q-1',
       status: 'APPROVED',
@@ -393,7 +414,7 @@ describe('BillingService.createInvoiceFromQuote()', () => {
     prismaMock.invoice.create.mockResolvedValue({ id: 'inv-new', status: 'ISSUED' });
     prismaMock.quote.update.mockResolvedValue({});
 
-    await service.createInvoiceFromQuote('q-1', 'user-1');
+    await service.createInvoiceFromQuote('q-1', 'user-1', TEST_GARAGE_ID);
 
     const dueDate: Date = prismaMock.invoice.create.mock.calls[0][0].data.dueDate;
     const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
@@ -403,6 +424,7 @@ describe('BillingService.createInvoiceFromQuote()', () => {
 
   it('passe le devis en statut BILLED après création de facture', async () => {
     const { service, prismaMock } = makeDeps();
+    prismaMock.quote.findFirst.mockResolvedValue({ id: 'q-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c', status: 'APPROVED' });
     prismaMock.quote.findUnique.mockResolvedValue({
       id: 'q-1',
       status: 'APPROVED',
@@ -419,7 +441,7 @@ describe('BillingService.createInvoiceFromQuote()', () => {
     prismaMock.invoice.create.mockResolvedValue({ id: 'inv-new' });
     prismaMock.quote.update.mockResolvedValue({});
 
-    await service.createInvoiceFromQuote('q-1', 'user-1');
+    await service.createInvoiceFromQuote('q-1', 'user-1', TEST_GARAGE_ID);
 
     expect(prismaMock.quote.update).toHaveBeenCalledWith({
       where: { id: 'q-1' },
@@ -429,6 +451,7 @@ describe('BillingService.createInvoiceFromQuote()', () => {
 
   it('quote.findUnique inclut lines et serviceOrder.observations (includeInQuote:true, quotedAt:null)', async () => {
     const { service, prismaMock } = makeDeps();
+    prismaMock.quote.findFirst.mockResolvedValue({ id: 'q-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c', status: 'APPROVED' });
     prismaMock.quote.findUnique.mockResolvedValue({
       id: 'q-1',
       status: 'APPROVED',
@@ -445,7 +468,7 @@ describe('BillingService.createInvoiceFromQuote()', () => {
     prismaMock.invoice.create.mockResolvedValue({ id: 'inv-new' });
     prismaMock.quote.update.mockResolvedValue({});
 
-    await service.createInvoiceFromQuote('q-1', 'user-1');
+    await service.createInvoiceFromQuote('q-1', 'user-1', TEST_GARAGE_ID);
 
     const call = prismaMock.quote.findUnique.mock.calls[0][0];
     expect(call.include.lines).toBe(true);
@@ -455,6 +478,7 @@ describe('BillingService.createInvoiceFromQuote()', () => {
 
   it('marque les observations non facturées comme quotedAt', async () => {
     const { service, prismaMock } = makeDeps();
+    prismaMock.quote.findFirst.mockResolvedValue({ id: 'q-1', garageId: '52221808-e45d-41a9-9a37-933695560f6c', status: 'APPROVED' });
     prismaMock.quote.findUnique.mockResolvedValue({
       id: 'q-1',
       status: 'APPROVED',
@@ -474,7 +498,7 @@ describe('BillingService.createInvoiceFromQuote()', () => {
     prismaMock.quote.update.mockResolvedValue({});
     prismaMock.technicianObservation.updateMany.mockResolvedValue({ count: 2 });
 
-    await service.createInvoiceFromQuote('q-1', 'user-1');
+    await service.createInvoiceFromQuote('q-1', 'user-1', TEST_GARAGE_ID);
 
     expect(prismaMock.technicianObservation.updateMany).toHaveBeenCalledWith({
       where: { id: { in: ['obs-1', 'obs-2'] } },

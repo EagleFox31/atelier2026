@@ -37,13 +37,18 @@ function makeStockPrismaMock() {
     stockMovement: { create: jest.fn().mockResolvedValue({ id: 'sm-1' }) },
     aSPPurchase:   { create: jest.fn().mockResolvedValue({ id: 'asp-1', reference: 'ASP-001' }) },
   };
+  const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
   return {
     ...base,
     partsCatalog: {
       findMany:   jest.fn().mockResolvedValue([]),
       findUnique: jest.fn().mockResolvedValue(null),
+      findFirst:  jest.fn().mockResolvedValue({ id: PART_ID, garageId: TEST_GARAGE_ID }),
       create:     jest.fn(),
       update:     jest.fn().mockResolvedValue({}),
+    },
+    serviceOrder: {
+      findFirst: jest.fn().mockResolvedValue({ id: OT_ID, garageId: TEST_GARAGE_ID }),
     },
     stockMovement: { findMany: jest.fn().mockResolvedValue([]) },
     supplier:      { findMany: jest.fn().mockResolvedValue([]) },
@@ -264,7 +269,7 @@ describe('Stock — contrats de réponse HTTP', () => {
 
   describe('GET /api/stock/parts/:id', () => {
     it('200 — retourne la pièce avec supplier', async () => {
-      prisma.partsCatalog.findUnique.mockResolvedValue(PART_STUB);
+      prisma.partsCatalog.findFirst.mockResolvedValue(PART_STUB);
 
       const res = await request(app.getHttpServer())
         .get(`/api/stock/parts/${PART_ID}`)
@@ -279,7 +284,7 @@ describe('Stock — contrats de réponse HTTP', () => {
     });
 
     it('404 — pièce inexistante → errorCode Not Found, message introuvable', async () => {
-      prisma.partsCatalog.findUnique.mockResolvedValue(null);
+      prisma.partsCatalog.findFirst.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())
         .get('/api/stock/parts/00000000-0000-4000-8000-000000000000')

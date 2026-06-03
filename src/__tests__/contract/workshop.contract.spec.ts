@@ -63,19 +63,28 @@ function makeWorkshopPrismaMock() {
       update: jest.fn(),
     },
     appointment: { update: jest.fn() },
+    customer: { findFirst: jest.fn().mockResolvedValue({ id: CUST_ID }) },
+    vehicle: { findFirst: jest.fn().mockResolvedValue({ id: VEH_ID }) },
   };
 
+  const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
   return {
     ...base,
-    serviceOrder: {
-      findMany: jest.fn().mockResolvedValue([]),
-      findUnique: jest.fn(),
-      update: jest.fn(),
-      create: jest.fn(),
-    },
     customer: {
       ...base.customer,
       findUnique: jest.fn(),
+      findFirst: jest.fn().mockResolvedValue({ id: CUST_ID }),
+    },
+    vehicle: {
+      ...base.vehicle,
+      findFirst: jest.fn().mockResolvedValue({ id: VEH_ID }),
+    },
+    serviceOrder: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findUnique: jest.fn(),
+      findFirst: jest.fn().mockResolvedValue({ id: OT_ID, garageId: TEST_GARAGE_ID, status: OTStatus.DRAFT }),
+      update: jest.fn(),
+      create: jest.fn(),
     },
     technicianObservation: { create: jest.fn() },
     oTWorkItem: { create: jest.fn(), delete: jest.fn() },
@@ -130,6 +139,10 @@ describe('Workshop — contrats de réponse HTTP', () => {
       if (where.id === 'tech-1') return Promise.resolve(TECH_USER);
       return Promise.resolve(null);
     });
+    const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
+    prisma.serviceOrder.findFirst.mockResolvedValue({ id: OT_ID, garageId: TEST_GARAGE_ID, status: OTStatus.DRAFT });
+    prisma.customer.findFirst.mockResolvedValue({ id: CUST_ID });
+    prisma.vehicle.findFirst.mockResolvedValue({ id: VEH_ID });
   });
 
   // ── GET /api/workshop/ot ──────────────────────────────────────────────────
@@ -176,8 +189,9 @@ describe('Workshop — contrats de réponse HTTP', () => {
 
   describe('GET /api/workshop/ot/:id', () => {
     it('200 — shape : OT avec relations customer, vehicle, workItems, observations, quotes', async () => {
-      prisma.serviceOrder.findUnique.mockResolvedValue({
+      const fullOt = {
         ...OT_STUB,
+        garageId: CHEF_USER.garageId,
         customer: { id: CUST_ID, lastName: 'Ngono' },
         vehicle: { id: VEH_ID, plateNumber: 'CE-1234-LT' },
         workItems: [],
@@ -185,7 +199,9 @@ describe('Workshop — contrats de réponse HTTP', () => {
         receptionChecks: [],
         statusHistory: [],
         quotes: [],
-      });
+      };
+      prisma.serviceOrder.findFirst.mockResolvedValue(fullOt);
+      prisma.serviceOrder.findUnique.mockResolvedValue(fullOt);
 
       const res = await request(app.getHttpServer())
         .get(`/api/workshop/ot/${OT_ID}`)
@@ -206,6 +222,7 @@ describe('Workshop — contrats de réponse HTTP', () => {
     });
 
     it('404 — OT inexistant → errorCode Not Found, message introuvable', async () => {
+      prisma.serviceOrder.findFirst.mockResolvedValue(null);
       prisma.serviceOrder.findUnique.mockResolvedValue(null);
 
       const res = await request(app.getHttpServer())

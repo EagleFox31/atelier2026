@@ -2,6 +2,8 @@ import { BadRequestException } from '@nestjs/common';
 import { PartStatus } from '@prisma/client';
 import { PartsFlowService } from '../parts-flow.service';
 
+const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
+
 function makeDeps() {
   const prismaMock = {
     quoteLine: {
@@ -20,6 +22,9 @@ function makeDeps() {
     },
     stockMovement: {
       create: jest.fn(),
+    },
+    serviceOrder: {
+      findUnique: jest.fn().mockResolvedValue({ garageId: TEST_GARAGE_ID }),
     },
     quote: {
       findMany: jest.fn().mockResolvedValue([]),
