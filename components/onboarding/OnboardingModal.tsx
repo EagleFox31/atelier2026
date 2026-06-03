@@ -32,8 +32,8 @@ export const STEPS_BY_ROLE: Record<string, Step[]> = {
   RECEPTIONNISTE: [
     {
       icon: Users,
-      color: 'text-blue-500',
-      bg: 'bg-blue-500/10',
+      color: 'text-brand',
+      bg: 'bg-brand/10',
       title: 'Vous êtes le premier visage de l\'atelier',
       description:
         'Chaque client qui entre, c\'est vous qui l\'accueillez. Votre travail : noter pourquoi il vient, enregistrer sa voiture, et lancer la réparation. Le bouton ? en haut donne l\'aide détaillée sur chaque écran.',

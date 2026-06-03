@@ -171,11 +171,11 @@ export const SETTINGS_ITEMS: NavItem[] = [
 // Statuts OT — alignés sur l'enum OTStatus du backend (Prisma)
 export const WORKSHOP_STATUS: Record<string, { label: string; color: string; dot: string }> = {
   DRAFT:          { label: "Brouillon",       color: "bg-slate-100 text-slate-500",    dot: "bg-slate-400" },
-  RECEIVED:       { label: "Reçu",            color: "bg-blue-50 text-blue-700",       dot: "bg-blue-500" },
+  RECEIVED:       { label: "Reçu",            color: "bg-brand-light text-brand-hover", dot: "bg-brand" },
   DIAGNOSING:     { label: "En diagnostic",   color: "bg-amber-50 text-amber-700",     dot: "bg-amber-500" },
   QUOTE_PENDING:  { label: "Devis en attente",color: "bg-orange-50 text-orange-700",   dot: "bg-orange-500" },
   QUOTE_APPROVED: { label: "Devis approuvé",  color: "bg-indigo-50 text-indigo-700",   dot: "bg-indigo-500" },
-  IN_PROGRESS:    { label: "En cours",        color: "bg-blue-50 text-blue-700",       dot: "bg-blue-500 animate-pulse" },
+  IN_PROGRESS:    { label: "En cours",        color: "bg-orange-50 text-orange-800",   dot: "bg-brand animate-pulse" },
   QC_PENDING:     { label: "Contrôle qualité",color: "bg-purple-50 text-purple-700",   dot: "bg-purple-500" },
   QC_REJECTED:    { label: "QC refusé",       color: "bg-red-50 text-red-700",         dot: "bg-red-500" },
   QC_DONE:        { label: "QC validé",       color: "bg-teal-50 text-teal-700",       dot: "bg-teal-500" },
@@ -187,7 +187,7 @@ export const WORKSHOP_STATUS: Record<string, { label: string; color: string; dot
 
 export const QUOTE_STATUS: Record<string, { label: string; color: string }> = {
   DRAFT:    { label: 'Brouillon', color: 'bg-slate-100 text-slate-600' },
-  SENT:     { label: 'Envoyé',    color: 'bg-blue-50 text-blue-700'    },
+  SENT:     { label: 'Envoyé',    color: 'bg-brand-light text-brand-hover' },
   APPROVED: { label: 'Approuvé',  color: 'bg-green-50 text-green-700'  },
   REJECTED: { label: 'Refusé',    color: 'bg-red-50 text-red-700'      },
   REVISED:  { label: 'Révisé',    color: 'bg-amber-50 text-amber-700'  },

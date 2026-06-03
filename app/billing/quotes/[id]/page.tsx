@@ -20,7 +20,7 @@ import { FiscalHintLabel } from "@/components/fiscal/FiscalHintLabel";
 
 const QUOTE_STATUS: Record<string, { label: string; color: string }> = {
   DRAFT:    { label: 'Brouillon',  color: 'bg-slate-100 text-slate-600' },
-  SENT:     { label: 'Envoyé',     color: 'bg-blue-50 text-blue-700' },
+  SENT:     { label: 'Envoyé',     color: 'bg-brand-light text-brand-hover' },
   APPROVED: { label: 'Approuvé',   color: 'bg-green-50 text-green-700' },
   REJECTED: { label: 'Refusé',     color: 'bg-red-50 text-red-600' },
   REVISED:  { label: 'Révisé',     color: 'bg-amber-50 text-amber-700' },

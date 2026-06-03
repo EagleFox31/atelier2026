@@ -13,7 +13,7 @@ import { stockApi, handleApiError } from "@/lib/api";
 
 const MOVEMENT_TYPES: Record<string, { label: string; icon: typeof ArrowDownLeft; color: string; sign: string }> = {
   PURCHASE:      { label: 'Achat',        icon: ArrowDownLeft, color: 'bg-green-100 text-green-600',  sign: '+' },
-  OT_CONSUMPTION:{ label: 'Conso. OT',   icon: ArrowUpRight,  color: 'bg-blue-100 text-blue-600',    sign: '-' },
+  OT_CONSUMPTION:{ label: 'Conso. OT',   icon: ArrowUpRight,  color: 'bg-brand-light text-brand',    sign: '-' },
   ASP_PURCHASE:  { label: 'ASP',          icon: ArrowDownLeft, color: 'bg-indigo-100 text-indigo-600', sign: '+/-' },
   COUNTER_SALE:  { label: 'Vente',        icon: ArrowUpRight,  color: 'bg-orange-100 text-orange-600', sign: '-' },
   RETURN:        { label: 'Retour',       icon: ArrowDownLeft, color: 'bg-teal-100 text-teal-600',    sign: '+' },

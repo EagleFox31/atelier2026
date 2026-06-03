@@ -62,7 +62,7 @@ const RESULT_CONFIG = {
 
 const WORK_ITEM_STATUS: Record<string, { label: string; color: string }> = {
   PENDING:     { label: 'En attente', color: 'bg-slate-100 text-slate-600' },
-  IN_PROGRESS: { label: 'En cours',  color: 'bg-blue-50 text-blue-700'   },
+  IN_PROGRESS: { label: 'En cours',  color: 'bg-orange-50 text-orange-800' },
   COMPLETED:   { label: 'Terminé',   color: 'bg-green-50 text-green-700' },
 };
 
@@ -74,7 +74,7 @@ const PART_STATUS: Record<string, { label: string; color: string }> = {
 };
 
 const INVOICE_STATUS: Record<string, { label: string; color: string }> = {
-  ISSUED:  { label: 'Émise',          color: 'bg-blue-50 text-blue-700'     },
+  ISSUED:  { label: 'Émise',          color: 'bg-brand-light text-brand-hover' },
   PARTIAL: { label: 'Partiel',        color: 'bg-amber-50 text-amber-700'   },
   PAID:    { label: 'Soldée',         color: 'bg-green-50 text-green-700'   },
   VOID:    { label: 'Annulée',        color: 'bg-red-50 text-red-700'       },
@@ -116,7 +116,7 @@ const STATUS_ACCENT: Record<string, string> = {
   DIAGNOSING:     'bg-indigo-500',
   QUOTE_PENDING:  'bg-violet-500',
   QUOTE_APPROVED: 'bg-cyan-500',
-  IN_PROGRESS:    'bg-blue-500',
+  IN_PROGRESS:    'bg-brand',
   QC_PENDING:     'bg-amber-500',
   QC_REJECTED:    'bg-orange-500',
   QC_DONE:        'bg-teal-500',
@@ -656,7 +656,7 @@ export default function OrderDetailPage() {
                 {/* Mobile : client dans l'en-tête OT */}
                 {order.customer && (
                   <div className="md:hidden mt-3 pt-3 border-t border-border/60 flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0 select-none">
+                    <div className="w-8 h-8 rounded-lg bg-brand-light text-brand flex items-center justify-center font-bold text-xs shrink-0 select-none">
                       {initials(customerName(order.customer))}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -814,7 +814,7 @@ export default function OrderDetailPage() {
               <User size={11} /> Client
             </p>
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-sm shrink-0 select-none">
+              <div className="w-9 h-9 rounded-xl bg-brand-light text-brand flex items-center justify-center font-bold text-sm shrink-0 select-none">
                 {initials(customerName(order.customer))}
               </div>
               <div className="min-w-0">
@@ -917,7 +917,7 @@ export default function OrderDetailPage() {
                     'p-3.5 rounded-xl bg-muted/30 border-l-4',
                     obs.severity === 'URGENT'  ? 'border-l-red-400'   :
                     obs.severity === 'WARNING' ? 'border-l-amber-400' :
-                                                'border-l-blue-400'
+                                                'border-l-brand/60'
                   )}>
                     <div className="flex items-center gap-2 mb-1.5">
                       <Badge variant="outline" className="text-[10px] border-border rounded-full py-0">
@@ -925,7 +925,7 @@ export default function OrderDetailPage() {
                       </Badge>
                       <span className={cn('text-[10px] font-bold uppercase tracking-wide',
                         obs.severity === 'URGENT'  ? 'text-red-500'   :
-                        obs.severity === 'WARNING' ? 'text-amber-500' : 'text-blue-500'
+                        obs.severity === 'WARNING' ? 'text-amber-500' : 'text-brand'
                       )}>{obs.severity}</span>
                     </div>
                     <p className="text-sm text-foreground">{obs.description}</p>
@@ -1612,7 +1612,7 @@ export default function OrderDetailPage() {
                       >
                         <div className={cn(
                           'w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shrink-0',
-                          isChefRole ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                          isChefRole ? 'bg-amber-100 text-amber-700' : 'bg-brand-light text-brand-hover'
                         )}>
                           {initials(name)}
                         </div>

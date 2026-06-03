@@ -72,7 +72,7 @@ export function LandingHeroBackground({ scrollYProgress }: LandingHeroBackground
           className="absolute inset-0"
           style={{
             background:
-              'radial-gradient(ellipse 95% 55% at 42% -8%, rgba(29, 111, 164, 0.18) 0%, transparent 45%), radial-gradient(ellipse 70% 40% at 90% 20%, rgba(212, 160, 23, 0.12) 0%, transparent 50%)',
+              'radial-gradient(ellipse 95% 55% at 42% -8%, rgba(200, 81, 26, 0.14) 0%, transparent 45%), radial-gradient(ellipse 70% 40% at 90% 20%, rgba(212, 164, 50, 0.12) 0%, transparent 50%)',
           }}
         />
       </motion.div>

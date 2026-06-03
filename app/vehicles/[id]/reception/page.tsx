@@ -72,7 +72,7 @@ const RESULT_CFG: Record<CheckResult, { label: string; icon: React.ElementType; 
 
 const PRIORITY_CFG: { value: Priority; label: string; idle: string; active: string }[] = [
   { value: 'LOW',    label: 'Basse',   idle: 'border-border text-muted-foreground hover:bg-muted', active: 'border-slate-400 bg-slate-500/10 text-slate-700 dark:text-slate-200' },
-  { value: 'NORMAL', label: 'Normale', idle: 'border-border text-muted-foreground hover:bg-muted', active: 'border-blue-500  bg-blue-500/10  text-blue-700  dark:text-blue-300'  },
+  { value: 'NORMAL', label: 'Normale', idle: 'border-border text-muted-foreground hover:bg-muted', active: 'border-brand  bg-brand/10  text-brand-hover  dark:text-brand'  },
   { value: 'HIGH',   label: 'Haute',   idle: 'border-border text-muted-foreground hover:bg-muted', active: 'border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300' },
   { value: 'URGENT', label: 'Urgent',  idle: 'border-border text-muted-foreground hover:bg-muted', active: 'border-red-500   bg-red-500/10   text-red-700   dark:text-red-300'   },
 ];

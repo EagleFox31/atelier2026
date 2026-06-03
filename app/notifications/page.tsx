@@ -75,7 +75,7 @@ export default function NotificationsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="border-none shadow-sm">
           <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/30 text-blue-600 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-xl bg-brand-light dark:bg-brand/20 text-brand flex items-center justify-center">
               <Smartphone size={24} />
             </div>
             <div>
@@ -195,7 +195,7 @@ export default function NotificationsPage() {
                           <Badge className={cn(
                             "text-[10px] px-1.5 py-0 border-none",
                             notif.status === 'DELIVERED' ? "bg-green-50 text-green-700 dark:bg-green-950/30" :
-                              notif.status === 'SENT' ? "bg-blue-50 text-blue-700 dark:bg-blue-950/30" :
+                              notif.status === 'SENT' ? "bg-brand-light text-brand-hover dark:bg-brand/20" :
                                 "bg-red-50 text-red-700 dark:bg-red-950/30"
                           )}>
                             {notif.status === 'DELIVERED' ? 'Délivré' :

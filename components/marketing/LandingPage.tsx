@@ -1210,6 +1210,7 @@ export function LandingPage() {
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center',
                 padding: '0 2rem', position: 'relative', zIndex: 2,
+                height: '100%',
               }}>
               {/* Glow décoratif */}
               <div style={{
@@ -1297,7 +1298,7 @@ export function LandingPage() {
               <div style={{ display: 'flex', gap: '0.625rem', overflow: 'hidden', padding: '0.75rem 0.75rem 0.75rem 0' }}>
                 {[
                   {
-                    imgs: ['arrive_en_atelier','ot_30s','process_digitalisé','service_transparent'],
+                    imgs: ['arrive_en_atelier','ot_30s','process_digitalise','service_transparent'],
                     dir: 1, duration: 18,
                   },
                   {
