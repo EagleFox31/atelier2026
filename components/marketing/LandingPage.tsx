@@ -721,79 +721,86 @@ export function LandingPage() {
               <motion.div
                 key={role}
                 className="group"
-                initial={{ opacity: 0, y: 14 }}
+                initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.35, delay: i * 0.07 }}
+                transition={{ duration: 0.4, delay: i * 0.07 }}
                 whileHover={{
-                  y: -12,
-                  scale: 1.04,
-                  boxShadow: '0 28px 56px rgba(200,81,26,0.28)',
-                  transition: { type: 'spring', stiffness: 320, damping: 22 },
+                  y: -10,
+                  boxShadow: '0 32px 64px rgba(200,81,26,0.35)',
+                  transition: { type: 'spring', stiffness: 300, damping: 24 },
                 }}
                 style={{
-                  background: C.sand,
-                  border: '1px solid rgba(200,81,26,0.08)',
                   borderRadius: 20,
-                  padding: '1.75rem 1.25rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  textAlign: 'center',
-                  cursor: 'default',
-                  position: 'relative',
                   overflow: 'hidden',
+                  position: 'relative',
+                  aspectRatio: '3 / 4',
+                  cursor: 'default',
+                  border: '1px solid rgba(200,81,26,0.12)',
                 }}
               >
-                {/* Barre d'accent top — slide in au hover */}
-                <motion.div
-                  initial={{ scaleX: 0 }}
-                  style={{
-                    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                    background: `linear-gradient(90deg, ${C.brand}, ${C.gold})`,
-                    transformOrigin: 'left',
-                    borderRadius: '20px 20px 0 0',
-                  }}
-                  variants={{ rest: { scaleX: 0 }, hovered: { scaleX: 1 } }}
-                  className="group-hover:[transform:scaleX(1)] [transform:scaleX(0)] transition-transform duration-300 origin-left"
-                />
-
-                {/* Photo — zoom + rotate au hover */}
-                <motion.div
-                  style={{
-                    width: 80, height: 80, borderRadius: '50%',
-                    overflow: 'hidden', flexShrink: 0,
-                    border: `3px solid ${C.brand}33`,
-                    position: 'relative',
-                    transition: 'border-color 0.3s, transform 0.4s cubic-bezier(0.34,1.56,0.64,1)',
-                  }}
-                  className="group-hover:border-[var(--c-brand)] group-hover:scale-110 group-hover:rotate-3"
+                {/* ── Photo plein card ── */}
+                <div
+                  className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.07]"
+                  style={{ position: 'absolute', inset: 0 }}
                 >
-                  <Image src={photo} alt={role} fill sizes="80px" style={{ objectFit: 'cover' }} />
-                </motion.div>
-
-                <div>
-                  {/* Nom — vire au brand color au hover */}
-                  <p
-                    className="group-hover:text-[#C8511A] transition-colors duration-300"
-                    style={{ fontWeight: 700, fontSize: '0.95rem', color: C.earth, marginBottom: '0.4rem' }}
-                  >
-                    {role}
-                  </p>
-                  {/* Desc — monte légèrement */}
-                  <motion.p
-                    className="group-hover:-translate-y-0.5 transition-transform duration-300"
-                    style={{ fontSize: '0.8rem', color: C.muted, lineHeight: 1.55 }}
-                  >
-                    {desc}
-                  </motion.p>
+                  <Image
+                    src={photo}
+                    alt={role}
+                    fill
+                    sizes="(max-width:768px) 45vw, 200px"
+                    style={{ objectFit: 'cover', objectPosition: 'top center' }}
+                  />
                 </div>
 
-                {/* Glow de fond au hover */}
+                {/* Gradient permanent bas → haut pour lisibilité */}
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(to top, rgba(10,5,2,0.82) 0%, rgba(10,5,2,0.18) 55%, transparent 100%)',
+                }} />
+
+                {/* ── Sous-card texte (glassmorphism) ── */}
+                <motion.div
+                  className="absolute bottom-0 left-0 right-0"
+                  initial={{ y: 0 }}
+                  style={{
+                    padding: '1rem 1.1rem 1.1rem',
+                    background: 'rgba(15,8,3,0.55)',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                    borderTop: '1px solid rgba(200,81,26,0.20)',
+                  }}
+                  animate={{ y: 0 }}
+                  whileHover={{ y: 0 }}
+                >
+                  {/* Badge rôle */}
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center',
+                    background: `${C.brand}22`,
+                    border: `1px solid ${C.brand}44`,
+                    borderRadius: 99,
+                    padding: '0.2rem 0.65rem',
+                    marginBottom: '0.45rem',
+                  }}>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.goldLight }}>
+                      {role}
+                    </span>
+                  </div>
+
+                  {/* Description — masquée par défaut, slide au hover */}
+                  <div
+                    className="overflow-hidden transition-all duration-400 ease-out max-h-0 opacity-0 group-hover:max-h-24 group-hover:opacity-100"
+                  >
+                    <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.72)', lineHeight: 1.55, marginTop: '0.2rem' }}>
+                      {desc}
+                    </p>
+                  </div>
+                </motion.div>
+
+                {/* Barre accent top — scale in au hover */}
                 <div
-                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-[20px]"
-                  style={{ background: `radial-gradient(ellipse at 50% 0%, ${C.brand}18 0%, transparent 70%)` }}
+                  className="absolute top-0 left-0 right-0 h-[3px] scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"
+                  style={{ background: `linear-gradient(90deg, ${C.brand}, ${C.gold})` }}
                 />
               </motion.div>
             ))}
