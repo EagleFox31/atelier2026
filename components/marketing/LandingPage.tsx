@@ -1350,7 +1350,7 @@ export function LandingPage() {
                   <div style={{ position: 'absolute', bottom: '4rem', left: 0, right: 0, overflow: 'hidden', zIndex: 2 }}>
                     <motion.div
                       animate={{ x: ['0%', '-50%'] }}
-                      transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                      transition={{ duration: 35, repeat: Infinity, ease: 'linear' }}
                       style={{ display: 'flex', gap: '0.625rem', width: 'max-content' }}
                     >
                       {doubled.map((name, i) => (

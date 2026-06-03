@@ -75,8 +75,8 @@ export function LandingNav({ btnPrimary }: LandingNavProps) {
             </Link>
             <Link
               href="/demo"
-              className="hidden sm:inline-flex"
-              style={{ ...btnPrimary, padding: '0.5rem 1.25rem', fontSize: '0.875rem' }}
+              className="hidden md:inline-flex"
+              style={{ ...btnPrimary, padding: '0.5rem 1.25rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}
             >
               Réserver une démo <ArrowRight size={14} />
             </Link>
