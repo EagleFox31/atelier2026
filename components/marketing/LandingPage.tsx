@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion, useScroll, useTransform, useReducedMotion, MotionValue, AnimatePresence } from 'motion/react';
+import { motion, useScroll, useTransform, useReducedMotion, MotionValue, AnimatePresence, useMotionValueEvent } from 'motion/react';
 import {
   ArrowRight,
   ChevronDown,
@@ -95,6 +95,37 @@ const PAIN_POINTS = [
   { Icon: FileText,      color: C.gold,  text: 'Devis Word + facture Excel, aucun lien entre les deux' },
   { Icon: Package,       color: C.green, text: 'Stock mis à jour à la main, ruptures découvertes trop tard' },
   { Icon: MessageSquare, color: C.red,   text: 'Clients relancés un par un sur WhatsApp, sans suivi' },
+];
+
+const PAIN_STORIES = [
+  {
+    image: '/landing/cahier_ot.jpg',
+    color: C.brand,
+    step: '01',
+    headline: 'L\'OT sur papier — introuvable demain matin.',
+    detail: 'Statut inconnu, historique perdu, client qui rappelle. La journée commence déjà dans la confusion.',
+  },
+  {
+    image: '/landing/excel.jpg',
+    color: C.gold,
+    step: '02',
+    headline: 'Devis Word, facture Excel. Aucun lien.',
+    detail: 'Vous ressaisissez les mêmes informations trois fois. Un chiffre change, tout est à refaire à la main.',
+  },
+  {
+    image: '/landing/cherche_pieces_bazar.jpg',
+    color: C.green,
+    step: '03',
+    headline: 'Rupture de stock découverte sur le bord.',
+    detail: 'Vous commandez de tête, vous sur-stockez d\'un côté, vous manquez de l\'autre. Le client attend.',
+  },
+  {
+    image: '/landing/whatsapp_messages.jpg',
+    color: C.red,
+    step: '04',
+    headline: 'Clients relancés un par un sur WhatsApp.',
+    detail: 'Sans système, chaque rappel prend du temps. Certains tombent à travers les mailles.',
+  },
 ];
 
 const STATS = [
@@ -268,9 +299,12 @@ function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
 
 export function LandingPage() {
   const [hoveredRolePhoto, setHoveredRolePhoto] = useState<string | null>(null);
+  const [activePainStep, setActivePainStep] = useState(0);
+  const painStoryRef = useRef<HTMLDivElement>(null);
+  // painRef réutilisé comme ref div pour le sticky inner
 
   const heroRef  = useRef<HTMLElement>(null);
-  const painRef  = useRef<HTMLElement>(null);
+  const painRef  = useRef<HTMLDivElement>(null);
   const rolesRef = useRef<HTMLElement>(null);
   const ctaRef   = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
@@ -291,13 +325,22 @@ export function LandingPage() {
   const glow2Y     = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0,   80]);
   const patternY   = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0,   50]);
 
-  /* ── Scroll pain ── */
+  /* ── Scroll pain parallax orbs ── */
   const { scrollYProgress: painScroll } = useScroll({
     target: painRef,
     offset: ['start end', 'end start'],
   });
   const painOrb1Y = useTransform(painScroll, [0, 1], reduceMotion ? [0, 0] : [ 80, -80]);
   const painOrb2Y = useTransform(painScroll, [0, 1], reduceMotion ? [0, 0] : [-40,  60]);
+
+  /* ── Scroll storytelling pain ── */
+  const { scrollYProgress: painStoryScroll } = useScroll({
+    target: painStoryRef,
+    offset: ['start start', 'end end'],
+  });
+  useMotionValueEvent(painStoryScroll, 'change', (v) => {
+    setActivePainStep(Math.min(PAIN_STORIES.length - 1, Math.floor(v * PAIN_STORIES.length)));
+  });
 
   /* ── Scroll rôles ── */
   const { scrollYProgress: rolesScroll } = useScroll({
@@ -549,106 +592,130 @@ export function LandingPage() {
         </a>
       </section>
 
-      {/* ── PAIN ── */}
-      <section ref={painRef} id="probleme" className={`${sectionClass} relative overflow-hidden`} style={{ background: '#1A1209' }}>
-        {/* Orbs parallax */}
-        <motion.div style={{
-          position: 'absolute', top: '-15%', right: '-5%',
-          width: 500, height: 500, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(200,81,26,0.12) 0%, transparent 65%)',
-          pointerEvents: 'none',
-          y: painOrb1Y,
-        }} />
-        <motion.div style={{
-          position: 'absolute', bottom: '-20%', left: '-8%',
-          width: 400, height: 400, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(212,164,50,0.08) 0%, transparent 65%)',
-          pointerEvents: 'none',
-          y: painOrb2Y,
-        }} />
-        <div className="landing-inner text-center relative z-[1]">
-          <Eyebrow light>Le quotidien de 80 % des garages</Eyebrow>
-          <SectionHeading light>Vous vous reconnaissez ?</SectionHeading>
-          <Lead light style={{ maxWidth: 520, margin: '0.875rem auto 0' }}>
-            Chaque jour, des heures perdues. Des clients qui rappellent. Du chiffre qui s&apos;évapore. Ce n&apos;est pas une fatalité.
-          </Lead>
+      {/* ── PAIN — scroll storytelling ── */}
+      <div ref={painStoryRef} id="probleme" style={{ height: `${PAIN_STORIES.length * 100}vh`, position: 'relative' }}>
+        <div
+          ref={painRef}
+          style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: 'rgba(10,5,2,0.96)' }}
+        >
+          {/* Orb parallax décoratif */}
+          <motion.div style={{
+            position: 'absolute', top: '-15%', right: '-5%',
+            width: 500, height: 500, borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(200,81,26,0.10) 0%, transparent 65%)',
+            pointerEvents: 'none', y: painOrb1Y,
+          }} />
 
-          <div className="landing-grid-4 mt-10">
-            {PAIN_POINTS.map(({ Icon, color, text }, i) => (
+          {/* Image droite — crossfade entre steps */}
+          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '50%' }}>
+            <AnimatePresence mode="wait">
               <motion.div
-                key={text}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.35, delay: i * 0.08 }}
-                whileHover="hovered"
-                animate="rest"
-                variants={{
-                  rest: {
-                    y: 0,
-                    background: 'rgba(255,255,255,0.04)',
-                    borderColor: 'rgba(255,255,255,0.08)',
-                    boxShadow: `0 0 0px ${color}00`,
-                  },
-                  hovered: {
-                    y: -8,
-                    background: `${color}18`,
-                    borderColor: `${color}55`,
-                    boxShadow: `0 16px 40px ${color}25`,
-                    transition: { type: 'spring', stiffness: 320, damping: 22 },
-                  },
-                }}
-                style={{ borderRadius: 16, padding: '1.5rem', border: '1px solid', cursor: 'default' }}
+                key={activePainStep}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                style={{ position: 'absolute', inset: 0 }}
               >
-                {/* Icône — secousse "alerte" au hover */}
-                <motion.div
-                  variants={{
-                    rest: { rotate: 0, scale: 1 },
-                    hovered: {
-                      rotate: [0, -12, 12, -8, 8, -4, 4, 0],
-                      scale: 1.15,
-                      transition: { duration: 0.55, ease: 'easeInOut' },
-                    },
-                  }}
-                  style={{
-                    width: 44, height: 44, borderRadius: 11,
-                    background: `${color}22`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    marginBottom: '1rem',
-                  }}
-                >
-                  <Icon size={21} color={color} />
-                </motion.div>
-
-                {/* Texte — s'éclaircit au hover */}
-                <motion.p
-                  variants={{
-                    rest: { color: 'rgba(255,255,255,0.62)' },
-                    hovered: { color: 'rgba(255,255,255,0.95)' },
-                  }}
-                  style={{ fontSize: '0.875rem', lineHeight: 1.65, fontWeight: 500 }}
-                >
-                  {text}
-                </motion.p>
+                <Image
+                  src={PAIN_STORIES[activePainStep].image}
+                  alt=""
+                  fill
+                  priority
+                  sizes="50vw"
+                  style={{ objectFit: 'cover', objectPosition: 'center' }}
+                />
+                {/* Gradient gauche → transparent pour fondre avec le texte */}
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(to right, rgba(10,5,2,0.85) 0%, rgba(10,5,2,0.2) 50%, transparent 100%)',
+                }} />
               </motion.div>
-            ))}
+            </AnimatePresence>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            style={{
-              marginTop: '2.5rem', padding: '1.5rem 2rem', borderRadius: 16,
-              background: 'rgba(200,81,26,0.08)', border: '1px solid rgba(200,81,26,0.2)',
-              color: 'rgba(255,255,255,0.7)', fontSize: '1rem', lineHeight: 1.75,
-            }}
-          >
-            <strong style={{ color: '#FFFFFF' }}>Atelier Maître</strong> relie tout dans{' '}
-            <strong style={{ color: '#FFFFFF' }}>un dossier par véhicule</strong> — visible par toute l&apos;équipe, en temps réel, depuis n&apos;importe quel téléphone.
-          </motion.div>
+          {/* Texte gauche */}
+          <div style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0, width: '55%',
+            display: 'flex', flexDirection: 'column', justifyContent: 'center',
+            padding: '0 5% 0 7%', zIndex: 2,
+          }}>
+            <Eyebrow light>Le quotidien de 80 % des garages</Eyebrow>
+
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activePainStep}
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.3, ease: 'easeOut' }}
+              >
+                {/* Numéro step */}
+                <p style={{
+                  fontFamily: '"Playfair Display", serif',
+                  fontSize: 'clamp(5rem, 10vw, 8rem)',
+                  fontWeight: 900, lineHeight: 1,
+                  color: `${PAIN_STORIES[activePainStep].color}18`,
+                  marginBottom: '-1rem',
+                  userSelect: 'none',
+                }}>
+                  {PAIN_STORIES[activePainStep].step}
+                </p>
+
+                <h2 style={{
+                  fontFamily: '"Playfair Display", serif',
+                  fontSize: 'clamp(1.6rem, 3vw, 2.5rem)',
+                  fontWeight: 900, lineHeight: 1.15,
+                  color: '#FFFFFF', letterSpacing: '-0.02em',
+                  marginBottom: '1rem',
+                }}>
+                  {PAIN_STORIES[activePainStep].headline}
+                </h2>
+
+                <p style={{
+                  fontSize: '1.05rem', lineHeight: 1.75,
+                  color: 'rgba(255,255,255,0.62)', maxWidth: 420,
+                }}>
+                  {PAIN_STORIES[activePainStep].detail}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Barre de progression */}
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '3rem', alignItems: 'center' }}>
+              {PAIN_STORIES.map((s, i) => (
+                <motion.div
+                  key={i}
+                  animate={{
+                    width: i === activePainStep ? 32 : 8,
+                    background: i === activePainStep ? s.color : 'rgba(255,255,255,0.2)',
+                  }}
+                  transition={{ duration: 0.3 }}
+                  style={{ height: 4, borderRadius: 99 }}
+                />
+              ))}
+              <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)', marginLeft: '0.5rem', fontWeight: 600 }}>
+                {activePainStep + 1} / {PAIN_STORIES.length}
+              </span>
+            </div>
+          </div>
+
+          {/* Scroll hint (disparaît après le 1er step) */}
+          {activePainStep === 0 && (
+            <motion.div
+              initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              style={{
+                position: 'absolute', bottom: '2rem', left: '50%', transform: 'translateX(-50%)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem',
+                color: 'rgba(255,255,255,0.25)',
+              }}
+            >
+              <span style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Continuez à scroller</span>
+              <ChevronDown size={18} />
+            </motion.div>
+          )}
         </div>
-      </section>
+      </div>
 
       {/* ── STEPS ── */}
       <section id="demarrage" className={sectionClass} style={{ background: C.sand }}>
