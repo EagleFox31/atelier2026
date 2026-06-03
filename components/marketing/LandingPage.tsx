@@ -761,6 +761,7 @@ export function LandingPage() {
                 transition={{ duration: 0.4, delay: i * 0.07 }}
                 onHoverStart={() => setHoveredRolePhoto(photo)}
                 onHoverEnd={() => setHoveredRolePhoto(null)}
+                onTap={() => setHoveredRolePhoto(p => p === photo ? null : photo)}
                 whileHover={{
                   y: -10,
                   boxShadow: '0 32px 64px rgba(200,81,26,0.35)',
@@ -821,9 +822,9 @@ export function LandingPage() {
                     </span>
                   </div>
 
-                  {/* Description — masquée par défaut, slide au hover */}
+                  {/* Description — visible sur mobile, slide au hover sur desktop */}
                   <div
-                    className="overflow-hidden transition-all duration-400 ease-out max-h-0 opacity-0 group-hover:max-h-24 group-hover:opacity-100"
+                    className="overflow-hidden transition-all duration-400 ease-out max-h-24 opacity-100 sm:max-h-0 sm:opacity-0 sm:group-hover:max-h-24 sm:group-hover:opacity-100"
                   >
                     <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.72)', lineHeight: 1.55, marginTop: '0.2rem' }}>
                       {desc}
