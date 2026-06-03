@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion, useScroll, useTransform, useReducedMotion } from 'motion/react';
+import { motion, useScroll, useTransform, useReducedMotion, MotionValue } from 'motion/react';
 import {
   ArrowRight,
   ChevronDown,
@@ -273,6 +273,10 @@ export function LandingPage() {
   const ctaRef   = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
 
+  /* ── Background pleine page ── */
+  const { scrollY } = useScroll();
+  const bgParallaxY = useTransform(scrollY, [0, 5000], reduceMotion ? [0, 0] : [0, -320]);
+
   /* ── Scroll hero ── */
   const { scrollYProgress: heroScroll } = useScroll({
     target: heroRef,
@@ -345,8 +349,24 @@ export function LandingPage() {
   return (
     <div
       className="landing-page"
-      style={{ fontFamily: '"DM Sans", system-ui, sans-serif', background: C.surface, color: C.earth, overflowX: 'hidden' }}
+      style={{ fontFamily: '"DM Sans", system-ui, sans-serif', color: C.earth, overflowX: 'hidden', position: 'relative' }}
     >
+      {/* ── FOND PLEINE PAGE PARALLAX ── */}
+      <div style={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden' }}>
+        <motion.div style={{
+          position: 'absolute',
+          inset: '-12%',
+          backgroundImage: 'url(/landing/hero.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          y: bgParallaxY,
+        }} />
+        {/* Voile très léger pour harmoniser avec les sections */}
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(20,12,5,0.25)' }} />
+      </div>
+
+      {/* ── CONTENU (au-dessus du fond fixe) ── */}
+      <div style={{ position: 'relative', zIndex: 1 }}>
 
       <LandingNav btnPrimary={btnPrimary} />
 
@@ -360,16 +380,13 @@ export function LandingPage() {
           justifyContent: 'center',
           position: 'relative',
           overflow: 'hidden',
-          backgroundImage: 'url(/landing/hero.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
+          background: 'transparent',
         }}
       >
-        {/* Overlay sombre — lisibilité texte */}
+        {/* Overlay héro — juste assez pour lire le texte */}
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(145deg, rgba(26,18,9,0.92) 0%, rgba(45,27,9,0.85) 40%, rgba(61,35,16,0.78) 70%, rgba(200,81,26,0.55) 120%)',
+          background: 'linear-gradient(145deg, rgba(10,6,2,0.45) 0%, rgba(20,10,4,0.30) 50%, rgba(200,81,26,0.15) 100%)',
         }} />
         {/* Pattern géométrique — parallax lent */}
         <motion.div style={{
@@ -918,7 +935,7 @@ export function LandingPage() {
 
       {/* ── CTA FINAL ── */}
       <section ref={ctaRef} className={`${sectionClass} relative overflow-hidden text-center`} style={{
-        background: 'linear-gradient(135deg, #1A1209 0%, #2D1B09 50%, #3D2310 100%)',
+        background: 'linear-gradient(135deg, rgba(26,18,9,0.90) 0%, rgba(45,27,9,0.88) 50%, rgba(61,35,16,0.85) 100%)',
       }}>
         <motion.div style={{
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
@@ -969,7 +986,7 @@ export function LandingPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer style={{ background: '#1A1209', borderTop: 'none' }}>
+      <footer style={{ background: 'rgba(18,10,4,0.93)', borderTop: 'none' }}>
         <LandingKenteBar />
         <div className="landing-inner landing-px py-10 sm:py-12">
           <div className="landing-footer-row">
@@ -1002,6 +1019,7 @@ export function LandingPage() {
         </div>
       </footer>
 
+      </div>{/* fin contenu */}
     </div>
   );
 }
