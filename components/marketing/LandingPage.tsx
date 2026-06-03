@@ -927,9 +927,9 @@ export function LandingPage() {
             <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: C.surface }}>
               <div style={{
                 height: '100%', display: 'grid',
-                gridTemplateColumns: '34% 1fr',
-                gap: '0', maxWidth: 1400, margin: '0 auto',
-                padding: '0 4%', alignItems: 'center',
+                gridTemplateColumns: '30% 1fr',
+                gap: '0', maxWidth: 1500, margin: '0 auto',
+                padding: '0 3%', alignItems: 'center',
               }}>
 
                 {/* ── GAUCHE : liste features ── */}
@@ -1032,7 +1032,7 @@ export function LandingPage() {
                           display: 'flex', gap: hasDouble ? '1.25rem' : 0,
                           alignItems: 'center', justifyContent: 'center',
                           width: '100%', height: '100%',
-                          padding: '3vh 2%',
+                          padding: '1.5vh 0',
                         }}
                       >
                         {isMacbook ? (
