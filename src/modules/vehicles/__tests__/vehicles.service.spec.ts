@@ -1,3 +1,4 @@
+const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
 import { NotFoundException } from '@nestjs/common';
 import { VehiclesService } from '../vehicles.service';
 
@@ -25,21 +26,21 @@ describe('VehiclesService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.vehicle.findMany.mockResolvedValue([]);
 
-      await service.findAll();
+      await service.findAll(undefined, undefined, TEST_GARAGE_ID);
 
       const where = prismaMock.vehicle.findMany.mock.calls[0][0].where;
-      expect(where).toEqual({ deletedAt: null });
+      expect(where).toEqual(expect.objectContaining({ deletedAt: null }));
     });
 
     it('filtre deletedAt: null et customerId optionnel', async () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.vehicle.findMany.mockResolvedValue([]);
 
-      await service.findAll(undefined, 'cust-1');
+      await service.findAll(undefined, 'cust-1', TEST_GARAGE_ID);
 
       expect(prismaMock.vehicle.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { deletedAt: null, customerId: 'cust-1' },
+          where: expect.objectContaining({ deletedAt: null, customerId: 'cust-1' }),
         }),
       );
     });
@@ -48,7 +49,7 @@ describe('VehiclesService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.vehicle.findMany.mockResolvedValue([]);
 
-      await service.findAll('Toyota');
+      await service.findAll('Toyota', undefined, TEST_GARAGE_ID);
 
       const where = prismaMock.vehicle.findMany.mock.calls[0][0].where;
       expect(where.OR).toHaveLength(5);
@@ -58,7 +59,7 @@ describe('VehiclesService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.vehicle.findMany.mockResolvedValue([]);
 
-      await service.findAll('LT-1234');
+      await service.findAll('LT-1234', undefined, TEST_GARAGE_ID);
 
       const where = prismaMock.vehicle.findMany.mock.calls[0][0].where;
       expect(where.OR[0]).toEqual({ plateNumber: { contains: 'LT-1234', mode: 'insensitive' } });
@@ -70,7 +71,7 @@ describe('VehiclesService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.vehicle.findMany.mockResolvedValue([]);
 
-      await service.findAll();
+      await service.findAll(undefined, undefined, TEST_GARAGE_ID);
 
       const where = prismaMock.vehicle.findMany.mock.calls[0][0].where;
       expect(where).not.toHaveProperty('customerId');
@@ -80,7 +81,7 @@ describe('VehiclesService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.vehicle.findMany.mockResolvedValue([]);
 
-      await service.findAll();
+      await service.findAll(undefined, undefined, TEST_GARAGE_ID);
 
       const where = prismaMock.vehicle.findMany.mock.calls[0][0].where;
       expect(where).not.toHaveProperty('OR');
@@ -90,7 +91,7 @@ describe('VehiclesService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.vehicle.findMany.mockResolvedValue([]);
 
-      await service.findAll('Toyota');
+      await service.findAll('Toyota', undefined, TEST_GARAGE_ID);
 
       const where = prismaMock.vehicle.findMany.mock.calls[0][0].where;
       expect(where.OR[3]).toEqual({ customer: { lastName: { contains: 'Toyota', mode: 'insensitive' } } });
@@ -101,7 +102,7 @@ describe('VehiclesService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.vehicle.findMany.mockResolvedValue([]);
 
-      await service.findAll();
+      await service.findAll(undefined, undefined, TEST_GARAGE_ID);
 
       const call = prismaMock.vehicle.findMany.mock.calls[0][0];
       expect(call.include.customer).toBe(true);
@@ -113,7 +114,7 @@ describe('VehiclesService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.vehicle.findMany.mockResolvedValue([]);
 
-      await service.findAll();
+      await service.findAll(undefined, undefined, TEST_GARAGE_ID);
 
       expect(prismaMock.vehicle.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ orderBy: { createdAt: 'desc' } }),
@@ -162,7 +163,7 @@ describe('VehiclesService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.vehicle.findFirst.mockResolvedValue(null);
 
-      await expect(service.findOne('inexistant')).rejects.toThrow(
+      await expect(service.findOne('inexistant', TEST_GARAGE_ID)).rejects.toThrow(
         new NotFoundException('Véhicule introuvable'),
       );
     });
@@ -172,11 +173,11 @@ describe('VehiclesService', () => {
       const vehicle = { id: 'v-1', plateNumber: 'LT-1234', deletedAt: null };
       prismaMock.vehicle.findFirst.mockResolvedValue(vehicle);
 
-      const result = await service.findOne('v-1');
+      const result = await service.findOne('v-1', TEST_GARAGE_ID);
 
       expect(result).toEqual(vehicle);
       expect(prismaMock.vehicle.findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 'v-1', deletedAt: null } }),
+        expect.objectContaining({ where: expect.objectContaining({ id: 'v-1', deletedAt: null }) }),
       );
     });
 
@@ -184,7 +185,7 @@ describe('VehiclesService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.vehicle.findFirst.mockResolvedValue({ id: 'v-1' });
 
-      await service.findOne('v-1');
+      await service.findOne('v-1', TEST_GARAGE_ID);
 
       const call = prismaMock.vehicle.findFirst.mock.calls[0][0];
       expect(call.include.customer).toBe(true);
@@ -201,9 +202,9 @@ describe('VehiclesService', () => {
       const data = { plateNumber: 'DL-999', customerId: 'cust-1' };
       prismaMock.vehicle.create.mockResolvedValue({ id: 'v-new', ...data });
 
-      const result = await service.create(data);
+      const result = await service.create(data, TEST_GARAGE_ID);
 
-      expect(prismaMock.vehicle.create).toHaveBeenCalledWith({ data });
+      expect(prismaMock.vehicle.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining(data) }));
       expect(result.id).toBe('v-new');
     });
   });
@@ -213,7 +214,7 @@ describe('VehiclesService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.vehicle.findFirst.mockResolvedValue(null);
 
-      await expect(service.update('inexistant', {})).rejects.toThrow(NotFoundException);
+      await expect(service.update('inexistant', {}, TEST_GARAGE_ID)).rejects.toThrow(NotFoundException);
     });
 
     it('appelle vehicle.update si le véhicule existe', async () => {
@@ -221,7 +222,7 @@ describe('VehiclesService', () => {
       prismaMock.vehicle.findFirst.mockResolvedValue({ id: 'v-1', deletedAt: null });
       prismaMock.vehicle.update.mockResolvedValue({ id: 'v-1', plateNumber: 'LT-999' });
 
-      await service.update('v-1', { plateNumber: 'LT-999' });
+      await service.update('v-1', { plateNumber: 'LT-999' }, TEST_GARAGE_ID);
 
       expect(prismaMock.vehicle.update).toHaveBeenCalledWith({
         where: { id: 'v-1' },
@@ -236,7 +237,7 @@ describe('VehiclesService', () => {
       prismaMock.vehicle.findFirst.mockResolvedValue({ id: 'v-1', deletedAt: null });
       prismaMock.vehicle.update.mockResolvedValue({ id: 'v-1', deletedAt: new Date() });
 
-      await service.remove('v-1');
+      await service.remove('v-1', TEST_GARAGE_ID);
 
       expect(prismaMock.vehicle.update).toHaveBeenCalledWith({
         where: { id: 'v-1' },
