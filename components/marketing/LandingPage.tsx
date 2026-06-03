@@ -1595,7 +1595,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ── MOBILE & CONTEXTE ── */}
+      {/* ── MOBILE & CONTEXTE — bento grid ── */}
       <section className={sectionClass} style={{ background: C.white }}>
         <div className="landing-inner landing-grid-2">
           <div>
@@ -1606,33 +1606,90 @@ export function LandingPage() {
               téléphone dans l&apos;atelier, pas seulement pour le bureau du patron.
             </Lead>
           </div>
-          <div style={{ background: C.sand, borderRadius: 20, padding: '1.75rem', border: '1px solid rgba(200,81,26,0.08)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: C.greenLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Smartphone size={20} color={C.green} />
+
+          {/* ── BENTO ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gridTemplateRows: 'auto auto auto',
+              gap: '0.625rem',
+            }}
+          >
+            {/* Tuile phone — grande, 2×2 */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.45, delay: 0.1 }}
+              style={{
+                gridColumn: '1 / 3', gridRow: '1 / 3',
+                background: '#1A1209', borderRadius: 20,
+                padding: '1.25rem', display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+                minHeight: 260, overflow: 'hidden', position: 'relative',
+              }}
+            >
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: `radial-gradient(ellipse at 60% 30%, ${C.brand}30 0%, transparent 65%)`,
+              }} />
+              {/* Mini phone */}
+              <div style={{ width: 120, background: '#0e0806', borderRadius: 22, padding: '6px 5px', boxShadow: '0 16px 40px rgba(0,0,0,0.5)', position: 'relative', zIndex: 1 }}>
+                <div style={{ width: 44, height: 14, background: '#000', borderRadius: 10, margin: '0 auto 4px' }} />
+                <div style={{ borderRadius: 16, overflow: 'hidden' }}>
+                  <Image src="/features/workshop-mobile.jpg" alt="Mobile" width={390} height={844} style={{ width: '100%', height: 'auto', display: 'block' }} />
+                </div>
+                <div style={{ width: 40, height: 3, background: 'rgba(255,255,255,0.2)', borderRadius: 99, margin: '5px auto 1px' }} />
               </div>
+              <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'rgba(255,255,255,0.6)', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+                Optimisé mobile
+              </p>
+            </motion.div>
+
+            {/* SMS Orange / MTN */}
+            <motion.div
+              initial={{ opacity: 0, x: 12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: 0.15 }}
+              style={{ gridColumn: '3', gridRow: '1', background: '#D1FAE5', borderRadius: 16, padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
+            >
+              <MessageSquare size={22} color={C.green} />
+              <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#065F46', lineHeight: 1.3 }}>SMS Orange<br />& MTN</p>
+            </motion.div>
+
+            {/* XAF */}
+            <motion.div
+              initial={{ opacity: 0, x: 12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ delay: 0.22 }}
+              style={{ gridColumn: '3', gridRow: '2', background: '#FEF3C7', borderRadius: 16, padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
+            >
+              <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '1.4rem', fontWeight: 900, color: C.gold }}>XAF</p>
+              <p style={{ fontSize: '0.72rem', fontWeight: 600, color: '#92400E' }}>Francs CFA</p>
+            </motion.div>
+
+            {/* TVA 19,25% */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.28 }}
+              style={{ gridColumn: '1', gridRow: '3', background: '#FEE2C5', borderRadius: 16, padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}
+            >
+              <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '1.2rem', fontWeight: 900, color: C.brand }}>19,25%</p>
+              <p style={{ fontSize: '0.68rem', fontWeight: 600, color: C.brandDeep }}>TVA + timbre</p>
+            </motion.div>
+
+            {/* 100% Français */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.34 }}
+              style={{ gridColumn: '2 / 4', gridRow: '3', background: C.earth, borderRadius: 16, padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.875rem' }}
+            >
+              <Globe size={20} color={C.goldLight} />
               <div>
-                <p style={{ fontWeight: 700, fontSize: '0.95rem', color: C.earth }}>100 % contexte Cameroun</p>
-                <p style={{ fontSize: '0.78rem', color: C.muted }}>Adapté au marché local</p>
+                <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#FFFFFF' }}>Interface 100 % en français</p>
+                <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.5)' }}>Support inclus</p>
               </div>
-            </div>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {[
-                [FileText,      C.brand, 'Montants en francs CFA (XAF)'],
-                [Star,          C.gold,  'TVA 19,25 % et timbre fiscal'],
-                [MessageSquare, C.green, 'SMS Orange / MTN intégrés'],
-                [AlertCircle,   C.red,   'Interface 100 % en français'],
-              ].map(([Icon, color, label]) => (
-                <li key={label as string} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: C.earth, fontWeight: 500 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: 8, background: `${color as string}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {/* @ts-ignore */}
-                    <Icon size={15} color={color as string} />
-                  </div>
-                  {label as string}
-                </li>
-              ))}
-            </ul>
-          </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
