@@ -923,18 +923,18 @@ export function LandingPage() {
         const isMacbook = deviceView === 'macbook';
 
         return (
-          <div ref={featuresStoryRef} id="fonctionnalites" style={{ height: '750vh', position: 'relative', background: 'rgba(255,255,255,0.55)' }}>
-            <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden' }}>
+          <div ref={featuresStoryRef} id="fonctionnalites" style={{ height: '750vh', position: 'relative', background: C.surface }}>
+            <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: C.surface }}>
               <div style={{
                 height: '100%', display: 'grid',
-                gridTemplateColumns: '38% 1fr',
-                gap: '0', maxWidth: 1300, margin: '0 auto',
-                padding: '0 4%', alignItems: 'center',
+                gridTemplateColumns: '40% 1fr',
+                gap: '0', maxWidth: 1280, margin: '0 auto',
+                padding: '0 5%', alignItems: 'center',
               }}>
 
                 {/* ── GAUCHE : liste features ── */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '3rem' }}>
-                  <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', paddingRight: '2.5rem' }}>
+                  <div style={{ marginBottom: '1rem' }}>
                     <Eyebrow>Plateforme</Eyebrow>
                     <p style={{ fontFamily: '"Playfair Display", serif', fontSize: 'clamp(1.5rem, 2.2vw, 2rem)', fontWeight: 900, color: C.earth, lineHeight: 1.2, marginTop: '0.4rem' }}>
                       Tout l&apos;atelier.<br />Une seule plateforme.
@@ -954,7 +954,7 @@ export function LandingPage() {
                           boxShadow: active ? `0 4px 24px ${color}18` : 'none',
                         }}
                         transition={{ duration: 0.35 }}
-                        style={{ borderRadius: 14, padding: '0.875rem 1rem', border: '1px solid', cursor: 'default' }}
+                        style={{ borderRadius: 12, padding: '0.7rem 0.9rem', border: '1px solid', cursor: 'default' }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                           <motion.div
@@ -977,12 +977,6 @@ export function LandingPage() {
                     );
                   })}
 
-                  {/* Hint horizontal */}
-                  <p style={{ fontSize: '0.65rem', color: C.muted, marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.375rem', opacity: 0.6 }}>
-                    <span style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
-                      {isMacbook ? '← Glisse pour voir sur mobile' : '→ Glisse pour voir sur desktop'}
-                    </span>
-                  </p>
                 </div>
 
                 {/* ── DROITE : mockup device ── */}
@@ -1060,6 +1054,29 @@ export function LandingPage() {
                     )}
                   </AnimatePresence>
                 </div>
+              </div>
+
+              {/* Toggle MacBook / Phone — absolu en bas à droite */}
+              <div style={{
+                position: 'absolute', bottom: '1.5rem', right: '5%',
+                display: deviceView === 'phone' ? 'none' : 'flex',
+                alignItems: 'center', gap: '0.5rem',
+              }}>
+                {['macbook', 'phone'].map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setDeviceView(v as 'macbook' | 'phone')}
+                    style={{
+                      padding: '0.35rem 0.8rem', borderRadius: 99, fontSize: '0.7rem', fontWeight: 700,
+                      cursor: 'pointer', border: 'none',
+                      background: deviceView === v ? C.brand : 'rgba(200,81,26,0.08)',
+                      color: deviceView === v ? '#fff' : C.muted,
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {v === 'macbook' ? '🖥 Desktop' : '📱 Mobile'}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
