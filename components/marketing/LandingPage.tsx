@@ -266,17 +266,45 @@ function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
 /* ─── COMPOSANT PRINCIPAL ───────────────────────────────────────────────── */
 
 export function LandingPage() {
-  const heroRef = useRef<HTMLElement>(null);
+  const heroRef  = useRef<HTMLElement>(null);
+  const painRef  = useRef<HTMLElement>(null);
+  const rolesRef = useRef<HTMLElement>(null);
+  const ctaRef   = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
 
+  /* ── Scroll hero ── */
   const { scrollYProgress: heroScroll } = useScroll({
     target: heroRef,
     offset: ['start start', 'end start'],
   });
-
-  const copyY = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0, -72]);
+  const copyY      = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0, -72]);
   const copyOpacity = useTransform(heroScroll, [0, 0.85], [1, 0.35]);
-  const mockY = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0, -40]);
+  const mockY      = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0, -40]);
+  const glow1Y     = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0,  160]);
+  const glow2Y     = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0,   80]);
+  const patternY   = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0,   50]);
+
+  /* ── Scroll pain ── */
+  const { scrollYProgress: painScroll } = useScroll({
+    target: painRef,
+    offset: ['start end', 'end start'],
+  });
+  const painOrb1Y = useTransform(painScroll, [0, 1], reduceMotion ? [0, 0] : [ 80, -80]);
+  const painOrb2Y = useTransform(painScroll, [0, 1], reduceMotion ? [0, 0] : [-40,  60]);
+
+  /* ── Scroll rôles ── */
+  const { scrollYProgress: rolesScroll } = useScroll({
+    target: rolesRef,
+    offset: ['start end', 'end start'],
+  });
+  const rolesBgY = useTransform(rolesScroll, [0, 1], reduceMotion ? [0, 0] : [40, -40]);
+
+  /* ── Scroll CTA ── */
+  const { scrollYProgress: ctaScroll } = useScroll({
+    target: ctaRef,
+    offset: ['start end', 'end start'],
+  });
+  const ctaGlowY = useTransform(ctaScroll, [0, 1], reduceMotion ? [0, 0] : [100, -60]);
 
   /* Styles réutilisables */
   const btnPrimary: React.CSSProperties = {
@@ -362,24 +390,27 @@ export function LandingPage() {
           background: 'linear-gradient(145deg, #1A1209 0%, #2D1B09 40%, #3D2310 70%, #C8511A 120%)',
         }}
       >
-        {/* Pattern géométrique */}
-        <div style={{
+        {/* Pattern géométrique — parallax lent */}
+        <motion.div style={{
           position: 'absolute', inset: 0, opacity: 0.04,
           backgroundImage: 'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)',
           backgroundSize: '28px 28px',
+          y: patternY,
         }} />
-        {/* Glow brand */}
-        <div style={{
+        {/* Glow brand — parallax rapide */}
+        <motion.div style={{
           position: 'absolute', top: '20%', right: '-10%',
           width: 600, height: 600, borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(200,81,26,0.35) 0%, transparent 70%)',
           pointerEvents: 'none',
+          y: glow1Y,
         }} />
-        <div style={{
+        <motion.div style={{
           position: 'absolute', bottom: '-10%', left: '5%',
           width: 400, height: 400, borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(212,164,50,0.2) 0%, transparent 70%)',
           pointerEvents: 'none',
+          y: glow2Y,
         }} />
 
         <div style={{ ...inner, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', alignItems: 'center', position: 'relative', zIndex: 2 }}>
@@ -519,8 +550,23 @@ export function LandingPage() {
       </section>
 
       {/* ── PAIN ── */}
-      <section id="probleme" style={{ background: '#1A1209', ...sectionPad }}>
-        <div style={{ ...inner, textAlign: 'center' }}>
+      <section ref={painRef} id="probleme" style={{ background: '#1A1209', ...sectionPad, position: 'relative', overflow: 'hidden' }}>
+        {/* Orbs parallax */}
+        <motion.div style={{
+          position: 'absolute', top: '-15%', right: '-5%',
+          width: 500, height: 500, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(200,81,26,0.12) 0%, transparent 65%)',
+          pointerEvents: 'none',
+          y: painOrb1Y,
+        }} />
+        <motion.div style={{
+          position: 'absolute', bottom: '-20%', left: '-8%',
+          width: 400, height: 400, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(212,164,50,0.08) 0%, transparent 65%)',
+          pointerEvents: 'none',
+          y: painOrb2Y,
+        }} />
+        <div style={{ ...inner, textAlign: 'center', position: 'relative', zIndex: 1 }}>
           <Eyebrow light>Le quotidien de 80 % des garages</Eyebrow>
           <SectionHeading light>Vous vous reconnaissez ?</SectionHeading>
           <Lead light style={{ maxWidth: 520, margin: '0.875rem auto 0' }}>
@@ -656,8 +702,16 @@ export function LandingPage() {
       </div>
 
       {/* ── ÉQUIPE / RÔLES ── */}
-      <section style={{ background: C.white, ...sectionPad }}>
-        <div style={{ ...inner, textAlign: 'center' }}>
+      <section ref={rolesRef} style={{ background: C.white, ...sectionPad, position: 'relative', overflow: 'hidden' }}>
+        {/* Cercle décoratif parallax */}
+        <motion.div style={{
+          position: 'absolute', top: '50%', right: '-12%',
+          width: 480, height: 480, borderRadius: '50%',
+          background: `radial-gradient(circle, ${C.sand} 0%, transparent 70%)`,
+          pointerEvents: 'none', zIndex: 0,
+          y: rolesBgY,
+        }} />
+        <div style={{ ...inner, textAlign: 'center', position: 'relative', zIndex: 1 }}>
           <Eyebrow>Pour toute votre équipe</Eyebrow>
           <SectionHeading>Un outil, six rôles, zéro confusion.</SectionHeading>
           <Lead style={{ maxWidth: 540, margin: '0.875rem auto 0' }}>
@@ -887,15 +941,16 @@ export function LandingPage() {
       </section>
 
       {/* ── CTA FINAL ── */}
-      <section style={{
+      <section ref={ctaRef} style={{
         background: 'linear-gradient(135deg, #1A1209 0%, #2D1B09 50%, #3D2310 100%)',
         padding: '5rem 5%', textAlign: 'center', position: 'relative', overflow: 'hidden',
       }}>
-        <div style={{
+        <motion.div style={{
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
           width: 600, height: 300, borderRadius: '50%',
           background: 'radial-gradient(ellipse, rgba(200,81,26,0.25) 0%, transparent 70%)',
           pointerEvents: 'none',
+          y: ctaGlowY,
         }} />
         <div style={{ position: 'relative', zIndex: 2 }}>
           <Eyebrow light>Passer à l&apos;action</Eyebrow>
