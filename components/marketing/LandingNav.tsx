@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Menu, X } from 'lucide-react';
 import { LandingKenteBar } from '@/components/marketing/LandingKenteBar';
@@ -34,6 +34,13 @@ type LandingNavProps = {
 
 export function LandingNav({ btnPrimary }: LandingNavProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-[100]">
@@ -66,20 +73,14 @@ export function LandingNav({ btnPrimary }: LandingNavProps) {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              href="/login"
-              className="hidden md:inline-flex hover:bg-[rgb(200_81_26/0.08)]"
-              style={btnOutline}
-            >
-              Connexion
-            </Link>
-            <Link
-              href="/demo"
-              className="hidden md:inline-flex"
-              style={{ ...btnPrimary, padding: '0.5rem 1.25rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}
-            >
-              Réserver une démo <ArrowRight size={14} />
-            </Link>
+            {isDesktop && (
+              <Link href="/login" style={btnOutline}>Connexion</Link>
+            )}
+            {isDesktop && (
+              <Link href="/demo" style={{ ...btnPrimary, padding: '0.5rem 1.25rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>
+                Réserver une démo <ArrowRight size={14} />
+              </Link>
+            )}
             <button
               type="button"
               className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[rgb(200_81_26/0.15)] bg-white md:hidden"
