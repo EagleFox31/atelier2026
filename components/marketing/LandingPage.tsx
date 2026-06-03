@@ -593,7 +593,7 @@ export function LandingPage() {
       </section>
 
       {/* ── PAIN — scroll storytelling ── */}
-      <div ref={painStoryRef} id="probleme" style={{ height: `${(PAIN_STORIES.length + 1) * 100}vh`, position: 'relative', background: 'rgba(8,4,1,0.82)' }}>
+      <div ref={painStoryRef} id="probleme" style={{ height: `${(PAIN_STORIES.length + 1) * 100}vh`, position: 'relative', background: C.brand }}>
         <div
           ref={painRef}
           style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: 'transparent' }}
