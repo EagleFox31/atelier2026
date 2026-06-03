@@ -720,10 +720,17 @@ export function LandingPage() {
             {ROLES.map(({ photo, role, desc }, i) => (
               <motion.div
                 key={role}
+                className="group"
                 initial={{ opacity: 0, y: 14 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.35, delay: i * 0.07 }}
+                whileHover={{
+                  y: -12,
+                  scale: 1.04,
+                  boxShadow: '0 28px 56px rgba(200,81,26,0.28)',
+                  transition: { type: 'spring', stiffness: 320, damping: 22 },
+                }}
                 style={{
                   background: C.sand,
                   border: '1px solid rgba(200,81,26,0.08)',
@@ -734,20 +741,60 @@ export function LandingPage() {
                   alignItems: 'center',
                   gap: '1rem',
                   textAlign: 'center',
+                  cursor: 'default',
+                  position: 'relative',
+                  overflow: 'hidden',
                 }}
               >
-                <div style={{
-                  width: 80, height: 80, borderRadius: '50%',
-                  overflow: 'hidden', flexShrink: 0,
-                  border: `3px solid ${C.brand}33`,
-                  position: 'relative',
-                }}>
+                {/* Barre d'accent top — slide in au hover */}
+                <motion.div
+                  initial={{ scaleX: 0 }}
+                  style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+                    background: `linear-gradient(90deg, ${C.brand}, ${C.gold})`,
+                    transformOrigin: 'left',
+                    borderRadius: '20px 20px 0 0',
+                  }}
+                  variants={{ rest: { scaleX: 0 }, hovered: { scaleX: 1 } }}
+                  className="group-hover:[transform:scaleX(1)] [transform:scaleX(0)] transition-transform duration-300 origin-left"
+                />
+
+                {/* Photo — zoom + rotate au hover */}
+                <motion.div
+                  style={{
+                    width: 80, height: 80, borderRadius: '50%',
+                    overflow: 'hidden', flexShrink: 0,
+                    border: `3px solid ${C.brand}33`,
+                    position: 'relative',
+                    transition: 'border-color 0.3s, transform 0.4s cubic-bezier(0.34,1.56,0.64,1)',
+                  }}
+                  className="group-hover:border-[var(--c-brand)] group-hover:scale-110 group-hover:rotate-3"
+                >
                   <Image src={photo} alt={role} fill sizes="80px" style={{ objectFit: 'cover' }} />
-                </div>
+                </motion.div>
+
                 <div>
-                  <p style={{ fontWeight: 700, fontSize: '0.95rem', color: C.earth, marginBottom: '0.4rem' }}>{role}</p>
-                  <p style={{ fontSize: '0.8rem', color: C.muted, lineHeight: 1.55 }}>{desc}</p>
+                  {/* Nom — vire au brand color au hover */}
+                  <p
+                    className="group-hover:text-[#C8511A] transition-colors duration-300"
+                    style={{ fontWeight: 700, fontSize: '0.95rem', color: C.earth, marginBottom: '0.4rem' }}
+                  >
+                    {role}
+                  </p>
+                  {/* Desc — monte légèrement */}
+                  <motion.p
+                    className="group-hover:-translate-y-0.5 transition-transform duration-300"
+                    style={{ fontSize: '0.8rem', color: C.muted, lineHeight: 1.55 }}
+                  >
+                    {desc}
+                  </motion.p>
                 </div>
+
+                {/* Glow de fond au hover */}
+                <div
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-[20px]"
+                  style={{ background: `radial-gradient(ellipse at 50% 0%, ${C.brand}18 0%, transparent 70%)` }}
+                />
               </motion.div>
             ))}
           </div>
