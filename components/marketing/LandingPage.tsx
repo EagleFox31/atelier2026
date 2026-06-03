@@ -394,7 +394,7 @@ export function LandingPage() {
   return (
     <div
       className="landing-page"
-      style={{ fontFamily: '"DM Sans", system-ui, sans-serif', color: C.earth, overflowX: 'hidden', position: 'relative' }}
+      style={{ fontFamily: '"DM Sans", system-ui, sans-serif', color: C.earth, overflowX: 'clip', position: 'relative' }}
     >
       {/* ── FOND PLEINE PAGE PARALLAX ── */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden' }}>
