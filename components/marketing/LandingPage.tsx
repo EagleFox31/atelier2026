@@ -431,7 +431,7 @@ export function LandingPage() {
         {/* Overlay héro — juste assez pour lire le texte */}
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(145deg, rgba(10,6,2,0.45) 0%, rgba(20,10,4,0.30) 50%, rgba(200,81,26,0.15) 100%)',
+          background: 'linear-gradient(145deg, rgba(10,6,2,0.28) 0%, rgba(20,10,4,0.15) 50%, rgba(200,81,26,0.08) 100%)',
         }} />
         {/* Pattern géométrique — parallax lent */}
         <motion.div style={{
