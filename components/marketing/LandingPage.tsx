@@ -1198,7 +1198,7 @@ export function LandingPage() {
             ref={statsStoryRef}
             style={{
               height: '500vh', position: 'relative',
-              background: `linear-gradient(145deg, #1A1209 0%, #2D1B09 50%, #3D2310 100%)`,
+              background: `linear-gradient(145deg, rgba(26,18,9,0.82) 0%, rgba(45,27,9,0.75) 50%, rgba(61,35,16,0.68) 100%)`,
             }}
           >
             <div style={{
