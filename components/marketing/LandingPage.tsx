@@ -612,10 +612,15 @@ export function LandingPage() {
 
             {/* ── GAUCHE : cartes texte empilées ── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              <div style={{ marginBottom: '0.5rem' }}>
+              <div style={{ marginBottom: '0.75rem' }}>
                 <Eyebrow light>Le quotidien de 80 % des garages</Eyebrow>
-                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.45)', marginTop: '0.25rem' }}>
-                  Vous reconnaissez-vous ?
+                <p style={{
+                  fontFamily: '"Playfair Display", serif',
+                  fontSize: 'clamp(1.6rem, 2.5vw, 2.2rem)',
+                  fontWeight: 900, lineHeight: 1.15, letterSpacing: '-0.02em',
+                  color: '#FFFFFF', marginTop: '0.4rem',
+                }}>
+                  Vous vous reconnaissez ?
                 </p>
               </div>
 
@@ -641,9 +646,10 @@ export function LandingPage() {
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.875rem', marginBottom: i === activePainStep ? '0.6rem' : 0 }}>
                     <span style={{
                       fontFamily: '"Playfair Display", serif',
-                      fontSize: '0.68rem', fontWeight: 900,
-                      color: story.color, letterSpacing: '0.08em',
-                      paddingTop: '0.15rem', flexShrink: 0,
+                      fontSize: '1.1rem', fontWeight: 900,
+                      color: story.color, letterSpacing: '0.04em',
+                      paddingTop: '0.05rem', flexShrink: 0,
+                      opacity: 0.9,
                     }}>
                       {story.step}
                     </span>
