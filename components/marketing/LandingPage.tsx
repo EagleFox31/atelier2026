@@ -1201,35 +1201,9 @@ export function LandingPage() {
             <div style={{
               position: 'sticky', top: 0, height: '100vh',
               display: 'grid',
-              gridTemplateColumns: '180px 1fr 180px',
+              gridTemplateColumns: '1fr 380px',
               overflow: 'hidden',
             }}>
-
-              {/* ── COLONNE GAUCHE — remonte ── */}
-              {(() => {
-                const IMGS_L = [
-                  '/landing/text-revealing/arrive_en_atelier.jpg',
-                  '/landing/text-revealing/ot_30s.jpg',
-                  '/landing/text-revealing/process_digitalisé.jpg',
-                  '/landing/text-revealing/service_transparent.jpg',
-                ];
-                const doubled = [...IMGS_L, ...IMGS_L];
-                return (
-                  <div style={{ overflow: 'hidden', padding: '0.5rem' }}>
-                    <motion.div
-                      animate={{ y: ['0%', '-50%'] }}
-                      transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
-                      style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}
-                    >
-                      {doubled.map((src, i) => (
-                        <div key={i} style={{ borderRadius: 10, overflow: 'hidden', flexShrink: 0, position: 'relative', aspectRatio: '3/4', width: '100%' }}>
-                          <Image src={src} alt="" fill sizes="180px" style={{ objectFit: 'cover' }} />
-                        </div>
-                      ))}
-                    </motion.div>
-                  </div>
-                );
-              })()}
 
               {/* ── CENTRE : texte storytelling ── */}
               <div style={{
@@ -1319,31 +1293,39 @@ export function LandingPage() {
               </div>{/* fin content z-1 */}
               </div>{/* fin centre */}
 
-              {/* ── COLONNE DROITE — remonte (décalée) ── */}
-              {(() => {
-                const IMGS_R = [
-                  '/landing/text-revealing/devis_envoye_instantanement_au_client.jpg',
-                  '/landing/text-revealing/retour_vehicule_client.jpg',
-                  '/landing/text-revealing/visibilite_dashboard.jpg',
-                  '/landing/text-revealing/adopter_atelier_maitre.jpg',
-                ];
-                const doubled = [...IMGS_R, ...IMGS_R];
-                return (
-                  <div style={{ overflow: 'hidden', padding: '0.5rem' }}>
-                    <motion.div
-                      animate={{ y: ['-25%', '-75%'] }}
-                      transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}
-                      style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}
-                    >
-                      {doubled.map((src, i) => (
-                        <div key={i} style={{ borderRadius: 10, overflow: 'hidden', flexShrink: 0, position: 'relative', aspectRatio: '3/4', width: '100%' }}>
-                          <Image src={src} alt="" fill sizes="180px" style={{ objectFit: 'cover' }} />
-                        </div>
-                      ))}
-                    </motion.div>
-                  </div>
-                );
-              })()}
+              {/* ── DEUX COLONNES DROITE — une monte, l'autre descend ── */}
+              <div style={{ display: 'flex', gap: '0.625rem', overflow: 'hidden', padding: '0.75rem 0.75rem 0.75rem 0' }}>
+                {[
+                  {
+                    imgs: ['arrive_en_atelier','ot_30s','process_digitalisé','service_transparent'],
+                    dir: 1, duration: 18,
+                  },
+                  {
+                    imgs: ['devis_envoye_instantanement_au_client','retour_vehicule_client','visibilite_dashboard','adopter_atelier_maitre'],
+                    dir: -1, duration: 22,
+                  },
+                ].map(({ imgs, dir, duration }, colIdx) => {
+                  const doubled = [...imgs, ...imgs];
+                  return (
+                    <div key={colIdx} style={{ flex: 1, overflow: 'hidden' }}>
+                      <motion.div
+                        animate={dir > 0
+                          ? { y: ['0%', '-50%'] }
+                          : { y: ['-50%', '0%'] }
+                        }
+                        transition={{ duration, repeat: Infinity, ease: 'linear' }}
+                        style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}
+                      >
+                        {doubled.map((name, i) => (
+                          <div key={i} style={{ borderRadius: 10, overflow: 'hidden', flexShrink: 0, position: 'relative', aspectRatio: '3/4', width: '100%' }}>
+                            <Image src={`/landing/text-revealing/${name}.jpg`} alt="" fill sizes="180px" style={{ objectFit: 'cover' }} />
+                          </div>
+                        ))}
+                      </motion.div>
+                    </div>
+                  );
+                })}
+              </div>
 
             </div>
           </div>
