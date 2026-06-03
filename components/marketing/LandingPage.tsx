@@ -801,9 +801,7 @@ export function LandingPage() {
                   initial={{ y: 0 }}
                   style={{
                     padding: '1rem 1.1rem 1.1rem',
-                    background: 'rgba(15,8,3,0.55)',
-                    backdropFilter: 'blur(10px)',
-                    WebkitBackdropFilter: 'blur(10px)',
+                    background: 'rgba(15,8,3,0.65)',
                     borderTop: '1px solid rgba(200,81,26,0.20)',
                   }}
                   animate={{ y: 0 }}
