@@ -360,9 +360,17 @@ export function LandingPage() {
           justifyContent: 'center',
           position: 'relative',
           overflow: 'hidden',
-          background: 'linear-gradient(145deg, #1A1209 0%, #2D1B09 40%, #3D2310 70%, #C8511A 120%)',
+          backgroundImage: 'url(/landing/hero.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
         }}
       >
+        {/* Overlay sombre — lisibilité texte */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(145deg, rgba(26,18,9,0.92) 0%, rgba(45,27,9,0.85) 40%, rgba(61,35,16,0.78) 70%, rgba(200,81,26,0.55) 120%)',
+        }} />
         {/* Pattern géométrique — parallax lent */}
         <motion.div style={{
           position: 'absolute', inset: 0, opacity: 0.04,
@@ -374,14 +382,14 @@ export function LandingPage() {
         <motion.div style={{
           position: 'absolute', top: '20%', right: '-10%',
           width: 600, height: 600, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(200,81,26,0.35) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(200,81,26,0.3) 0%, transparent 70%)',
           pointerEvents: 'none',
           y: glow1Y,
         }} />
         <motion.div style={{
           position: 'absolute', bottom: '-10%', left: '5%',
           width: 400, height: 400, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(212,164,50,0.2) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(212,164,50,0.15) 0%, transparent 70%)',
           pointerEvents: 'none',
           y: glow2Y,
         }} />
