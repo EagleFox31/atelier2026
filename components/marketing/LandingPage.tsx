@@ -13,6 +13,7 @@ import {
   MessageSquare,
   BarChart3,
   Smartphone,
+  Monitor,
   Building2,
   CheckCircle2,
   ChevronRight,
@@ -1078,7 +1079,10 @@ export function LandingPage() {
                       transition: 'all 0.2s',
                     }}
                   >
-                    {v === 'macbook' ? '🖥 Desktop' : '📱 Mobile'}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      {v === 'macbook' ? <Monitor size={12} /> : <Smartphone size={12} />}
+                      {v === 'macbook' ? 'Desktop' : 'Mobile'}
+                    </span>
                   </button>
                 ))}
               </div>
