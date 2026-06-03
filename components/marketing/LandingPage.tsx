@@ -1,11 +1,11 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { motion, useScroll, useTransform, useReducedMotion } from 'motion/react';
 import {
   ArrowRight,
-  Car,
+  Wrench,
   ChevronDown,
   FileText,
   Package,
@@ -23,89 +23,235 @@ import {
   Mail,
   Clock,
   TrendingUp,
+  ClipboardList,
+  AlertCircle,
+  Plus,
+  Star,
+  ShieldCheck,
+  Globe,
 } from 'lucide-react';
-import { buttonVariants } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { LandingHeroBackground } from '@/components/marketing/LandingHeroBackground';
-import { LandingParallaxSection } from '@/components/marketing/LandingParallaxSection';
-import {
-  LandingHeader,
-  SectionEyebrow,
-  SectionTitle,
-  SectionLead,
-  SectionDivider,
-  TrustPills,
-  PainCard,
-  FeatureCard,
-  FaqItem,
-  LandingFooter,
-} from '@/components/marketing/landing-ui';
-import { BrandCalligraphy } from '@/components/marketing/brand-calligraphy';
-import { InstallAppButton } from '@/components/pwa/InstallAppButton';
 
+import { LANDING_COLORS as C } from '@/components/marketing/landing-colors';
 const FEATURES = [
   {
-    icon: Car,
+    Icon: ClipboardList,
+    color: C.brand,
+    bg: '#FEE2C5',
     title: 'Ordres de travail',
     desc: 'Statuts, historique, contrôle qualité et clôture automatique après paiement.',
   },
   {
-    icon: FileText,
+    Icon: FileText,
+    color: C.gold,
+    bg: '#FEF3C7',
     title: 'Devis & factures',
-    desc: 'TVA 19,25 %, timbre, PDF — tout en francs CFA, sans ressaisie.',
+    desc: 'TVA 19,25 %, timbre fiscal, PDF en XAF — sans ressaisie, sans erreur.',
   },
   {
-    icon: Package,
+    Icon: Package,
+    color: C.green,
+    bg: '#D1FAE5',
     title: 'Stock pièces',
-    desc: 'Alertes seuil, mouvements liés aux OT, vente comptoir.',
+    desc: 'Alertes seuil, mouvements liés aux OT, vente comptoir en temps réel.',
   },
   {
-    icon: CalendarDays,
-    title: 'Planning',
-    desc: 'Rendez-vous, charge atelier, vue réception sur mobile.',
+    Icon: CalendarDays,
+    color: C.brandDeep,
+    bg: '#FEE2C5',
+    title: 'Planning atelier',
+    desc: 'Rendez-vous, charge atelier, vue réception optimisée pour le mobile.',
   },
   {
-    icon: MessageSquare,
-    title: 'SMS clients',
-    desc: 'Orange / MTN Cameroun — rappels et notifications intégrés.',
+    Icon: MessageSquare,
+    color: '#0F6E56',
+    bg: '#D1FAE5',
+    title: 'SMS Orange / MTN',
+    desc: 'Rappels et notifications clients automatiques — intégrés nativement.',
   },
   {
-    icon: BarChart3,
-    title: 'Tableau de bord',
-    desc: 'CA, performance techniciens, factures en attente.',
+    Icon: BarChart3,
+    color: C.red,
+    bg: '#FEE2E2',
+    title: 'Tableau de bord live',
+    desc: 'CA, performance techniciens, factures en attente — tout en un coup d\'œil.',
   },
 ];
 
 const PAIN_POINTS = [
-  'OT sur papier et statut inconnu',
-  'Devis Word + facture Excel',
-  'Stock mis à jour à la main',
-  'Clients relancés par SMS un par un',
+  { Icon: ClipboardList, color: C.brand, text: 'OT sur papier — statut inconnu, historique introuvable' },
+  { Icon: FileText,      color: C.gold,  text: 'Devis Word + facture Excel, aucun lien entre les deux' },
+  { Icon: Package,       color: C.green, text: 'Stock mis à jour à la main, ruptures découvertes trop tard' },
+  { Icon: MessageSquare, color: C.red,   text: 'Clients relancés un par un sur WhatsApp, sans suivi' },
+];
+
+const STATS = [
+  { Icon: Clock,     color: C.goldLight, value: '30 s',      label: 'Pour créer un OT' },
+  { Icon: FileText,  color: C.goldLight, value: '1 clic',    label: 'Devis PDF en XAF' },
+  { Icon: Wifi,      color: C.goldLight, value: '100 %',     label: 'Fonctionne hors-ligne' },
+  { Icon: TrendingUp,color: C.goldLight, value: 'Temps réel',label: 'Dashboard live' },
 ];
 
 const FAQ = [
   {
     q: 'Pour qui est Atelier Maître ?',
-    a: 'Garages indépendants et petits groupes (2–5 sites) au Cameroun : mécanique, réception, caisse, chef d\'atelier.',
+    a: 'Garages indépendants et petits groupes (2–5 sites) au Cameroun : mécanique, réception, caisse, chef d\'atelier. Pensé pour le terrain, pas pour une grande chaîne.',
   },
   {
     q: 'Puis-je gérer plusieurs garages ?',
-    a: 'Oui. Un compte patron peut regrouper plusieurs ateliers (ex. Douala + Yaoundé). Chaque employé reste rattaché à un seul garage.',
+    a: 'Oui. Un compte patron regroupe plusieurs ateliers (ex. Douala + Yaoundé). Chaque employé reste rattaché à un seul garage avec ses propres accès.',
   },
   {
-    q: 'Comment installer l\u2019application sur mon téléphone ?',
-    a: 'Utilisez le bouton « Installer l\u2019app » sur cette page : sur Android ou ordinateur, l\u2019installation est en un clic ; sur iPhone, suivez les étapes Safari (Partager → Sur l\u2019écran d\u2019accueil). Aucun Play Store requis.',
+    q: 'Comment installer l\'app sur mon téléphone ?',
+    a: 'Sur Android ou ordinateur : installation en un clic. Sur iPhone : Partager → Sur l\'écran d\'accueil dans Safari. Aucun Play Store requis.',
   },
   {
     q: 'Faut-il un serveur sur place ?',
-    a: 'Non en mode cloud : navigateur + téléphone. Déploiement possible sur un VPS si vous préférez vos données en local.',
+    a: 'Non en mode cloud : navigateur + téléphone suffit. Déploiement possible sur un VPS si vous préférez garder vos données en local.',
   },
   {
-    q: 'Et mes données actuelles ?',
-    a: 'Reprise clients / véhicules possible au déploiement — on prépare l\'import avec vous.',
+    q: 'Que deviennent mes données existantes ?',
+    a: 'Reprise clients et véhicules possible au déploiement. On prépare l\'import avec vous — aucune perte d\'historique.',
   },
 ];
+
+/* ─── SOUS-COMPOSANTS ───────────────────────────────────────────────────── */
+
+function Eyebrow({ children, light = false }: { children: React.ReactNode; light?: boolean }) {
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        fontSize: '0.72rem',
+        fontWeight: 700,
+        letterSpacing: '0.12em',
+        textTransform: 'uppercase',
+        color: light ? 'rgba(242,201,90,0.85)' : C.brand,
+        marginBottom: '0.75rem',
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function SectionHeading({
+  children,
+  light = false,
+  style = {},
+}: {
+  children: React.ReactNode;
+  light?: boolean;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <h2
+      style={{
+        fontFamily: '"Playfair Display", Georgia, serif',
+        fontSize: 'clamp(1.85rem, 3.5vw, 2.75rem)',
+        fontWeight: 900,
+        lineHeight: 1.12,
+        letterSpacing: '-0.03em',
+        color: light ? '#FFFFFF' : C.earth,
+        ...style,
+      }}
+    >
+      {children}
+    </h2>
+  );
+}
+
+function Lead({
+  children,
+  light = false,
+  style = {},
+}: {
+  children: React.ReactNode;
+  light?: boolean;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <p
+      style={{
+        fontSize: '1.05rem',
+        lineHeight: 1.8,
+        color: light ? 'rgba(255,255,255,0.6)' : C.muted,
+        marginTop: '0.875rem',
+        ...style,
+      }}
+    >
+      {children}
+    </p>
+  );
+}
+
+function CheckItem({ children, color = C.brand }: { children: React.ReactNode; color?: string }) {
+  return (
+    <li style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem', fontSize: '0.875rem', color: C.earth }}>
+      <CheckCircle2 size={16} color={color} style={{ flexShrink: 0, marginTop: '0.15rem' }} />
+      {children}
+    </li>
+  );
+}
+
+function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.35, delay: index * 0.06 }}
+      style={{
+        background: C.white,
+        borderRadius: 12,
+        border: `1px solid rgba(200,81,26,0.1)`,
+        overflow: 'hidden',
+      }}
+    >
+      <button
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: '100%',
+          padding: '1.125rem 1.5rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '1rem',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          textAlign: 'left',
+          fontWeight: 600,
+          fontSize: '0.925rem',
+          color: C.earth,
+          fontFamily: 'inherit',
+        }}
+      >
+        {q}
+        <Plus
+          size={18}
+          color={C.brand}
+          style={{ flexShrink: 0, transition: 'transform 0.3s', transform: open ? 'rotate(45deg)' : 'none' }}
+        />
+      </button>
+      {open && (
+        <div
+          style={{
+            padding: '0 1.5rem 1.125rem',
+            fontSize: '0.875rem',
+            color: C.muted,
+            lineHeight: 1.75,
+            borderTop: `1px solid rgba(200,81,26,0.06)`,
+          }}
+        >
+          {a}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+/* ─── COMPOSANT PRINCIPAL ───────────────────────────────────────────────── */
 
 export function LandingPage() {
   const heroRef = useRef<HTMLElement>(null);
@@ -118,530 +264,529 @@ export function LandingPage() {
 
   const copyY = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0, -72]);
   const copyOpacity = useTransform(heroScroll, [0, 0.85], [1, 0.35]);
+  const mockY = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0, -40]);
 
-  const mockY = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0, -130]);
-  const mockScale = useTransform(heroScroll, [0, 1], reduceMotion ? [1, 1] : [1, 0.94]);
-  const mockRotate = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0, -1.5]);
+  /* Styles réutilisables */
+  const btnPrimary: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.875rem 2rem',
+    borderRadius: 12,
+    background: C.brand,
+    color: '#FFFFFF',
+    fontWeight: 600,
+    fontSize: '0.95rem',
+    textDecoration: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'background 0.2s, transform 0.2s',
+  };
 
-  const floatLeftY = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0, -180]);
-  const floatRightY = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0, -220]);
-  const floatBadgeY = useTransform(heroScroll, [0, 1], reduceMotion ? [0, 0] : [0, -90]);
+  const btnGhost: React.CSSProperties = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    padding: '0.875rem 1.75rem',
+    borderRadius: 12,
+    background: 'rgba(255,255,255,0.08)',
+    color: '#FFFFFF',
+    fontWeight: 500,
+    fontSize: '0.95rem',
+    textDecoration: 'none',
+    border: '1px solid rgba(255,255,255,0.18)',
+    cursor: 'pointer',
+    transition: 'background 0.2s',
+  };
+
+  const sectionPad: React.CSSProperties = { padding: '5rem 5%' };
+  const inner: React.CSSProperties = { maxWidth: 1200, margin: '0 auto' };
 
   return (
-    <div className="landing-page min-h-screen text-slate-800">
-      <LandingHeader />
+    <div style={{ fontFamily: '"DM Sans", system-ui, sans-serif', background: C.surface, color: C.earth, overflowX: 'hidden' }}>
 
-      {/* Hero */}
+      {/* ── NAV ── */}
+      <nav style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+        background: 'rgba(253,250,244,0.93)', backdropFilter: 'blur(12px)',
+        borderBottom: '1px solid rgba(200,81,26,0.1)', padding: '0 5%',
+      }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
+          <span style={{ fontFamily: '"Playfair Display", serif', fontSize: '1.25rem', fontWeight: 700, color: C.earth }}>
+            Atelier <span style={{ color: C.brand }}>Maître</span>
+          </span>
+          <div style={{ display: 'flex', gap: '2rem', listStyle: 'none' }} role="list">
+            {[['#fonctionnalites', 'Fonctionnalités'], ['#tarifs', 'Tarifs'], ['#faq', 'FAQ']].map(([href, label]) => (
+              <Link key={href} href={href} style={{ textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500, color: C.muted }}>
+                {label}
+              </Link>
+            ))}
+          </div>
+          <Link href="/demo" style={{ ...btnPrimary, padding: '0.5rem 1.25rem', fontSize: '0.875rem' }}>
+            Réserver une démo <ArrowRight size={14} />
+          </Link>
+        </div>
+      </nav>
+
+      {/* ── HERO ── */}
       <section
         ref={heroRef}
-        className="relative overflow-x-hidden px-4 pb-2 pt-12 sm:px-6 sm:pb-3 sm:pt-16"
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          padding: '100px 5% 60px',
+          position: 'relative',
+          overflow: 'hidden',
+          background: 'linear-gradient(145deg, #1A1209 0%, #2D1B09 40%, #3D2310 70%, #C8511A 120%)',
+        }}
       >
-        <LandingHeroBackground scrollYProgress={heroScroll} />
-        <div className="relative z-10 mx-auto max-w-6xl">
-          <div className="grid items-center gap-8 lg:grid-cols-[1fr_1.05fr] lg:gap-8 xl:gap-10">
-            {/* Copy */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              style={{ y: copyY, opacity: copyOpacity }}
-            >
-              <Badge className="mb-6 rounded-full border-[var(--afrique-gold)]/25 bg-white/85 px-4 py-1.5 text-[var(--afrique-earth)] shadow-sm backdrop-blur-sm">
-                Conçu pour les ateliers au Cameroun
-              </Badge>
-              <SectionTitle as="h1">
-                De la réception à l&apos;encaissement,{' '}
-                <span className="landing-gradient-text">un seul flux.</span>
-              </SectionTitle>
-              <SectionLead className="mt-6 text-slate-600 sm:text-xl">
-                OT, devis, stock, planning et factures en XAF — sans carnet, sans
-                ressaisie, sans perdre le fil sur WhatsApp.
-              </SectionLead>
-              <div className="mt-8 flex flex-wrap gap-3 sm:gap-4">
-                <Link
-                  href="/demo"
-                  className={cn(
-                    buttonVariants({ size: 'lg' }),
-                    'group h-12 gap-2 rounded-xl bg-gradient-to-r from-brand via-[#1a6a9c] to-[var(--afrique-forest)] px-8 text-base text-white shadow-lg shadow-brand/20 ring-1 ring-[var(--afrique-gold)]/30 transition-all duration-200 hover:shadow-xl hover:ring-[var(--afrique-gold)]/45',
-                  )}
-                >
-                  Réserver une démo
-                  <ArrowRight
-                    size={18}
-                    className="shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
-                  />
-                </Link>
-                <Link
-                  href="/inscription"
-                  className={cn(
-                    buttonVariants({ variant: 'outline', size: 'lg' }),
-                    'h-12 rounded-xl border-brand/40 bg-white/80 text-brand backdrop-blur-sm hover:bg-white hover:border-brand/60 font-semibold',
-                  )}
-                >
-                  <UserPlus size={17} className="mr-1.5" />
-                  Créer mon atelier
-                </Link>
+        {/* Pattern géométrique */}
+        <div style={{
+          position: 'absolute', inset: 0, opacity: 0.04,
+          backgroundImage: 'repeating-linear-gradient(45deg,#fff 0,#fff 1px,transparent 0,transparent 50%)',
+          backgroundSize: '28px 28px',
+        }} />
+        {/* Glow brand */}
+        <div style={{
+          position: 'absolute', top: '20%', right: '-10%',
+          width: 600, height: 600, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(200,81,26,0.35) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '-10%', left: '5%',
+          width: 400, height: 400, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(212,164,50,0.2) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }} />
+
+        <div style={{ ...inner, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+          {/* Copie */}
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ y: copyY, opacity: copyOpacity }}>
+            {/* Badge */}
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+              background: 'rgba(212,164,50,0.15)', border: '1px solid rgba(212,164,50,0.35)',
+              color: C.goldLight, padding: '0.35rem 0.9rem', borderRadius: 99,
+              fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+              marginBottom: '1.5rem',
+            }}>
+              <Globe size={12} color={C.goldLight} />
+              Logiciel garage · Cameroun
+            </div>
+
+            <h1 style={{
+              fontFamily: '"Playfair Display", serif',
+              fontSize: 'clamp(2.4rem, 4.5vw, 3.75rem)',
+              fontWeight: 900, lineHeight: 1.1, letterSpacing: '-0.03em',
+              color: '#FFFFFF', marginBottom: '1.5rem',
+            }}>
+              Votre atelier,{' '}
+              <span style={{ color: C.goldLight }}>enfin maîtrisé.</span>
+              <br />Du premier OT à l&apos;encaissement.
+            </h1>
+
+            <p style={{ fontSize: '1.1rem', lineHeight: 1.75, color: 'rgba(255,255,255,0.7)', maxWidth: 480, marginBottom: '2.5rem' }}>
+              OT, devis, stock, planning et factures en XAF — tout dans un seul flux.
+              Sans carnet, sans ressaisie, sans perdre le fil.
+            </p>
+
+            <div style={{ display: 'flex', gap: '0.875rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
+              <Link href="/demo" style={btnPrimary}>
+                Réserver une démo <ArrowRight size={16} />
+              </Link>
+              <Link href="/inscription" style={btnGhost}>
+                <UserPlus size={16} /> Créer mon atelier
+              </Link>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
+              {[
+                [ShieldCheck, C.green,   'Essai pilote gratuit'],
+                [Globe,       C.gold,    'Support en français'],
+                [FileText,    C.brand,   'TVA 19,25 % · XAF'],
+                [MessageSquare, C.red,   'SMS Orange / MTN'],
+              ].map(([Icon, color, label]) => (
+                <span key={label as string} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.78rem', color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>
+                  <CheckCircle2 size={13} color={color as string} />
+                  {label as string}
+                </span>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Dashboard mock */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.12 }}
+            style={{ y: mockY }}
+          >
+            <div style={{
+              borderRadius: 20, overflow: 'hidden',
+              boxShadow: '0 32px 80px rgba(0,0,0,0.5)',
+              border: '1px solid rgba(200,81,26,0.18)',
+            }}>
+              {/* Barre de titre */}
+              <div style={{ background: '#1A1209', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {['#ff5f57', '#ffbd2e', '#28ca41'].map((bg) => (
+                  <span key={bg} style={{ width: 10, height: 10, borderRadius: '50%', background: bg }} />
+                ))}
+                <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', marginLeft: '0.5rem' }}>
+                  atelier-maitre.cm · Tableau de bord
+                </span>
               </div>
-              <TrustPills
-                items={[
-                  'Essai pilote',
-                  'Données hébergées',
-                  'Support FR',
-                  'XAF · TVA 19,25 %',
-                ]}
-              />
-            </motion.div>
-
-            {/* Visuel produit — droite desktop, sous le texte mobile */}
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.12 }}
-              className="relative mx-auto w-full max-w-lg lg:max-w-none lg:mx-0"
-              style={{ y: mockY, scale: mockScale, rotate: mockRotate }}
-            >
-              {/* Mock dashboard */}
-              <div className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-2xl shadow-slate-400/20 ring-1 ring-slate-900/[0.04]">
-                <div
-                  className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-brand/[0.06] to-transparent"
-                  aria-hidden
-                />
-                <div className="relative flex items-center gap-2 border-b border-slate-100/90 bg-slate-50/90 px-4 py-3 backdrop-blur-sm">
-                  <span className="h-3 w-3 rounded-full bg-red-400" />
-                  <span className="h-3 w-3 rounded-full bg-amber-400" />
-                  <span className="h-3 w-3 rounded-full bg-green-400" />
-                  <span className="ml-4 truncate text-xs text-slate-400">
-                    Atelier Maître — Tableau de bord
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 p-4 sm:gap-3 sm:p-5">
-                  {[
-                    { label: 'OT en cours', value: '12', color: 'bg-[var(--afrique-brand-soft)] text-brand' },
-                    { label: 'CA du jour', value: '485k', color: 'bg-[var(--afrique-gold-soft)] text-[var(--afrique-gold)]' },
-                    { label: 'Stock bas', value: '3', color: 'bg-[var(--afrique-terra-soft)] text-[var(--afrique-terracotta)]' },
-                  ].map((k) => (
-                    <div key={k.label} className={`rounded-xl p-3 sm:p-4 ${k.color}`}>
-                      <p className="text-[10px] font-medium opacity-80 sm:text-xs">{k.label}</p>
-                      <p className="mt-1 text-lg font-bold sm:text-2xl">{k.value}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="space-y-2 border-t border-slate-100 px-4 py-4 sm:px-5">
-                  {[
-                    { ref: 'OT-2026-0142', veh: 'Toyota Hilux · CE 1234 AB', status: 'EN COURS', tone: 'bg-[var(--afrique-brand-soft)] text-brand' },
-                    { ref: 'OT-2026-0138', veh: 'Peugeot 301 · LT 8890 CD', status: 'PRÊT', tone: 'bg-[var(--afrique-forest-soft)] text-[var(--afrique-forest)]' },
-                    { ref: 'OT-2026-0135', veh: 'Nissan Hardbody · SW 4455 EF', status: 'CQ', tone: 'bg-[var(--afrique-gold-soft)] text-[#8a6914]' },
-                  ].map((row) => (
-                    <div
-                      key={row.ref}
-                      className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2.5"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate text-xs font-semibold text-slate-800">{row.ref}</p>
-                        <p className="truncate text-[11px] text-slate-500">{row.veh}</p>
-                      </div>
-                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${row.tone}`}>
-                        {row.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+              {/* KPIs */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.625rem', padding: '1rem', background: C.surface }}>
+                {[
+                  { label: 'OT en cours', value: '12',   color: C.earth  },
+                  { label: 'CA du jour',   value: '485k', color: C.brand  },
+                  { label: 'Stock bas',    value: '3',    color: C.gold   },
+                ].map(({ label, value, color }) => (
+                  <div key={label} style={{ background: '#1A1209', borderRadius: 10, padding: '0.9rem 1rem' }}>
+                    <p style={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.45)', fontWeight: 500, marginBottom: '0.25rem' }}>{label}</p>
+                    <p style={{ fontSize: '1.4rem', fontWeight: 700, color }}>{value}</p>
+                  </div>
+                ))}
               </div>
-
-              {/* Carte flottante — OT mobile */}
-              <motion.div
-                initial={{ opacity: 0, x: -12 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.35 }}
-                style={{ y: floatLeftY }}
-                className="absolute -bottom-5 -left-2 z-10 hidden w-[min(220px,55%)] rounded-xl border border-slate-200/80 bg-white/95 p-3 shadow-lg shadow-slate-300/30 backdrop-blur-md sm:block lg:-left-6"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10">
-                    <Smartphone className="text-brand" size={16} />
+              {/* OT rows */}
+              <div style={{ padding: '0 1rem 1rem', background: C.surface }}>
+                {[
+                  { ref: 'OT-2026-0142', veh: 'Toyota Hilux · CE 1234 AB',      status: 'EN COURS',   bg: '#FEE2C5', fg: C.brandDeep },
+                  { ref: 'OT-2026-0138', veh: 'Peugeot 301 · LT 8890 CD',       status: 'PRÊT',       bg: C.greenLight, fg: C.green },
+                  { ref: 'OT-2026-0135', veh: 'Nissan Hardbody · SW 4455 EF',   status: 'CONTRÔLE Q', bg: '#FEF3C7', fg: '#92400E' },
+                ].map((row) => (
+                  <div key={row.ref} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.875rem', borderRadius: 8, background: C.sand, marginBottom: '0.5rem', gap: '0.75rem' }}>
+                    <div>
+                      <p style={{ fontSize: '0.75rem', fontWeight: 700, color: C.earth }}>{row.ref}</p>
+                      <p style={{ fontSize: '0.68rem', color: C.muted, marginTop: 1 }}>{row.veh}</p>
+                    </div>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '0.25rem 0.625rem', borderRadius: 99, background: row.bg, color: row.fg, whiteSpace: 'nowrap' }}>
+                      {row.status}
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-slate-800">Réception mobile</p>
-                    <p className="text-[10px] text-slate-500">Nouvel OT en 30 s</p>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Carte flottante — SMS */}
-              <motion.div
-                initial={{ opacity: 0, x: 12 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: 0.45 }}
-                style={{ y: floatRightY }}
-                className="absolute -right-1 top-8 z-10 hidden w-[min(240px,58%)] rounded-xl border border-emerald-200/80 bg-emerald-50/95 p-3 shadow-lg shadow-emerald-200/30 backdrop-blur-md md:block lg:-right-5"
-              >
-                <div className="flex items-start gap-2">
-                  <MessageSquare className="mt-0.5 shrink-0 text-green-600" size={16} />
-                  <div>
-                    <p className="text-xs font-semibold text-green-900">SMS Orange · envoyé</p>
-                    <p className="mt-0.5 text-[10px] leading-snug text-green-800">
-                      « Votre véhicule est prêt. Montant : 185 000 XAF »
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* Badge flottant — multi-garages */}
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.55 }}
-                style={{ y: floatBadgeY }}
-                className="absolute -top-3 right-6 z-10 hidden rounded-full border border-slate-200/90 bg-white/95 px-3 py-1.5 text-[11px] font-medium text-slate-600 shadow-md backdrop-blur-sm lg:flex lg:items-center lg:gap-1.5"
-              >
-                <Building2 size={13} className="text-brand" />
-                Douala + Yaoundé
-              </motion.div>
-            </motion.div>
-          </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
         </div>
 
-        <a
-          href="#probleme"
-          className="relative z-10 mx-auto mt-3 flex w-fit flex-col items-center gap-0.5 text-slate-400 transition-colors hover:text-brand sm:mt-4"
-          aria-label="Voir la suite de la page"
-        >
-          <span className="text-[10px] font-medium uppercase tracking-widest">Suite</span>
-          <ChevronDown size={22} className="animate-bounce" strokeWidth={2} />
+        <a href="#probleme" style={{ position: 'relative', zIndex: 2, margin: '3rem auto 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}>
+          <span style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Suite</span>
+          <ChevronDown size={20} />
         </a>
       </section>
 
-      <SectionDivider className="py-1" />
+      {/* ── PAIN ── */}
+      <section id="probleme" style={{ background: '#1A1209', ...sectionPad }}>
+        <div style={{ ...inner, textAlign: 'center' }}>
+          <Eyebrow light>Le quotidien de 80 % des garages</Eyebrow>
+          <SectionHeading light>Vous vous reconnaissez ?</SectionHeading>
+          <Lead light style={{ maxWidth: 520, margin: '0.875rem auto 0' }}>
+            Chaque jour, des heures perdues. Des clients qui rappellent. Du chiffre qui s&apos;évapore. Ce n&apos;est pas une fatalité.
+          </Lead>
 
-      {/* Pain */}
-      <section id="probleme" className="scroll-mt-20 landing-section-warm px-4 pt-8 pb-10 sm:px-6 sm:pt-9 sm:pb-12">
-        <div className="mx-auto max-w-6xl text-center">
-          <SectionEyebrow>Le constat</SectionEyebrow>
-          <SectionTitle className="mx-auto">Vous reconnaissez ça ?</SectionTitle>
-          <div className="mt-8 grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
-            {PAIN_POINTS.map((p, i) => (
-              <PainCard key={p} index={i}>
-                {p}
-              </PainCard>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginTop: '2.5rem' }}>
+            {PAIN_POINTS.map(({ Icon, color, text }, i) => (
+              <motion.div
+                key={text}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.35, delay: i * 0.08 }}
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 12, padding: '1.5rem',
+                }}
+              >
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+                  <Icon size={20} color={color} />
+                </div>
+                <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, fontWeight: 500 }}>{text}</p>
+              </motion.div>
             ))}
           </div>
-          <p className="mx-auto mt-8 max-w-2xl text-pretty text-lg leading-relaxed text-slate-600">
-            <BrandCalligraphy>Atelier Maître</BrandCalligraphy>
-            {' '}
-            relie tout dans{' '}
-            <strong className="font-semibold text-slate-800">un dossier par véhicule</strong>
-            {' '}
-            — clair pour toute l&apos;équipe.
-          </p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            style={{
+              marginTop: '2.5rem', padding: '1.5rem 2rem', borderRadius: 16,
+              background: 'rgba(200,81,26,0.08)', border: '1px solid rgba(200,81,26,0.2)',
+              color: 'rgba(255,255,255,0.7)', fontSize: '1rem', lineHeight: 1.75,
+            }}
+          >
+            <strong style={{ color: '#FFFFFF' }}>Atelier Maître</strong> relie tout dans{' '}
+            <strong style={{ color: '#FFFFFF' }}>un dossier par véhicule</strong> — visible par toute l&apos;équipe, en temps réel, depuis n&apos;importe quel téléphone.
+          </motion.div>
         </div>
       </section>
 
-      <SectionDivider />
-
-      {/* Comment ça marche */}
-      <section id="comment-ca-marche" className="scroll-mt-20 bg-white px-4 py-10 sm:px-6 sm:py-14">
-        <div className="mx-auto max-w-6xl">
-          <div className="text-center">
-            <SectionEyebrow>Démarrage</SectionEyebrow>
-            <SectionTitle>Opérationnel en 3 étapes</SectionTitle>
-            <SectionLead className="mx-auto mt-3">
-              Pas d&apos;installation, pas de serveur. Votre atelier est en ligne en moins de 10 minutes.
-            </SectionLead>
+      {/* ── STEPS ── */}
+      <section id="demarrage" style={{ background: C.sand, ...sectionPad }}>
+        <div style={inner}>
+          <div style={{ textAlign: 'center' }}>
+            <Eyebrow>Démarrage</Eyebrow>
+            <SectionHeading>Opérationnel en 3 étapes</SectionHeading>
+            <Lead style={{ maxWidth: 520, margin: '0.875rem auto 0' }}>
+              Aucune installation, aucun serveur. Votre atelier en ligne en moins de 10 minutes.
+            </Lead>
           </div>
-          <div className="mt-10 grid gap-6 sm:grid-cols-3 sm:gap-8">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginTop: '3rem' }}>
             {[
-              {
-                step: '01',
-                icon: UserPlus,
-                title: 'Créez votre compte',
-                desc: 'Renseignez les infos de votre garage — nom, ville, contact. Votre espace est prêt en 3 minutes.',
-                color: 'text-brand bg-brand/10',
-              },
-              {
-                step: '02',
-                icon: Users,
-                title: 'Ajoutez votre équipe',
-                desc: 'Invitez techniciens, réceptionniste et caissier. Chacun reçoit son identifiant prenom.nom.',
-                color: 'text-[var(--afrique-forest)] bg-[var(--afrique-forest-soft)]',
-              },
-              {
-                step: '03',
-                icon: Zap,
-                title: 'Gérez vos OT',
-                desc: 'Créez votre premier ordre de travail, envoyez un devis PDF, encaissez. Tout est lié automatiquement.',
-                color: 'text-[var(--afrique-gold)] bg-[var(--afrique-gold-soft)]',
-              },
-            ].map((s, i) => (
+              { step: '01', Icon: UserPlus,  color: C.brand,  bg: '#FEE2C5', title: 'Créez votre garage',     desc: 'Nom, ville, contact — 3 minutes. Votre espace est prêt, personnalisé à votre enseigne.' },
+              { step: '02', Icon: Users,     color: C.earth,  bg: '#E5E0D8', title: 'Invitez votre équipe',   desc: 'Techniciens, réceptionniste, caissier — chacun reçoit son accès avec les bons droits.' },
+              { step: '03', Icon: Zap,       color: C.brand,  bg: '#FEE2C5', title: 'Gérez vos premiers OT', desc: 'Créez un OT, envoyez un devis PDF en XAF, encaissez. Tout est lié. Automatiquement.' },
+            ].map(({ step, Icon, color, bg, title, desc }, i) => (
               <motion.div
-                key={s.step}
-                initial={{ opacity: 0, y: 16 }}
+                key={step}
+                initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.12 }}
-                className="relative flex flex-col gap-4 rounded-2xl border border-slate-100 bg-slate-50/60 p-6 shadow-sm"
+                transition={{ duration: 0.35, delay: i * 0.08 }}
+                style={{ background: C.white, borderRadius: 20, padding: '2rem', border: '1px solid rgba(200,81,26,0.08)', position: 'relative', overflow: 'hidden' }}
               >
-                <span className="absolute right-4 top-4 text-5xl font-black text-slate-100 select-none">
-                  {s.step}
+                <span style={{ position: 'absolute', top: '-0.5rem', right: '1rem', fontFamily: '"Playfair Display", serif', fontSize: '5rem', fontWeight: 900, color: 'rgba(200,81,26,0.06)', lineHeight: 1, userSelect: 'none' }}>
+                  {step}
                 </span>
-                <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center shrink-0', s.color)}>
-                  <s.icon size={22} />
+                <div style={{ width: 48, height: 48, borderRadius: 12, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
+                  <Icon size={22} color={color} />
                 </div>
-                <div>
-                  <h3 className="font-bold text-slate-900">{s.title}</h3>
-                  <p className="mt-1.5 text-sm text-slate-600 leading-relaxed">{s.desc}</p>
-                </div>
+                <h3 style={{ fontWeight: 700, fontSize: '1rem', color: C.earth, marginBottom: '0.5rem' }}>{title}</h3>
+                <p style={{ fontSize: '0.875rem', color: C.muted, lineHeight: 1.7 }}>{desc}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      <SectionDivider />
-
-      {/* Features */}
-      <section id="fonctionnalites" className="scroll-mt-20 landing-section-sand px-4 py-10 sm:px-6 sm:py-12">
-        <div className="mx-auto max-w-6xl">
-          <SectionEyebrow>Plateforme</SectionEyebrow>
-          <SectionTitle>Tout l&apos;atelier, une plateforme</SectionTitle>
-          <SectionLead>
-            Inspiré des meilleurs logiciels garage — adapté au terrain camerounais,
-            sans complexité inutile.
-          </SectionLead>
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-            {FEATURES.map((f, i) => (
-              <FeatureCard key={f.title} icon={f.icon} title={f.title} desc={f.desc} index={i} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Stats */}
-      <section className="bg-gradient-to-r from-brand/5 via-[var(--afrique-gold-soft)] to-[var(--afrique-forest-soft)] px-4 py-10 sm:px-6 sm:py-12">
-        <div className="mx-auto max-w-5xl">
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
-            {[
-              { icon: Clock,     value: '30 s',      label: 'Pour créer un OT' },
-              { icon: FileText,  value: '1 clic',    label: 'Devis en PDF XAF' },
-              { icon: Wifi,      value: '100 %',     label: 'Fonctionne hors-ligne' },
-              { icon: TrendingUp,value: 'Temps réel',label: 'Tableau de bord live' },
-            ].map(({ icon: Icon, value, label }) => (
-              <div key={label} className="flex flex-col items-center gap-2 text-center">
-                <div className="w-10 h-10 rounded-xl bg-white/70 flex items-center justify-center shadow-sm">
-                  <Icon size={18} className="text-brand" />
+      {/* ── FEATURES ── */}
+      <section id="fonctionnalites" style={{ background: C.white, ...sectionPad }}>
+        <div style={inner}>
+          <Eyebrow>Plateforme</Eyebrow>
+          <SectionHeading>Tout l&apos;atelier. Une seule plateforme.</SectionHeading>
+          <Lead style={{ maxWidth: 520 }}>Inspiré des meilleurs logiciels garage — adapté au terrain camerounais, sans complexité inutile.</Lead>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem', marginTop: '3rem' }}>
+            {FEATURES.map(({ Icon, color, bg, title, desc }, i) => (
+              <motion.div
+                key={title}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.35, delay: (i % 3) * 0.08 }}
+                whileHover={{ y: -4, boxShadow: `0 16px 40px ${color}22` }}
+                style={{
+                  background: C.white, border: `1px solid rgba(200,81,26,0.1)`,
+                  borderRadius: 20, padding: '1.75rem',
+                  transition: 'border-color 0.25s',
+                }}
+              >
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
+                  <Icon size={22} color={color} />
                 </div>
-                <p className="text-2xl font-black text-slate-900 sm:text-3xl">{value}</p>
-                <p className="text-xs font-medium text-slate-600">{label}</p>
-              </div>
+                <h3 style={{ fontWeight: 700, fontSize: '0.95rem', color: C.earth, marginBottom: '0.5rem' }}>{title}</h3>
+                <p style={{ fontSize: '0.845rem', color: C.muted, lineHeight: 1.65 }}>{desc}</p>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Multi garages */}
-      <LandingParallaxSection
-        id="multi-garages"
-        decor
-        contentShift={20}
-        className="scroll-mt-20 bg-gradient-to-br from-[#155A87] via-[#1a5c4a] to-[#1D6FA4] px-4 py-12 text-white sm:px-6 sm:py-14"
-      >
-        <div className="mx-auto max-w-6xl">
-          <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-10">
-            <div>
-              <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
-                Réseaux &amp; groupes
-              </p>
-              <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-                Un patron, plusieurs garages
-              </h2>
-              <p className="mt-5 text-pretty text-lg leading-relaxed text-white/88">
-                Vous ouvrez un compte, vous ajoutez vos sites (Douala, Yaoundé, Bafoussam…).
-                Chaque employé travaille dans <strong className="font-semibold text-white">son</strong> atelier — pas de usine à gaz RH.
-              </p>
-              <ul className="mt-9 space-y-3.5">
-                {[
-                  'Vue groupe pour le propriétaire',
-                  'Paramètres et facturation par site',
-                  'Clients et stock par garage',
-                ].map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-[0.9375rem] text-white/92">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20">
-                      <CheckCircle2 size={16} className="text-white/95" />
-                    </span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
+      {/* ── STATS ── */}
+      <div style={{ background: `linear-gradient(135deg, ${C.brand} 0%, ${C.brandDeep} 100%)`, padding: '3.5rem 5%' }}>
+        <div style={{ ...inner, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+          {STATS.map(({ Icon, color, value, label }, i) => (
+            <motion.div
+              key={label}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.3, delay: i * 0.07 }}
+              style={{ textAlign: 'center', padding: '1rem' }}
+            >
+              <Icon size={24} color={color} style={{ marginBottom: '0.75rem' }} />
+              <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '2.25rem', fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>{value}</p>
+              <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginTop: '0.5rem', fontWeight: 500 }}>{label}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── MULTI-GARAGES ── */}
+      <section id="multi-garages" style={{ background: C.sand, ...sectionPad }}>
+        <div style={{ ...inner, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
+          <div>
+            <Eyebrow>Réseaux & groupes</Eyebrow>
+            <SectionHeading>Un patron, plusieurs garages.</SectionHeading>
+            <Lead style={{ maxWidth: 460 }}>
+              Vous ouvrez un compte, vous ajoutez vos sites — Douala, Yaoundé, Bafoussam.
+              Chaque employé travaille dans son atelier. Vous voyez tout, en temps réel.
+            </Lead>
+            <ul style={{ listStyle: 'none', marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <CheckItem color={C.brand}>Vue consolidée CA pour le propriétaire</CheckItem>
+              <CheckItem color={C.green}>Paramètres et facturation par site</CheckItem>
+              <CheckItem color={C.brand}>Clients et stock isolés par garage</CheckItem>
+              <CheckItem color={C.red}>Aucune usine à gaz RH</CheckItem>
+            </ul>
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            style={{ background: C.white, borderRadius: 20, padding: '1.5rem', border: '1px solid rgba(200,81,26,0.1)' }}
+          >
+            <p style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.muted, marginBottom: '1rem' }}>
+              Compte Groupe · Kams Motors
+            </p>
+            {['Garage Douala — Akwa', 'Garage Yaoundé — Bastos', 'Garage Bafoussam — Centre'].map((g) => (
+              <div
+                key={g}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '0.875rem 1rem', borderRadius: 10,
+                  border: '1px solid rgba(200,81,26,0.08)', marginBottom: '0.625rem',
+                  background: C.surface,
+                }}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: C.earth }}>
+                  <Building2 size={16} color={C.muted} />
+                  {g}
+                </span>
+                <ChevronRight size={16} color={C.muted} />
+              </div>
+            ))}
+            <div style={{ marginTop: '1.25rem', padding: '1rem', background: C.sand, borderRadius: 10 }}>
+              <p style={{ fontSize: '0.78rem', fontWeight: 700, color: C.muted, marginBottom: '0.25rem' }}>CA Groupe · Juin 2026</p>
+              <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '1.75rem', fontWeight: 900, color: C.brand }}>12 450 000 XAF</p>
             </div>
-            <div className="rounded-2xl border border-white/20 bg-white/10 p-8 shadow-xl shadow-black/10 ring-1 ring-white/10 backdrop-blur-md">
-              <p className="text-sm font-semibold uppercase tracking-wider text-white/70">
-                Compte · Groupe Kams
-              </p>
-              <div className="mt-6 space-y-3">
-                {['Garage Douala — Akwa', 'Garage Yaoundé — Bastos', 'Garage Bafoussam'].map(
-                  (g) => (
-                    <div
-                      key={g}
-                      className="flex items-center justify-between rounded-xl bg-white/12 px-4 py-3.5 ring-1 ring-white/10 transition-colors duration-200 hover:bg-white/18"
-                    >
-                      <span className="font-medium">{g}</span>
-                      <ChevronRight size={18} className="opacity-60" />
-                    </div>
-                  ),
-                )}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ── MOBILE & CONTEXTE ── */}
+      <section style={{ background: C.white, ...sectionPad }}>
+        <div style={{ ...inner, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
+          <div>
+            <Eyebrow>Terrain</Eyebrow>
+            <SectionHeading>Mobile dès la réception.</SectionHeading>
+            <Lead style={{ maxWidth: 460 }}>
+              Cartes OT, navigation réceptionniste, formulaires une colonne — pensé pour le
+              téléphone dans l&apos;atelier, pas seulement pour le bureau du patron.
+            </Lead>
+          </div>
+          <div style={{ background: C.sand, borderRadius: 20, padding: '1.75rem', border: '1px solid rgba(200,81,26,0.08)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div style={{ width: 44, height: 44, borderRadius: 10, background: C.greenLight, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Smartphone size={20} color={C.green} />
+              </div>
+              <div>
+                <p style={{ fontWeight: 700, fontSize: '0.95rem', color: C.earth }}>100 % contexte Cameroun</p>
+                <p style={{ fontSize: '0.78rem', color: C.muted }}>Adapté au marché local</p>
               </div>
             </div>
-          </div>
-        </div>
-      </LandingParallaxSection>
-
-      <LandingParallaxSection contentShift={16} className="scroll-mt-20 px-4 py-10 sm:px-6 sm:py-12">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-8 lg:flex-row lg:gap-12">
-          <div className="flex-1">
-            <SectionEyebrow>Terrain</SectionEyebrow>
-            <SectionTitle>Mobile dès la réception</SectionTitle>
-            <SectionLead className="mt-4">
-              Cartes OT, bottom nav réceptionniste, formulaires une colonne — pensé pour le
-              téléphone dans l&apos;atelier, pas seulement le bureau.
-            </SectionLead>
-          </div>
-          <div className="flex-1 rounded-2xl border border-[var(--afrique-gold)]/20 bg-white p-8 shadow-lg shadow-[var(--afrique-terra-soft)] ring-1 ring-slate-900/[0.03]">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--afrique-forest-soft)] ring-1 ring-[var(--afrique-forest-ring)]">
-              <Smartphone className="text-[var(--afrique-forest)]" size={22} />
-            </div>
-            <h3 className="mt-5 text-lg font-bold text-[var(--afrique-forest)]">100 % contexte Cameroun</h3>
-            <ul className="mt-5 space-y-3">
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {[
-                'Montants en francs CFA (XAF)',
-                'TVA 19,25 % et timbre fiscal',
-                'SMS Orange / MTN (simulation → prod)',
-                'Interface en français',
-              ].map((line) => (
-                <li key={line} className="flex items-start gap-2.5 text-sm text-slate-600">
-                  <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--afrique-gold)]" />
-                  {line}
+                [FileText,      C.brand, 'Montants en francs CFA (XAF)'],
+                [Star,          C.gold,  'TVA 19,25 % et timbre fiscal'],
+                [MessageSquare, C.green, 'SMS Orange / MTN intégrés'],
+                [AlertCircle,   C.red,   'Interface 100 % en français'],
+              ].map(([Icon, color, label]) => (
+                <li key={label as string} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: C.earth, fontWeight: 500 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 8, background: `${color as string}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {/* @ts-ignore */}
+                    <Icon size={15} color={color as string} />
+                  </div>
+                  {label as string}
                 </li>
               ))}
             </ul>
           </div>
         </div>
-      </LandingParallaxSection>
+      </section>
 
-      {/* Tarifs */}
-      <section id="tarifs" className="scroll-mt-20 bg-white px-4 py-10 sm:px-6 sm:py-14">
-        <div className="mx-auto max-w-4xl text-center">
-          <SectionEyebrow>Tarifs</SectionEyebrow>
-          <SectionTitle>Simple et transparent</SectionTitle>
-          <SectionLead className="mx-auto mt-3">
-            Un seul plan — toutes les fonctionnalités incluses dès le premier jour.
-          </SectionLead>
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 sm:gap-8">
-            {/* Plan unique */}
+      {/* ── PRICING ── */}
+      <section id="tarifs" style={{ background: C.sand, ...sectionPad }}>
+        <div style={{ ...inner, textAlign: 'center' }}>
+          <Eyebrow>Tarifs</Eyebrow>
+          <SectionHeading>Simple. Transparent. Engagé.</SectionHeading>
+          <Lead style={{ maxWidth: 500, margin: '0.875rem auto 0' }}>
+            Un seul plan avec tout inclus dès le premier jour. Testez gratuitement, engagez-vous ensuite.
+          </Lead>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '3rem', maxWidth: 800, marginLeft: 'auto', marginRight: 'auto' }}>
+            {/* Pro */}
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="relative flex flex-col rounded-2xl border-2 border-brand bg-white p-8 shadow-lg shadow-brand/10 text-left"
+              initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+              style={{ background: '#FFF8F4', border: `2px solid ${C.brand}`, borderRadius: 20, padding: '2rem', display: 'flex', flexDirection: 'column', textAlign: 'left', position: 'relative' }}
             >
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <span className="rounded-full bg-brand px-4 py-1 text-xs font-bold text-white shadow">
-                  Recommandé
-                </span>
-              </div>
-              <p className="text-sm font-semibold uppercase tracking-wider text-brand">Atelier Maître Pro</p>
-              <div className="mt-4 flex items-end gap-2">
-                <span className="text-4xl font-black text-slate-900">Sur devis</span>
-              </div>
-              <p className="mt-2 text-sm text-slate-500">Tarif adapté à votre nombre de garages et de techniciens.</p>
-              <ul className="mt-6 space-y-3">
-                {[
-                  'OT, devis, factures PDF illimités',
-                  'Stock + alertes seuil',
-                  'Planning & rendez-vous',
-                  'SMS Orange / MTN intégrés',
-                  'Tableau de bord temps réel',
-                  'Multi-garages inclus',
-                  'Support en français',
-                  'Données hébergées en sécurité',
-                ].map(item => (
-                  <li key={item} className="flex items-center gap-2.5 text-sm text-slate-700">
-                    <CheckCircle2 size={16} className="shrink-0 text-brand" />
-                    {item}
-                  </li>
+              <span style={{ display: 'inline-block', background: C.brand, color: '#FFF', fontSize: '0.68rem', fontWeight: 700, padding: '0.25rem 0.75rem', borderRadius: 6, marginBottom: '1rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Recommandé
+              </span>
+              <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.brand, marginBottom: '0.5rem' }}>Atelier Maître Pro</p>
+              <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '2.25rem', fontWeight: 900, color: C.earth }}>Sur devis</p>
+              <p style={{ fontSize: '0.82rem', color: C.muted, marginBottom: '1.5rem' }}>Adapté à vos garages et techniciens</p>
+              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
+                {['OT, devis, factures PDF illimités', 'Stock + alertes seuil', 'Planning & rendez-vous', 'SMS Orange / MTN intégrés', 'Tableau de bord temps réel', 'Multi-garages inclus', 'Support dédié en français'].map((item) => (
+                  <CheckItem key={item} color={C.brand}>{item}</CheckItem>
                 ))}
               </ul>
-              <Link
-                href="/demo"
-                className={cn(
-                  buttonVariants({ size: 'lg' }),
-                  'mt-8 w-full h-12 rounded-xl bg-brand text-white shadow-md hover:bg-brand/90',
-                )}
-              >
-                Demander un tarif <ArrowRight size={16} className="ml-1.5" />
+              <Link href="/demo" style={{ ...btnPrimary, marginTop: '1.75rem', justifyContent: 'center' }}>
+                Demander un tarif <ArrowRight size={16} />
               </Link>
             </motion.div>
 
-            {/* Plan pilote */}
+            {/* Pilote */}
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-              className="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-8 text-left"
+              initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+              transition={{ delay: 0.06 }}
+              style={{ background: C.white, border: '1.5px solid rgba(29,106,74,0.2)', borderRadius: 20, padding: '2rem', display: 'flex', flexDirection: 'column', textAlign: 'left' }}
             >
-              <p className="text-sm font-semibold uppercase tracking-wider text-slate-500">Pilote gratuit</p>
-              <div className="mt-4 flex items-end gap-2">
-                <span className="text-4xl font-black text-slate-900">Gratuit</span>
-                <span className="mb-1.5 text-slate-500">/ période test</span>
-              </div>
-              <p className="mt-2 text-sm text-slate-500">Testez toutes les fonctionnalités avant de vous engager.</p>
-              <ul className="mt-6 space-y-3">
-                {[
-                  'Accès complet à la plateforme',
-                  '1 garage, équipe complète',
-                  'Accompagnement démarrage',
-                  'Données conservées à la fin du pilote',
-                  'Aucune carte bancaire requise',
-                ].map(item => (
-                  <li key={item} className="flex items-center gap-2.5 text-sm text-slate-700">
-                    <CheckCircle2 size={16} className="shrink-0 text-[var(--afrique-forest)]" />
-                    {item}
-                  </li>
+              <span style={{ display: 'inline-block', background: C.green, color: '#FFF', fontSize: '0.68rem', fontWeight: 700, padding: '0.25rem 0.75rem', borderRadius: 6, marginBottom: '1rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Pilote gratuit
+              </span>
+              <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.green, marginBottom: '0.5rem' }}>Essai pilote</p>
+              <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '2.25rem', fontWeight: 900, color: C.earth }}>Gratuit</p>
+              <p style={{ fontSize: '0.82rem', color: C.muted, marginBottom: '1.5rem' }}>Pendant toute la période de test</p>
+              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
+                {['Accès complet à la plateforme', '1 garage, équipe complète', 'Accompagnement au démarrage', 'Données conservées après le pilote', 'Aucune carte bancaire requise'].map((item) => (
+                  <CheckItem key={item} color={C.green}>{item}</CheckItem>
                 ))}
               </ul>
               <Link
                 href="/inscription"
-                className={cn(
-                  buttonVariants({ variant: 'outline', size: 'lg' }),
-                  'mt-8 w-full h-12 rounded-xl border-slate-300 hover:bg-white',
-                )}
+                style={{
+                  ...btnPrimary, background: 'transparent', color: C.green,
+                  border: `1.5px solid ${C.green}`, marginTop: '1.75rem', justifyContent: 'center',
+                }}
               >
-                <UserPlus size={16} className="mr-1.5" />
-                Démarrer le pilote
+                <UserPlus size={16} /> Démarrer le pilote
               </Link>
             </motion.div>
           </div>
-          <p className="mt-6 text-sm text-slate-400 flex items-center justify-center gap-1.5">
-            <Mail size={13} /> Des questions ?&nbsp;
-            <Link href="/demo" className="text-brand hover:underline font-medium">
+
+          <p style={{ marginTop: '1.5rem', fontSize: '0.82rem', color: C.muted, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            <Mail size={13} color={C.brand} />
+            Des questions ?{' '}
+            <Link href="/demo" style={{ color: C.brand, fontWeight: 600, textDecoration: 'none' }}>
               Contactez-nous
             </Link>
           </p>
         </div>
       </section>
 
-      <SectionDivider />
-
-      {/* FAQ */}
-      <section id="faq" className="scroll-mt-20 bg-white px-4 py-10 sm:px-6 sm:py-12">
-        <div className="mx-auto max-w-2xl">
-          <div className="text-center">
-            <SectionEyebrow>Aide</SectionEyebrow>
-            <SectionTitle>Questions fréquentes</SectionTitle>
-            <SectionLead className="mx-auto mt-3 text-center">
-              Les réponses aux objections les plus courantes avant une démo.
-            </SectionLead>
-          </div>
-          <div className="mt-8 space-y-2.5">
+      {/* ── FAQ ── */}
+      <section id="faq" style={{ background: C.white, ...sectionPad }}>
+        <div style={{ ...inner, textAlign: 'center' }}>
+          <Eyebrow>Questions fréquentes</Eyebrow>
+          <SectionHeading>Ce que les garages demandent</SectionHeading>
+          <Lead style={{ maxWidth: 480, margin: '0.875rem auto 0', textAlign: 'center' }}>
+            Les réponses aux questions les plus courantes avant une démo.
+          </Lead>
+          <div style={{ maxWidth: 720, margin: '2.5rem auto 0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {FAQ.map((item, i) => (
               <FaqItem key={item.q} q={item.q} a={item.a} index={i} />
             ))}
@@ -649,53 +794,51 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="px-4 pb-10 pt-6 sm:px-6 sm:pb-12">
-        <div className="relative mx-auto max-w-4xl overflow-hidden rounded-3xl landing-cta-africa px-8 py-10 text-center text-white shadow-2xl shadow-[var(--afrique-forest)]/25 ring-1 ring-[var(--afrique-gold)]/25 sm:py-12">
-          <div
-            className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full blur-3xl"
-            style={{ background: 'rgba(212, 160, 23, 0.15)' }}
-            aria-hidden
-          />
-          <div
-            className="pointer-events-none absolute -bottom-16 -left-16 h-48 w-48 rounded-full blur-3xl"
-            style={{ background: 'rgba(31, 107, 69, 0.2)' }}
-            aria-hidden
-          />
-          <div className="relative">
-            <SectionEyebrow className="text-white/70">Démarrage</SectionEyebrow>
-            <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-              Prêt à structurer votre atelier ?
-            </h2>
-            <p className="mx-auto mt-4 max-w-xl text-pretty text-lg leading-relaxed text-white/88">
-              Démo guidée 30 min · Accompagnement en français · Réponse sous 48 h
-            </p>
-            <div className="mt-9 flex flex-wrap justify-center gap-3 sm:gap-4">
-            <Link
-              href="/demo"
-              className={cn(
-                buttonVariants({ size: 'lg' }),
-                'h-12 rounded-xl bg-white text-brand shadow-lg transition-all duration-200 hover:bg-brand hover:text-white hover:shadow-xl',
-              )}
-            >
-              Contactez-nous
+      {/* ── CTA FINAL ── */}
+      <section style={{
+        background: 'linear-gradient(135deg, #1A1209 0%, #2D1B09 50%, #3D2310 100%)',
+        padding: '5rem 5%', textAlign: 'center', position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
+          width: 600, height: 300, borderRadius: '50%',
+          background: 'radial-gradient(ellipse, rgba(200,81,26,0.25) 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }} />
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <Eyebrow light>Passer à l&apos;action</Eyebrow>
+          <SectionHeading light style={{ marginTop: '0.5rem' }}>Prêt à structurer votre atelier ?</SectionHeading>
+          <Lead light style={{ maxWidth: 500, margin: '0.875rem auto 0', textAlign: 'center' }}>
+            Démo guidée 30 min · Accompagnement en français · Réponse sous 48 h
+          </Lead>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '2.5rem' }}>
+            <Link href="/demo" style={{ ...btnPrimary, background: C.gold, color: '#1A1209', fontWeight: 700 }}>
+              Réserver une démo <ArrowRight size={16} />
             </Link>
-              <Link
-                href="/login"
-                className={cn(
-                  buttonVariants({ variant: 'outline', size: 'lg' }),
-                  'h-12 rounded-xl border-white/50 bg-white/5 text-white backdrop-blur-sm transition-colors hover:bg-white/15',
-                )}
-              >
-                Connexion atelier
-              </Link>
-              <InstallAppButton variant="landing-ghost" size="lg" />
-            </div>
+            <Link href="/login" style={btnGhost}>
+              Connexion atelier
+            </Link>
           </div>
         </div>
       </section>
 
-      <LandingFooter />
+      {/* ── FOOTER ── */}
+      <footer style={{ background: '#1A1209', padding: '2.5rem 5%', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ ...inner, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: '"Playfair Display", serif', fontSize: '1.1rem', fontWeight: 700, color: '#FFFFFF' }}>
+            Atelier <span style={{ color: C.goldLight }}>Maître</span>
+          </span>
+          <div style={{ display: 'flex', gap: '1.5rem' }}>
+            {['Mentions légales', 'Confidentialité', 'Contact'].map((l) => (
+              <Link key={l} href="#" style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>{l}</Link>
+            ))}
+          </div>
+          <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.25)' }}>© 2026 Atelier Maître · Logiciel garage Cameroun</p>
+        </div>
+      </footer>
+
     </div>
   );
 }
+
+export default LandingPage;

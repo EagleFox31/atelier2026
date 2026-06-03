@@ -104,7 +104,7 @@ export function DemoRequestForm() {
               href="/login"
               className={cn(
                 buttonVariants(),
-                'rounded-xl bg-gradient-to-r from-brand to-[var(--afrique-forest)] text-white shadow-md ring-1 ring-[var(--afrique-gold)]/25 hover:opacity-95',
+                'rounded-xl landing-auth-btn-primary shadow-sm',
               )}
             >
               Accéder à l&apos;app
@@ -274,7 +274,7 @@ export function DemoRequestForm() {
           <Button
             type="submit"
             disabled={loading}
-            className="h-12 w-full gap-2 rounded-xl bg-gradient-to-r from-brand via-[#1a6a9c] to-[var(--afrique-forest)] text-base text-white shadow-lg shadow-brand/20 ring-1 ring-[var(--afrique-gold)]/30 hover:opacity-95"
+            className="landing-auth-btn-primary h-12 w-full gap-2 rounded-xl text-base shadow-sm"
           >
             {loading ? (
               <>
