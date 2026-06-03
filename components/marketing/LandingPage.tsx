@@ -296,6 +296,71 @@ function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
   );
 }
 
+/* ─── SPLIT-FLAP ────────────────────────────────────────────────────────── */
+const SF_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+-/%';
+
+function SplitFlap({ value, active, color = '#F2C95A' }: { value: string; active: boolean; color?: string }) {
+  const [chars, setChars] = useState<string[]>(() => value.split('').map(() => ' '));
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  useEffect(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+
+    if (!active) {
+      setChars(value.split('').map(() => ' '));
+      return;
+    }
+
+    value.split('').forEach((target, idx) => {
+      let count = 0;
+      const maxFlips = 8 + idx * 4;
+
+      const flip = () => {
+        if (count < maxFlips) {
+          setChars(prev => {
+            const next = [...prev];
+            next[idx] = SF_CHARS[Math.floor(Math.random() * SF_CHARS.length)];
+            return next;
+          });
+          count++;
+          const t = setTimeout(flip, 35 + count * 6);
+          timersRef.current.push(t);
+        } else {
+          setChars(prev => {
+            const next = [...prev];
+            next[idx] = target;
+            return next;
+          });
+        }
+      };
+
+      const t = setTimeout(flip, idx * 55);
+      timersRef.current.push(t);
+    });
+
+    return () => timersRef.current.forEach(clearTimeout);
+  }, [active, value]);
+
+  return (
+    <span style={{ display: 'inline-flex', gap: '2px', verticalAlign: 'middle' }}>
+      {chars.map((c, i) => (
+        <span key={i} style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: c === ' ' ? '0.3em' : '0.85em', height: '1.2em',
+          background: c === ' ' ? 'transparent' : 'rgba(0,0,0,0.35)',
+          borderRadius: 4, fontFamily: '"Courier New", monospace',
+          fontSize: 'inherit', fontWeight: 900, color,
+          position: 'relative', overflow: 'hidden',
+        }}>
+          {c !== ' ' && <span style={{ position: 'absolute', left: 0, right: 0, top: '50%', height: '1px', background: 'rgba(0,0,0,0.4)' }} />}
+          <span style={{ position: 'relative', zIndex: 1 }}>{c}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 /* ─── COMPOSANT PRINCIPAL ───────────────────────────────────────────────── */
 
 export function LandingPage() {
@@ -303,6 +368,9 @@ export function LandingPage() {
   const [activePainStep, setActivePainStep] = useState(0);
   const [activeStepsStep, setActiveStepsStep] = useState(0);
   const stepsStoryRef = useRef<HTMLDivElement>(null);
+
+  const [activeStatsStep, setActiveStatsStep] = useState(0);
+  const statsStoryRef = useRef<HTMLDivElement>(null);
 
   const [activeFeature, setActiveFeature] = useState(0);
   const [deviceView, setDeviceView] = useState<'macbook' | 'phone'>('macbook');
@@ -383,6 +451,15 @@ export function LandingPage() {
     if (v < 0.30) setActiveStepsStep(0);
     else if (v < 0.62) setActiveStepsStep(1);
     else setActiveStepsStep(2);
+  });
+
+  /* ── Scroll stats storytelling ── */
+  const { scrollYProgress: statsScroll } = useScroll({
+    target: statsStoryRef,
+    offset: ['start start', 'end end'],
+  });
+  useMotionValueEvent(statsScroll, 'change', (v) => {
+    setActiveStatsStep(Math.min(3, Math.floor(v * 4)));
   });
 
   /* ── Scroll features ── */
@@ -1091,25 +1168,129 @@ export function LandingPage() {
         );
       })()}
 
-      {/* ── STATS ── */}
-      <div className="landing-stats-band" style={{ background: `linear-gradient(135deg, ${C.brand} 0%, ${C.brandDeep} 100%)` }}>
-        <div className="landing-inner landing-grid-4">
-          {STATS.map(({ Icon, color, value, label }, i) => (
-            <motion.div
-              key={label}
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.3, delay: i * 0.07 }}
-              style={{ textAlign: 'center', padding: '1rem' }}
-            >
-              <Icon size={24} color={color} style={{ marginBottom: '0.75rem' }} />
-              <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '2.25rem', fontWeight: 900, color: '#FFFFFF', lineHeight: 1 }}>{value}</p>
-              <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', marginTop: '0.5rem', fontWeight: 500 }}>{label}</p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
+      {/* ── STATS — storytelling split-flap ── */}
+      {(() => {
+        const BEATS = [
+          {
+            pre: 'Un client entre dans votre atelier.',
+            flap: null,
+            post: '',
+          },
+          {
+            pre: '',
+            flap: '30 S',
+            post: 'plus tard — l\'OT est ouvert.',
+          },
+          {
+            pre: '',
+            flap: '1 CLIC',
+            post: '— le devis PDF part au client.',
+          },
+          {
+            pre: 'Ce soir — le CA est à jour.',
+            flap: '100%',
+            post: 'en ligne. En temps réel.',
+          },
+        ];
+
+        return (
+          <div
+            ref={statsStoryRef}
+            style={{
+              height: '500vh', position: 'relative',
+              background: `linear-gradient(145deg, #1A1209 0%, #2D1B09 50%, #3D2310 100%)`,
+            }}
+          >
+            <div style={{
+              position: 'sticky', top: 0, height: '100vh',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden', padding: '0 6%',
+            }}>
+              {/* Glow décoratif */}
+              <div style={{
+                position: 'absolute', top: '30%', left: '50%', transform: 'translateX(-50%)',
+                width: 600, height: 300, borderRadius: '50%',
+                background: `radial-gradient(ellipse, ${C.brand}25 0%, transparent 70%)`,
+                pointerEvents: 'none',
+              }} />
+
+              <div style={{ position: 'relative', zIndex: 1, textAlign: 'center', maxWidth: 800 }}>
+                {/* Beats précédents — en retrait */}
+                <div style={{ marginBottom: '2.5rem', minHeight: '3rem' }}>
+                  {BEATS.slice(0, activeStatsStep).map((b, i) => (
+                    <motion.p
+                      key={i}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.28 }}
+                      style={{ fontSize: 'clamp(0.9rem, 1.3vw, 1.1rem)', color: 'rgba(255,255,255,0.28)', lineHeight: 1.6, marginBottom: '0.25rem' }}
+                    >
+                      {b.pre}{b.flap ? `${b.flap} ` : ''}{b.post}
+                    </motion.p>
+                  ))}
+                </div>
+
+                {/* Beat actif — grand et vivant */}
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeStatsStep}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                    style={{ lineHeight: 1.3 }}
+                  >
+                    {BEATS[activeStatsStep].pre && (
+                      <p style={{
+                        fontFamily: '"Playfair Display", serif',
+                        fontSize: 'clamp(1.6rem, 3vw, 2.5rem)',
+                        fontWeight: 900, color: 'rgba(255,255,255,0.55)',
+                        marginBottom: '0.5rem',
+                      }}>
+                        {BEATS[activeStatsStep].pre}
+                      </p>
+                    )}
+                    {BEATS[activeStatsStep].flap && (
+                      <p style={{
+                        fontFamily: '"Playfair Display", serif',
+                        fontSize: 'clamp(3rem, 7vw, 6rem)',
+                        fontWeight: 900, lineHeight: 1,
+                        marginBottom: '0.5rem',
+                      }}>
+                        <SplitFlap value={BEATS[activeStatsStep].flap!} active={true} color={C.goldLight} />
+                      </p>
+                    )}
+                    {BEATS[activeStatsStep].post && (
+                      <p style={{
+                        fontFamily: '"Playfair Display", serif',
+                        fontSize: 'clamp(1.6rem, 3vw, 2.5rem)',
+                        fontWeight: 900, color: '#FFFFFF',
+                      }}>
+                        {BEATS[activeStatsStep].post}
+                      </p>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+
+                {/* Indicateur de progression */}
+                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '3rem' }}>
+                  {BEATS.map((_, i) => (
+                    <motion.div
+                      key={i}
+                      animate={{
+                        width: i === activeStatsStep ? 28 : 7,
+                        background: i === activeStatsStep ? C.goldLight : 'rgba(255,255,255,0.2)',
+                      }}
+                      transition={{ duration: 0.3 }}
+                      style={{ height: 3, borderRadius: 99 }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── ÉQUIPE / RÔLES ── */}
       <section ref={rolesRef} className={`${sectionClass} relative overflow-hidden`} style={{ background: C.white }}>
