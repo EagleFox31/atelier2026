@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { motion, useScroll, useTransform, useReducedMotion, MotionValue } from 'motion/react';
+import { motion, useScroll, useTransform, useReducedMotion, MotionValue, AnimatePresence } from 'motion/react';
 import {
   ArrowRight,
   ChevronDown,
@@ -267,6 +267,8 @@ function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
 /* ─── COMPOSANT PRINCIPAL ───────────────────────────────────────────────── */
 
 export function LandingPage() {
+  const [hoveredRolePhoto, setHoveredRolePhoto] = useState<string | null>(null);
+
   const heroRef  = useRef<HTMLElement>(null);
   const painRef  = useRef<HTMLElement>(null);
   const rolesRef = useRef<HTMLElement>(null);
@@ -709,6 +711,38 @@ export function LandingPage() {
           pointerEvents: 'none', zIndex: 0,
           y: rolesBgY,
         }} />
+
+        {/* Photo du rôle survolé en fond de section */}
+        <AnimatePresence>
+          {hoveredRolePhoto && (
+            <motion.div
+              key={hoveredRolePhoto}
+              initial={{ opacity: 0, scale: 1.06 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.04 }}
+              transition={{ duration: 0.45, ease: 'easeOut' }}
+              style={{
+                position: 'absolute', inset: 0,
+                pointerEvents: 'none', zIndex: 0,
+              }}
+            >
+              <Image
+                src={hoveredRolePhoto}
+                alt=""
+                fill
+                sizes="100vw"
+                style={{ objectFit: 'cover', objectPosition: 'center 20%' }}
+              />
+              {/* Voile pour garder le contenu lisible */}
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'rgba(245,240,233,0.72)',
+                backdropFilter: 'blur(2px)',
+              }} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="landing-inner text-center relative z-[1]">
           <Eyebrow>Pour toute votre équipe</Eyebrow>
           <SectionHeading>Un outil, six rôles, zéro confusion.</SectionHeading>
@@ -725,6 +759,8 @@ export function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.07 }}
+                onHoverStart={() => setHoveredRolePhoto(photo)}
+                onHoverEnd={() => setHoveredRolePhoto(null)}
                 whileHover={{
                   y: -10,
                   boxShadow: '0 32px 64px rgba(200,81,26,0.35)',
