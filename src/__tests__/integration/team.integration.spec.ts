@@ -96,12 +96,13 @@ describe('Team — intégration HTTP', () => {
     });
 
     it('200 — retourne le membre', async () => {
-      const member = { id: MEMBER_ID, firstName: 'Jean', roles: [], assignedOTs: [], workItems: [] };
+      const member = { id: MEMBER_ID, firstName: 'Jean', garageId: CHEF_USER.garageId, roles: [], assignedOTs: [], workItems: [] };
       prisma.user.findUnique.mockImplementation(({ where }: { where: { id: string } }) => {
         if (where.id === 'chef-1')    return Promise.resolve(CHEF_USER);
         if (where.id === MEMBER_ID)   return Promise.resolve(member);
         return Promise.resolve(null);
       });
+      prisma.user.findFirst.mockResolvedValue(member);
 
       const res = await request(app.getHttpServer())
         .get(`/api/team/${MEMBER_ID}`)
@@ -167,12 +168,13 @@ describe('Team — intégration HTTP', () => {
     });
 
     it('200 — ADMIN assigne un rôle', async () => {
-      const member = { id: MEMBER_ID, deletedAt: null };
+      const member = { id: MEMBER_ID, deletedAt: null, garageId: ADMIN_USER.garageId };
       prisma.user.findUnique.mockImplementation(({ where }: { where: { id: string } }) => {
         if (where.id === 'admin-1')  return Promise.resolve(ADMIN_USER);
         if (where.id === MEMBER_ID)  return Promise.resolve(member);
         return Promise.resolve(null);
       });
+      prisma.user.findFirst.mockResolvedValue(member);
       prisma.role.findUnique.mockResolvedValue({ id: 'role-tech', code: 'TECHNICIEN' });
       prisma.userRole.create.mockResolvedValue({ role: { code: 'TECHNICIEN' } });
 
@@ -199,12 +201,13 @@ describe('Team — intégration HTTP', () => {
     });
 
     it('200 — ADMIN soft-delete le membre', async () => {
-      const member = { id: MEMBER_ID, deletedAt: null };
+      const member = { id: MEMBER_ID, deletedAt: null, garageId: ADMIN_USER.garageId };
       prisma.user.findUnique.mockImplementation(({ where }: { where: { id: string } }) => {
         if (where.id === 'admin-1') return Promise.resolve(ADMIN_USER);
         if (where.id === MEMBER_ID) return Promise.resolve(member);
         return Promise.resolve(null);
       });
+      prisma.user.findFirst.mockResolvedValue(member);
       prisma.user.update.mockResolvedValue({ id: MEMBER_ID });
 
       const res = await request(app.getHttpServer())

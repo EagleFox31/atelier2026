@@ -42,10 +42,20 @@ const APPT_STUB = {
 
 function makePlanningPrismaMock() {
   const base = makeIntegrationPrismaMock();
+  const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
   return {
     ...base,
+    customer: {
+      ...base.customer,
+      findFirst: jest.fn().mockResolvedValue({ id: CUST_UUID }),
+    },
+    vehicle: {
+      ...base.vehicle,
+      findFirst: jest.fn().mockResolvedValue({ id: '33333333-3333-4333-8333-333333333333' }),
+    },
     appointment: {
       findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue({ id: APPT_UUID, garageId: TEST_GARAGE_ID }),
       create:   jest.fn(),
       update:   jest.fn(),
       delete:   jest.fn(),

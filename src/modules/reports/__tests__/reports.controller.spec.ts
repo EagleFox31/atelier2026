@@ -1,5 +1,7 @@
 import { ReportsService } from '../reports.service';
 
+const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
+
 function makeDeps() {
   const prismaMock = {
     invoice: { aggregate: jest.fn() },
@@ -19,7 +21,7 @@ describe('ReportsService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.invoice.aggregate.mockResolvedValue({ _sum: { totalXaf: 0, amountPaidXaf: 0 } });
 
-      await service.getRevenueReport();
+      await service.getRevenueReport(undefined, undefined, TEST_GARAGE_ID);
 
       expect(prismaMock.invoice.aggregate).toHaveBeenCalledWith(
         expect.objectContaining({ where: expect.objectContaining({ status: 'PAID' }) }),
@@ -30,7 +32,7 @@ describe('ReportsService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.invoice.aggregate.mockResolvedValue({ _sum: { totalXaf: 0, amountPaidXaf: 0 } });
 
-      await service.getRevenueReport();
+      await service.getRevenueReport(undefined, undefined, TEST_GARAGE_ID);
 
       const where = prismaMock.invoice.aggregate.mock.calls[0][0].where;
       expect(where.paidAt).toBeUndefined();
@@ -40,7 +42,7 @@ describe('ReportsService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.invoice.aggregate.mockResolvedValue({ _sum: { totalXaf: 0, amountPaidXaf: 0 } });
 
-      await service.getRevenueReport('2026-01-01');
+      await service.getRevenueReport('2026-01-01', undefined, TEST_GARAGE_ID);
 
       const { paidAt } = prismaMock.invoice.aggregate.mock.calls[0][0].where;
       expect(paidAt.gte).toEqual(new Date('2026-01-01'));
@@ -51,7 +53,7 @@ describe('ReportsService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.invoice.aggregate.mockResolvedValue({ _sum: { totalXaf: 0, amountPaidXaf: 0 } });
 
-      await service.getRevenueReport(undefined, '2026-05-31');
+      await service.getRevenueReport(undefined, '2026-05-31', TEST_GARAGE_ID);
 
       const { paidAt } = prismaMock.invoice.aggregate.mock.calls[0][0].where;
       expect(paidAt.lte).toEqual(new Date('2026-05-31'));
@@ -64,7 +66,7 @@ describe('ReportsService', () => {
         _sum: { totalXaf: 500000, amountPaidXaf: 480000 },
       });
 
-      const result = await service.getRevenueReport('2026-01-01', '2026-05-31');
+      const result = await service.getRevenueReport('2026-01-01', '2026-05-31', TEST_GARAGE_ID);
 
       expect(result).toEqual({
         totalRevenue:   500000,
@@ -79,7 +81,7 @@ describe('ReportsService', () => {
         _sum: { totalXaf: null, amountPaidXaf: null },
       });
 
-      const result = await service.getRevenueReport();
+      const result = await service.getRevenueReport(undefined, undefined, TEST_GARAGE_ID);
 
       expect(result.totalRevenue).toBe(0);
       expect(result.totalCollected).toBe(0);
@@ -89,7 +91,7 @@ describe('ReportsService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.invoice.aggregate.mockResolvedValue({ _sum: { totalXaf: 0, amountPaidXaf: 0 } });
 
-      const result = await service.getRevenueReport();
+      const result = await service.getRevenueReport(undefined, undefined, TEST_GARAGE_ID);
 
       expect(result.period).toEqual({ startDate: null, endDate: null });
     });
@@ -102,10 +104,10 @@ describe('ReportsService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.oTWorkItem.findMany.mockResolvedValue([]);
 
-      await service.getWorkshopPerformance();
+      await service.getWorkshopPerformance(TEST_GARAGE_ID);
 
       expect(prismaMock.oTWorkItem.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { status: 'COMPLETED' } }),
+        expect.objectContaining({ where: expect.objectContaining({ status: 'COMPLETED' }) }),
       );
     });
 
@@ -113,7 +115,7 @@ describe('ReportsService', () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.oTWorkItem.findMany.mockResolvedValue([]);
 
-      const result = await service.getWorkshopPerformance();
+      const result = await service.getWorkshopPerformance(TEST_GARAGE_ID);
 
       expect(result).toEqual({});
     });
@@ -126,7 +128,7 @@ describe('ReportsService', () => {
         { estimatedHours: 3,   actualHours: 2,   technician: null },
       ]);
 
-      const result = await service.getWorkshopPerformance();
+      const result = await service.getWorkshopPerformance(TEST_GARAGE_ID);
 
       expect(result['Paul Tech']).toEqual({ estimatedHours: 3, actualHours: 3.5 });
       expect(result['Unassigned']).toEqual({ estimatedHours: 3, actualHours: 2 });
@@ -139,7 +141,7 @@ describe('ReportsService', () => {
         { estimatedHours: 2, actualHours: 5, technician: { firstName: 'Marc', lastName: 'B' } },
       ]);
 
-      const result = await service.getWorkshopPerformance();
+      const result = await service.getWorkshopPerformance(TEST_GARAGE_ID);
 
       expect(Object.keys(result)).toHaveLength(2);
       expect(result['Jean A']).toEqual({ estimatedHours: 4, actualHours: 3 });
@@ -152,7 +154,7 @@ describe('ReportsService', () => {
         { estimatedHours: null, actualHours: null, technician: { firstName: 'Test', lastName: 'U' } },
       ]);
 
-      const result = await service.getWorkshopPerformance();
+      const result = await service.getWorkshopPerformance(TEST_GARAGE_ID);
 
       expect(result['Test U']).toEqual({ estimatedHours: 0, actualHours: 0 });
     });
@@ -164,7 +166,7 @@ describe('ReportsService', () => {
         { estimatedHours: 2, actualHours: 3, technician: null },
       ]);
 
-      const result = await service.getWorkshopPerformance();
+      const result = await service.getWorkshopPerformance(TEST_GARAGE_ID);
 
       expect(Object.keys(result)).toHaveLength(1);
       expect(result['Unassigned']).toEqual({ estimatedHours: 3, actualHours: 4 });

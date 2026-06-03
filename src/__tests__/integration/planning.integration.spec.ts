@@ -20,8 +20,17 @@ function makePlanningPrismaMock() {
   const base = makeIntegrationPrismaMock();
   return {
     ...base,
+    customer: {
+      ...base.customer,
+      findFirst: jest.fn().mockResolvedValue({ id: CUST_ID }),
+    },
+    vehicle: {
+      ...base.vehicle,
+      findFirst: jest.fn().mockResolvedValue({ id: '33333333-3333-4333-8333-333333333333' }),
+    },
     appointment: {
       findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue({ id: APPT_ID, garageId: CHEF_USER.garageId }),
       create:   jest.fn(),
       update:   jest.fn().mockResolvedValue({}),
       delete:   jest.fn().mockResolvedValue({}),

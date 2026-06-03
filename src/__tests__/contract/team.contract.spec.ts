@@ -80,6 +80,7 @@ describe('Team — contrats de réponse HTTP', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     prisma.user.findUnique.mockImplementation(mockUsers);
+    prisma.user.findFirst.mockResolvedValue(null);
   });
 
   // ── GET /api/team ──────────────────────────────────────────────────────────
@@ -127,13 +128,13 @@ describe('Team — contrats de réponse HTTP', () => {
 
   describe('GET /api/team/:id', () => {
     it('200 — shape : { id, firstName, lastName, email, status, roles, assignedOTs, workItems }', async () => {
+      const memberFull = { ...MEMBER_STUB, assignedOTs: [], workItems: [], lastLoginAt: null, garageId: ADMIN_USER.garageId };
       prisma.user.findUnique.mockImplementation(({ where }: { where: { id: string } }) => {
         if (where.id === 'admin-1') return Promise.resolve(ADMIN_USER);
-        if (where.id === MEMBER_ID) return Promise.resolve({
-          ...MEMBER_STUB, assignedOTs: [], workItems: [], lastLoginAt: null,
-        });
+        if (where.id === MEMBER_ID) return Promise.resolve(memberFull);
         return Promise.resolve(null);
       });
+      prisma.user.findFirst.mockResolvedValue(memberFull);
 
       const res = await request(app.getHttpServer())
         .get(`/api/team/${MEMBER_ID}`)
@@ -223,11 +224,13 @@ describe('Team — contrats de réponse HTTP', () => {
 
   describe('PATCH /api/team/:id', () => {
     it('200 — shape : { id, firstName, lastName, email }', async () => {
+      const memberFull = { ...MEMBER_STUB, assignedOTs: [], workItems: [], garageId: CHEF_USER.garageId };
       prisma.user.findUnique.mockImplementation(({ where }: { where: { id: string } }) => {
         if (where.id === 'chef-1')  return Promise.resolve(CHEF_USER);
-        if (where.id === MEMBER_ID) return Promise.resolve({ ...MEMBER_STUB, assignedOTs: [], workItems: [] });
+        if (where.id === MEMBER_ID) return Promise.resolve(memberFull);
         return Promise.resolve(null);
       });
+      prisma.user.findFirst.mockResolvedValue(memberFull);
       prisma.user.update.mockResolvedValue({
         id: MEMBER_ID, firstName: 'Jean-Claude', lastName: 'Tech', email: 'jean.tech@atelier.cm',
       });
@@ -266,11 +269,13 @@ describe('Team — contrats de réponse HTTP', () => {
 
   describe('PATCH /api/team/:id/role', () => {
     it('200 — shape : { id, userId, roleId, role }', async () => {
+      const memberFull = { ...MEMBER_STUB, assignedOTs: [], workItems: [], garageId: ADMIN_USER.garageId };
       prisma.user.findUnique.mockImplementation(({ where }: { where: { id: string } }) => {
         if (where.id === 'admin-1') return Promise.resolve(ADMIN_USER);
-        if (where.id === MEMBER_ID) return Promise.resolve({ ...MEMBER_STUB, assignedOTs: [], workItems: [] });
+        if (where.id === MEMBER_ID) return Promise.resolve(memberFull);
         return Promise.resolve(null);
       });
+      prisma.user.findFirst.mockResolvedValue(memberFull);
       prisma.role.findUnique.mockResolvedValue({ id: ROLE_ID, code: 'CHEF_ATELIER' });
       prisma.userRole.updateMany.mockResolvedValue({ count: 1 });
       prisma.userRole.create.mockResolvedValue({
@@ -305,11 +310,13 @@ describe('Team — contrats de réponse HTTP', () => {
 
   describe('DELETE /api/team/:id', () => {
     it('200 — soft delete : retourne { id }', async () => {
+      const memberFull = { ...MEMBER_STUB, assignedOTs: [], workItems: [], garageId: ADMIN_USER.garageId };
       prisma.user.findUnique.mockImplementation(({ where }: { where: { id: string } }) => {
         if (where.id === 'admin-1') return Promise.resolve(ADMIN_USER);
-        if (where.id === MEMBER_ID) return Promise.resolve({ ...MEMBER_STUB, assignedOTs: [], workItems: [] });
+        if (where.id === MEMBER_ID) return Promise.resolve(memberFull);
         return Promise.resolve(null);
       });
+      prisma.user.findFirst.mockResolvedValue(memberFull);
       prisma.user.update.mockResolvedValue({ id: MEMBER_ID });
 
       const res = await request(app.getHttpServer())

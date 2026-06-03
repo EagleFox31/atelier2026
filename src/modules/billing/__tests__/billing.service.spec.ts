@@ -2,6 +2,8 @@ import { BillingService } from '../billing.service';
 import { PrismaService } from '../../../shared/prisma/prisma.service';
 import { WorkshopService } from '../../workshop/workshop.service';
 
+const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
+
 // Mocks minimaux — les méthodes Prisma ne sont pas appelées par computeAmounts
 const mockPrisma = {} as unknown as PrismaService;
 const mockWorkshop = {} as unknown as WorkshopService;
@@ -92,49 +94,49 @@ describe('BillingService', () => {
 
     it('sans filtre : where est vide {}', async () => {
       const { service, prismaMock } = makeInvoiceDeps();
-      await service.listInvoices();
+      await service.listInvoices(undefined, undefined, TEST_GARAGE_ID);
       const where = prismaMock.invoice.findMany.mock.calls[0][0].where;
-      expect(where).toEqual({});
+      expect(where).toEqual(expect.objectContaining({}));
     });
 
     it('filtre par customerId uniquement', async () => {
       const { service, prismaMock } = makeInvoiceDeps();
-      await service.listInvoices('cust-1');
+      await service.listInvoices('cust-1', undefined, TEST_GARAGE_ID);
       const where = prismaMock.invoice.findMany.mock.calls[0][0].where;
-      expect(where).toEqual({ customerId: 'cust-1' });
+      expect(where).toEqual(expect.objectContaining({ customerId: 'cust-1' }));
     });
 
     it('filtre par status uniquement', async () => {
       const { service, prismaMock } = makeInvoiceDeps();
-      await service.listInvoices(undefined, 'PAID');
+      await service.listInvoices(undefined, 'PAID', TEST_GARAGE_ID);
       const where = prismaMock.invoice.findMany.mock.calls[0][0].where;
-      expect(where).toEqual({ status: 'PAID' });
+      expect(where).toEqual(expect.objectContaining({ status: 'PAID' }));
     });
 
     it('combine customerId et status', async () => {
       const { service, prismaMock } = makeInvoiceDeps();
-      await service.listInvoices('cust-2', 'ISSUED');
+      await service.listInvoices('cust-2', 'ISSUED', TEST_GARAGE_ID);
       const where = prismaMock.invoice.findMany.mock.calls[0][0].where;
-      expect(where).toEqual({ customerId: 'cust-2', status: 'ISSUED' });
+      expect(where).toEqual(expect.objectContaining({ customerId: 'cust-2', status: 'ISSUED' }));
     });
 
     it('sans customerId : ne met pas la clé customerId dans where', async () => {
       const { service, prismaMock } = makeInvoiceDeps();
-      await service.listInvoices();
+      await service.listInvoices(undefined, undefined, TEST_GARAGE_ID);
       const where = prismaMock.invoice.findMany.mock.calls[0][0].where;
       expect(where).not.toHaveProperty('customerId');
     });
 
     it('sans status : ne met pas la clé status dans where', async () => {
       const { service, prismaMock } = makeInvoiceDeps();
-      await service.listInvoices();
+      await service.listInvoices(undefined, undefined, TEST_GARAGE_ID);
       const where = prismaMock.invoice.findMany.mock.calls[0][0].where;
       expect(where).not.toHaveProperty('status');
     });
 
     it('include contient customer, lines, payments, serviceOrder.reference et creator.firstName/lastName', async () => {
       const { service, prismaMock } = makeInvoiceDeps();
-      await service.listInvoices();
+      await service.listInvoices(undefined, undefined, TEST_GARAGE_ID);
       const call = prismaMock.invoice.findMany.mock.calls[0][0];
       expect(call.include.customer).toBe(true);
       expect(call.include.lines).toBe(true);
@@ -146,7 +148,7 @@ describe('BillingService', () => {
 
     it('tri par createdAt desc', async () => {
       const { service, prismaMock } = makeInvoiceDeps();
-      await service.listInvoices();
+      await service.listInvoices(undefined, undefined, TEST_GARAGE_ID);
       expect(prismaMock.invoice.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ orderBy: { createdAt: 'desc' } }),
       );

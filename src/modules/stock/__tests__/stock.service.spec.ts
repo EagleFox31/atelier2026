@@ -1,14 +1,23 @@
 import { StockService } from '../stock.service';
 import { NotFoundException } from '@nestjs/common';
 
+const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
+
 function makeDeps() {
   const txMock = {
     stockMovement: { create: jest.fn() },
     aSPPurchase: { create: jest.fn() },
+    partsCatalog: { findFirst: jest.fn().mockResolvedValue({ id: 'part-1', garageId: TEST_GARAGE_ID }) },
   };
   const prismaMock = {
     $transaction: jest.fn().mockImplementation(async (fn: (tx: typeof txMock) => unknown) => fn(txMock)),
-    partsCatalog: { findUnique: jest.fn() },
+    partsCatalog: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn().mockResolvedValue({ id: 'part-1', garageId: TEST_GARAGE_ID }),
+    },
+    serviceOrder: {
+      findFirst: jest.fn().mockResolvedValue({ id: 'ot-1', garageId: TEST_GARAGE_ID }),
+    },
   };
   const stockAlertsQueue = { add: jest.fn() };
   const notifMock = {
@@ -32,6 +41,7 @@ describe('StockService.applyMovement()', () => {
       type: 'PURCHASE',
       quantity: 5,
       userId: 'user-1',
+      garageId: TEST_GARAGE_ID,
       referenceDoc: 'PO-001',
     });
 
@@ -57,6 +67,7 @@ describe('StockService.applyMovement()', () => {
       type: 'PURCHASE',
       quantity: 3,
       userId: 'user-1',
+      garageId: TEST_GARAGE_ID,
       referenceDoc: 'BL-2026-001',
       unitPriceXaf: 8000,
     });
@@ -80,6 +91,7 @@ describe('StockService.applyMovement()', () => {
       type: 'OT_CONSUMPTION',
       quantity: -1,
       userId: 'user-1',
+      garageId: TEST_GARAGE_ID,
       serviceOrderId: 'ot-42',
     });
 
@@ -107,6 +119,7 @@ describe('StockService.applyMovement()', () => {
       type: 'OT_CONSUMPTION',
       quantity: -3,
       userId: 'user-1',
+      garageId: TEST_GARAGE_ID,
     });
 
     await jest.runAllTimersAsync();
@@ -130,7 +143,7 @@ describe('StockService.applyMovement()', () => {
       qtyInStock: 3, minThreshold: 3,
     });
 
-    await service.applyMovement({ partId: 'part-1', type: 'OT_CONSUMPTION', quantity: -1, userId: 'u-1' });
+    await service.applyMovement({ partId: 'part-1', type: 'OT_CONSUMPTION', quantity: -1, userId: 'u-1', garageId: TEST_GARAGE_ID });
     await jest.runAllTimersAsync();
 
     expect(stockAlertsQueue.add).toHaveBeenCalledWith('low-stock', expect.objectContaining({ currentQty: 3 }));
@@ -154,6 +167,7 @@ describe('StockService.applyMovement()', () => {
       type: 'PURCHASE',
       quantity: 10,
       userId: 'user-1',
+      garageId: TEST_GARAGE_ID,
     });
 
     await jest.runAllTimersAsync();
@@ -167,7 +181,7 @@ describe('StockService.applyMovement()', () => {
     txMock.stockMovement.create.mockResolvedValue({ id: 'mov-1' });
     prismaMock.partsCatalog.findUnique.mockResolvedValue(null);
 
-    await service.applyMovement({ partId: 'part-inexistant', type: 'PURCHASE', quantity: 1, userId: 'u-1' });
+    await service.applyMovement({ partId: 'part-inexistant', type: 'PURCHASE', quantity: 1, userId: 'u-1', garageId: TEST_GARAGE_ID });
     await jest.runAllTimersAsync();
 
     expect(stockAlertsQueue.add).not.toHaveBeenCalled();
@@ -184,7 +198,7 @@ describe('StockService.applyMovement()', () => {
     });
     stockAlertsQueue.add.mockRejectedValue(new Error('Redis indisponible'));
 
-    const result = await service.applyMovement({ partId: 'part-1', type: 'OT_CONSUMPTION', quantity: -1, userId: 'u-1' });
+    const result = await service.applyMovement({ partId: 'part-1', type: 'OT_CONSUMPTION', quantity: -1, userId: 'u-1', garageId: TEST_GARAGE_ID });
 
     await jest.runAllTimersAsync();
 
@@ -210,6 +224,7 @@ describe('StockService.recordASP()', () => {
       salePrice: 7500,
       userId: 'user-1',
       supplierName: 'Garage Express',
+      garageId: TEST_GARAGE_ID,
     });
 
     expect(txMock.aSPPurchase.create).toHaveBeenCalledWith(
@@ -247,6 +262,7 @@ describe('StockService.recordASP()', () => {
     await service.recordASP({
       partId: 'part-1', serviceOrderId: 'ot-1', quantity: 1,
       purchasePrice: 5000, salePrice: 7500, userId: 'user-1', supplierName: 'S',
+      garageId: TEST_GARAGE_ID,
     });
 
     expect(txMock.aSPPurchase.create).toHaveBeenCalledWith(
@@ -264,6 +280,7 @@ describe('StockService.recordASP()', () => {
     await service.recordASP({
       partId: 'part-1', serviceOrderId: 'ot-1', quantity: 1,
       purchasePrice: 3000, salePrice: 4000, userId: 'user-1', supplierName: 'S',
+      garageId: TEST_GARAGE_ID,
     });
 
     const calls = txMock.stockMovement.create.mock.calls;
@@ -279,6 +296,7 @@ describe('StockService.recordASP()', () => {
     await service.recordASP({
       partId: 'part-1', serviceOrderId: 'ot-99', quantity: 1,
       purchasePrice: 1000, salePrice: 1500, userId: 'chef-7', supplierName: 'S',
+      garageId: TEST_GARAGE_ID,
     });
 
     const calls = txMock.stockMovement.create.mock.calls;
@@ -296,6 +314,7 @@ describe('StockService.recordASP()', () => {
     await service.recordASP({
       partId: 'part-1', serviceOrderId: 'ot-1', quantity: 1,
       purchasePrice: 1000, salePrice: 1500, userId: 'chef-5', supplierName: 'S',
+      garageId: TEST_GARAGE_ID,
     });
 
     expect(txMock.aSPPurchase.create).toHaveBeenCalledWith(
@@ -318,6 +337,7 @@ describe('StockService.recordASP()', () => {
     const result = await service.recordASP({
       partId: 'part-1', serviceOrderId: 'ot-1', quantity: 2,
       purchasePrice: 5000, salePrice: 7000, userId: 'u-1', supplierName: 'S',
+      garageId: TEST_GARAGE_ID,
     });
 
     expect(result).toEqual(asp);
@@ -330,12 +350,12 @@ describe('StockService.getPart()', () => {
   it('retourne la pièce avec supplier', async () => {
     const { service, prismaMock } = makeDeps();
     const part = { id: 'part-1', reference: 'FLT-001', supplier: { id: 'sup-1' } };
-    prismaMock.partsCatalog.findUnique.mockResolvedValue(part);
+    prismaMock.partsCatalog.findFirst.mockResolvedValue(part);
 
-    const result = await service.getPart('part-1');
+    const result = await service.getPart('part-1', TEST_GARAGE_ID);
 
-    expect(prismaMock.partsCatalog.findUnique).toHaveBeenCalledWith({
-      where: { id: 'part-1' },
+    expect(prismaMock.partsCatalog.findFirst).toHaveBeenCalledWith({
+      where: { id: 'part-1', garageId: TEST_GARAGE_ID },
       include: { supplier: true },
     });
     expect(result).toEqual(part);
@@ -343,8 +363,8 @@ describe('StockService.getPart()', () => {
 
   it('lève NotFoundException si pièce introuvable', async () => {
     const { service, prismaMock } = makeDeps();
-    prismaMock.partsCatalog.findUnique.mockResolvedValue(null);
+    prismaMock.partsCatalog.findFirst.mockResolvedValue(null);
 
-    await expect(service.getPart('part-inexistant')).rejects.toThrow(NotFoundException);
+    await expect(service.getPart('part-inexistant', TEST_GARAGE_ID)).rejects.toThrow(NotFoundException);
   });
 });

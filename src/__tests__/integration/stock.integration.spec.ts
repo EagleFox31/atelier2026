@@ -32,13 +32,18 @@ function makeStockPrismaMock() {
       create: jest.fn().mockResolvedValue({ id: 'asp-1', reference: 'ASP-001' }),
     },
   };
+  const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
   return {
     ...base,
     partsCatalog: {
       findMany:  jest.fn().mockResolvedValue([]),
       findUnique: jest.fn().mockResolvedValue(null),
+      findFirst: jest.fn().mockResolvedValue({ id: PART_ID, garageId: TEST_GARAGE_ID }),
       create:    jest.fn(),
       update:    jest.fn().mockResolvedValue({}),
+    },
+    serviceOrder: {
+      findFirst: jest.fn().mockResolvedValue({ id: OT_ID, garageId: TEST_GARAGE_ID }),
     },
     stockMovement: { findMany: jest.fn().mockResolvedValue([]) },
     supplier:      { findMany: jest.fn().mockResolvedValue([]) },
