@@ -1,3 +1,4 @@
+const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { OTStatus } from '@prisma/client';
 import { WorkshopService } from '../workshop.service';
@@ -5,16 +6,18 @@ import { WorkshopService } from '../workshop.service';
 function makeDeps() {
   const txMock = {
     serviceOrder: { create: jest.fn() },
-    appointment:  { update: jest.fn().mockResolvedValue({}) },
+    appointment:  { update: jest.fn().mockResolvedValue({}), updateMany: jest.fn().mockResolvedValue({}) },
   };
   const prismaMock = {
     serviceOrder: {
       findMany:   jest.fn().mockResolvedValue([]),
       findUnique: jest.fn(),
+      findFirst:  jest.fn().mockResolvedValue({ id: 'ot-1', garageId: TEST_GARAGE_ID }),
       update:     jest.fn().mockResolvedValue({}),
     },
     appointment: {
       update: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({}),
     },
     technicianObservation: {
       create: jest.fn(),
@@ -39,6 +42,10 @@ function makeDeps() {
     $queryRaw: jest.fn().mockResolvedValue([{ max_round: 0 }]),
     customer: {
       findUnique: jest.fn().mockResolvedValue(null),
+      findFirst: jest.fn().mockResolvedValue({ id: 'cust-1', garageId: TEST_GARAGE_ID }),
+    },
+    vehicle: {
+      findFirst: jest.fn().mockResolvedValue({ id: 'veh-1', garageId: TEST_GARAGE_ID }),
     },
     $transaction: jest.fn().mockImplementation(async (fn: any) => fn(txMock)),
   };
@@ -57,29 +64,29 @@ describe('WorkshopService.listOTs()', () => {
 
   it('retourne tous les OTs sans filtre', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.listOTs();
+    await service.listOTs(undefined, undefined, { garageId: TEST_GARAGE_ID } as any);
     expect(prismaMock.serviceOrder.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: {} }),
+      expect.objectContaining({ where: { garageId: TEST_GARAGE_ID } }),
     );
   });
 
   it('filtre par statut', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.listOTs(OTStatus.IN_PROGRESS);
+    await service.listOTs(OTStatus.IN_PROGRESS, undefined, { garageId: TEST_GARAGE_ID } as any);
     const where = prismaMock.serviceOrder.findMany.mock.calls[0][0].where;
     expect(where.status).toBe(OTStatus.IN_PROGRESS);
   });
 
   it('filtre textuel sur référence, plainte, client, plaque (4 conditions OR)', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.listOTs(undefined, 'LT-1234');
+    await service.listOTs(undefined, 'LT-1234', { garageId: TEST_GARAGE_ID } as any);
     const where = prismaMock.serviceOrder.findMany.mock.calls[0][0].where;
     expect(where.OR).toHaveLength(4);
   });
 
   it('tri par createdAt desc', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.listOTs();
+    await service.listOTs(undefined, undefined, { garageId: TEST_GARAGE_ID } as any);
     expect(prismaMock.serviceOrder.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ orderBy: { createdAt: 'desc' } }),
     );
@@ -87,14 +94,14 @@ describe('WorkshopService.listOTs()', () => {
 
   it('sans statut : where ne contient pas de clé status', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.listOTs();
+    await service.listOTs(undefined, undefined, { garageId: TEST_GARAGE_ID } as any);
     const where = prismaMock.serviceOrder.findMany.mock.calls[0][0].where;
     expect(where).not.toHaveProperty('status');
   });
 
   it('inclut customer, vehicle et workItems dans la réponse', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.listOTs();
+    await service.listOTs(undefined, undefined, { garageId: TEST_GARAGE_ID } as any);
     const call = prismaMock.serviceOrder.findMany.mock.calls[0][0];
     expect(call.include.customer).toBe(true);
     expect(call.include.vehicle).toBeTruthy();
@@ -107,9 +114,9 @@ describe('WorkshopService.listOTs()', () => {
       id: 'tech-1',
       roles: [{ role: { code: 'TECHNICIEN' } }],
     };
-    await service.listOTs(undefined, undefined, techUser);
+    await service.listOTs(undefined, undefined, { ...techUser, garageId: TEST_GARAGE_ID } as any);
     expect(prismaMock.serviceOrder.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { assignedChef: 'tech-1' } }),
+      expect.objectContaining({ where: expect.objectContaining({ assignedChef: 'tech-1' }) }),
     );
   });
 
@@ -119,15 +126,15 @@ describe('WorkshopService.listOTs()', () => {
       id: 'chef-1',
       roles: [{ role: { code: 'CHEF_ATELIER' } }],
     };
-    await service.listOTs(undefined, undefined, chefUser);
+    await service.listOTs(undefined, undefined, { ...chefUser, garageId: TEST_GARAGE_ID } as any);
     expect(prismaMock.serviceOrder.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: {} }),
+      expect.objectContaining({ where: { garageId: TEST_GARAGE_ID } }),
     );
   });
 
   it('OR contient référence, plainte, client et plaque avec le bon contenu', async () => {
     const { service, prismaMock } = makeDeps();
-    await service.listOTs(undefined, 'LT-1234');
+    await service.listOTs(undefined, 'LT-1234', { garageId: TEST_GARAGE_ID } as any);
     const where = prismaMock.serviceOrder.findMany.mock.calls[0][0].where;
     expect(where.OR[0]).toEqual({ reference: { contains: 'LT-1234', mode: 'insensitive' } });
     expect(where.OR[1]).toEqual({ clientComplaint: { contains: 'LT-1234', mode: 'insensitive' } });
@@ -141,9 +148,10 @@ describe('WorkshopService.getOT()', () => {
 
   it('lève NotFoundException si OT introuvable', async () => {
     const { service, prismaMock } = makeDeps();
+    prismaMock.serviceOrder.findFirst.mockResolvedValue(null);
     prismaMock.serviceOrder.findUnique.mockResolvedValue(null);
 
-    await expect(service.getOT('ot-inexistant')).rejects.toThrow(
+    await expect(service.getOT('ot-inexistant', { id: 'user-1', garageId: TEST_GARAGE_ID, roles: [] } as any)).rejects.toThrow(
       new NotFoundException('Ordre de travail introuvable'),
     );
   });
@@ -151,19 +159,19 @@ describe('WorkshopService.getOT()', () => {
   it('retourne l\'OT avec les relations imbriquées', async () => {
     const { service, prismaMock } = makeDeps();
     const ot = { id: 'ot-1', status: OTStatus.DRAFT, workItems: [], observations: [] };
-    prismaMock.serviceOrder.findUnique.mockResolvedValue(ot);
+    prismaMock.serviceOrder.findFirst.mockResolvedValue(ot);
 
-    const result = await service.getOT('ot-1');
+    const result = await service.getOT('ot-1', { id: 'user-1', garageId: TEST_GARAGE_ID, roles: [] } as any);
     expect(result).toEqual(ot);
   });
 
   it('getOT : inclut toutes les relations imbriquées (laborCatalog, observer, catalog, user, lines)', async () => {
     const { service, prismaMock } = makeDeps();
-    prismaMock.serviceOrder.findUnique.mockResolvedValue({ id: 'ot-1' });
+    prismaMock.serviceOrder.findFirst.mockResolvedValue({ id: 'ot-1' });
 
-    await service.getOT('ot-1');
+    await service.getOT('ot-1', { id: 'user-1', garageId: TEST_GARAGE_ID, roles: [] } as any);
 
-    const call = prismaMock.serviceOrder.findUnique.mock.calls[0][0];
+    const call = prismaMock.serviceOrder.findFirst.mock.calls[0][0];
     expect(call.include.customer).toBe(true);
     expect(call.include.vehicle).toBeTruthy();
     expect(call.include.workItems.include.laborCatalog).toBe(true);
@@ -176,21 +184,21 @@ describe('WorkshopService.getOT()', () => {
 
   it('403 si technicien accède à un OT non assigné', async () => {
     const { service, prismaMock } = makeDeps();
-    prismaMock.serviceOrder.findUnique.mockResolvedValue({
+    prismaMock.serviceOrder.findFirst.mockResolvedValue({
       id: 'ot-1',
       assignedChef: 'other-tech',
     });
     await expect(
-      service.getOT('ot-1', { id: 'tech-1', roles: [{ role: { code: 'TECHNICIEN' } }] }),
+      service.getOT('ot-1', { id: 'tech-1', garageId: TEST_GARAGE_ID, roles: [{ role: { code: 'TECHNICIEN' } }] } as any),
     ).rejects.toThrow('Cet ordre de travail ne vous est pas assigné');
   });
 
   it('200 si technicien accède à son OT assigné', async () => {
     const { service, prismaMock } = makeDeps();
     const ot = { id: 'ot-1', assignedChef: 'tech-1' };
-    prismaMock.serviceOrder.findUnique.mockResolvedValue(ot);
+    prismaMock.serviceOrder.findFirst.mockResolvedValue(ot);
     await expect(
-      service.getOT('ot-1', { id: 'tech-1', roles: [{ role: { code: 'TECHNICIEN' } }] }),
+      service.getOT('ot-1', { id: 'tech-1', garageId: TEST_GARAGE_ID, roles: [{ role: { code: 'TECHNICIEN' } }] } as any),
     ).resolves.toEqual(ot);
   });
 });
@@ -207,6 +215,7 @@ describe('WorkshopService.createOT()', () => {
     const result = await service.createOT(
       { vehicleId: 'veh-1', customerId: 'cust-1', clientComplaint: 'Bruit moteur' },
       'user-1',
+      TEST_GARAGE_ID,
     );
 
     expect(txMock.serviceOrder.create).toHaveBeenCalledWith(
@@ -224,6 +233,7 @@ describe('WorkshopService.createOT()', () => {
     await service.createOT(
       { vehicleId: 'veh-1', customerId: 'cust-1', clientComplaint: 'Révision', mileageIn: 45000 },
       'user-1',
+      TEST_GARAGE_ID,
     );
 
     expect(txMock.serviceOrder.create).toHaveBeenCalledWith(
@@ -240,6 +250,7 @@ describe('WorkshopService.createOT()', () => {
     await service.createOT(
       { vehicleId: 'veh-1', customerId: 'cust-1', clientComplaint: 'Test' },
       'user-chef-1',
+      TEST_GARAGE_ID,
     );
 
     const data = txMock.serviceOrder.create.mock.calls[0][0].data;
@@ -253,10 +264,11 @@ describe('WorkshopService.createOT()', () => {
     await service.createOT(
       { vehicleId: 'veh-1', customerId: 'cust-1', clientComplaint: 'RDV', appointmentId: 'appt-1' },
       'user-1',
+      TEST_GARAGE_ID,
     );
 
-    expect(txMock.appointment.update).toHaveBeenCalledWith({
-      where: { id: 'appt-1' },
+    expect(txMock.appointment.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({ id: 'appt-1' }),
       data: { serviceOrderId: 'ot-new', status: 'COMPLETED' },
     });
   });
@@ -268,6 +280,7 @@ describe('WorkshopService.createOT()', () => {
     await service.createOT(
       { vehicleId: 'veh-1', customerId: 'cust-1', clientComplaint: 'Test' },
       'user-1',
+      TEST_GARAGE_ID,
     );
 
     const data = txMock.serviceOrder.create.mock.calls[0][0].data;
@@ -281,6 +294,7 @@ describe('WorkshopService.createOT()', () => {
     await service.createOT(
       { vehicleId: 'veh-1', customerId: 'cust-1', clientComplaint: 'Test', priority: 'HIGH' },
       'user-1',
+      TEST_GARAGE_ID,
     );
 
     const data = txMock.serviceOrder.create.mock.calls[0][0].data;
@@ -294,6 +308,7 @@ describe('WorkshopService.createOT()', () => {
     await service.createOT(
       { vehicleId: 'veh-1', customerId: 'cust-1', clientComplaint: 'Test' },
       'user-1',
+      TEST_GARAGE_ID,
     );
 
     expect(txMock.appointment.update).not.toHaveBeenCalled();
@@ -303,14 +318,14 @@ describe('WorkshopService.createOT()', () => {
 // ─── addObservation() ─────────────────────────────────────────────────────────
 
 describe('WorkshopService.addObservation()', () => {
-  const chefUser = { id: 'user-1', roles: [{ role: { code: 'CHEF_ATELIER' } }] };
-  const techUser = { id: 'tech-1', roles: [{ role: { code: 'TECHNICIEN' } }] };
+  const chefUser = { id: 'user-1', garageId: TEST_GARAGE_ID, roles: [{ role: { code: 'CHEF_ATELIER' } }] };
+  const techUser = { id: 'tech-1', garageId: TEST_GARAGE_ID, roles: [{ role: { code: 'TECHNICIEN' } }] };
 
   beforeEach(() => jest.clearAllMocks());
 
   it('crée une observation avec les valeurs par défaut (AUTRE / INFO / includeInQuote:true)', async () => {
     const { service, prismaMock } = makeDeps();
-    prismaMock.serviceOrder.findUnique.mockResolvedValue({
+    prismaMock.serviceOrder.findFirst.mockResolvedValue({
       id: 'ot-1',
       status: OTStatus.DIAGNOSING,
       assignedChef: 'tech-1',
@@ -333,7 +348,7 @@ describe('WorkshopService.addObservation()', () => {
 
   it('respecte includeInQuote: false si explicitement fourni', async () => {
     const { service, prismaMock } = makeDeps();
-    prismaMock.serviceOrder.findUnique.mockResolvedValue({
+    prismaMock.serviceOrder.findFirst.mockResolvedValue({
       id: 'ot-1',
       status: OTStatus.DIAGNOSING,
       assignedChef: 'tech-1',
@@ -351,7 +366,7 @@ describe('WorkshopService.addObservation()', () => {
 
   it('autorise un technicien assigné avec ORD_VIEW en DIAGNOSING', async () => {
     const { service, prismaMock } = makeDeps();
-    prismaMock.serviceOrder.findUnique.mockResolvedValue({
+    prismaMock.serviceOrder.findFirst.mockResolvedValue({
       id: 'ot-1',
       status: OTStatus.DIAGNOSING,
       assignedChef: 'tech-1',
@@ -365,7 +380,7 @@ describe('WorkshopService.addObservation()', () => {
 
   it('refuse un technicien non assigné', async () => {
     const { service, prismaMock } = makeDeps();
-    prismaMock.serviceOrder.findUnique.mockResolvedValue({
+    prismaMock.serviceOrder.findFirst.mockResolvedValue({
       id: 'ot-1',
       status: OTStatus.DIAGNOSING,
       assignedChef: 'other-tech',
@@ -389,7 +404,7 @@ describe('WorkshopService.addWorkItem()', () => {
     await service.addWorkItem('ot-1', {
       laborCatalogId: 'cat-1',
       unitPriceXaf: 15000,
-    });
+    }, TEST_GARAGE_ID);
 
     expect(prismaMock.oTWorkItem.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -416,7 +431,7 @@ describe('WorkshopService.addReceptionCheck()', () => {
     ]);
     prismaMock.receptionCheck.create.mockResolvedValue({ id: 'rc-1' });
 
-    await service.addReceptionCheck('ot-1', 'user-1', { mileageAtReception: 45000 });
+    await service.addReceptionCheck('ot-1', 'user-1', { mileageAtReception: 45000 }, TEST_GARAGE_ID);
 
     expect(prismaMock.receptionCheckCatalog.findMany).toHaveBeenCalled();
     const items = prismaMock.receptionCheck.create.mock.calls[0][0].data.checkItems.create;
@@ -427,10 +442,7 @@ describe('WorkshopService.addReceptionCheck()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.receptionCheck.create.mockResolvedValue({ id: 'rc-1' });
 
-    await service.addReceptionCheck('ot-1', 'user-1', {
-      mileageAtReception: 45000,
-      checkItems: [{ catalogId: 'cat-1', result: 'OK' as const }],
-    });
+    await service.addReceptionCheck('ot-1', 'user-1', { mileageAtReception: 45000, checkItems: [{ catalogId: 'cat-1', result: 'OK' as const }] }, TEST_GARAGE_ID);
 
     expect(prismaMock.receptionCheckCatalog.findMany).not.toHaveBeenCalled();
   });
@@ -439,14 +451,11 @@ describe('WorkshopService.addReceptionCheck()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.receptionCheck.create.mockResolvedValue({ id: 'rc-1' });
 
-    await service.addReceptionCheck('ot-1', 'user-1', {
-      mileageAtReception: 45000,
-      checkItems: [
+    await service.addReceptionCheck('ot-1', 'user-1', { mileageAtReception: 45000, checkItems: [
         { catalogId: 'cat-1', result: 'OK' as const },
         { catalogId: 'cat-2', result: 'WARNING' as const },
         { catalogId: 'cat-3', result: 'CRITICAL' as const },
-      ],
-    });
+      ] }, TEST_GARAGE_ID);
 
     const items = prismaMock.receptionCheck.create.mock.calls[0][0].data.checkItems.create;
     expect(items[0].result).toBe('OK');
@@ -459,7 +468,7 @@ describe('WorkshopService.addReceptionCheck()', () => {
     prismaMock.receptionCheckCatalog.findMany.mockResolvedValue([{ id: 'cat-1' }]);
     prismaMock.receptionCheck.create.mockResolvedValue({ id: 'rc-1' });
 
-    await service.addReceptionCheck('ot-1', 'user-1', { mileageAtReception: 45000 });
+    await service.addReceptionCheck('ot-1', 'user-1', { mileageAtReception: 45000 }, TEST_GARAGE_ID);
 
     const items = prismaMock.receptionCheck.create.mock.calls[0][0].data.checkItems.create;
     expect(items[0].result).toBe('NA');
@@ -469,7 +478,7 @@ describe('WorkshopService.addReceptionCheck()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.receptionCheck.create.mockResolvedValue({ id: 'rc-1' });
 
-    await service.addReceptionCheck('ot-1', 'user-1', { mileageAtReception: 45000 });
+    await service.addReceptionCheck('ot-1', 'user-1', { mileageAtReception: 45000 }, TEST_GARAGE_ID);
 
     const call = prismaMock.receptionCheck.create.mock.calls[0][0];
     expect(call.include.checkItems.include.catalog).toBe(true);
@@ -479,7 +488,7 @@ describe('WorkshopService.addReceptionCheck()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.receptionCheck.create.mockResolvedValue({ id: 'rc-1' });
 
-    await service.addReceptionCheck('ot-1', 'user-1', { mileageAtReception: 45000 });
+    await service.addReceptionCheck('ot-1', 'user-1', { mileageAtReception: 45000 }, TEST_GARAGE_ID);
 
     const data = prismaMock.receptionCheck.create.mock.calls[0][0].data;
     expect(data.fuelLevel).toBe(4);
@@ -489,7 +498,7 @@ describe('WorkshopService.addReceptionCheck()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.receptionCheck.create.mockResolvedValue({ id: 'rc-1' });
 
-    await service.addReceptionCheck('ot-1', 'user-1', { mileageAtReception: 48000 });
+    await service.addReceptionCheck('ot-1', 'user-1', { mileageAtReception: 48000 }, TEST_GARAGE_ID);
 
     expect(prismaMock.serviceOrder.update).toHaveBeenCalledWith({
       where: { id: 'ot-1' },
@@ -508,7 +517,7 @@ describe('WorkshopService.addQualityControl()', () => {
     prismaMock.$queryRaw.mockResolvedValue([{ max_round: 0 }]);
     prismaMock.qualityControl.create.mockResolvedValue({ id: 'qc-1', round: 1 });
 
-    await service.addQualityControl('ot-1', 'user-1', { overallResult: 'CRITICAL', checklist: [] });
+    await service.addQualityControl('ot-1', 'user-1', { overallResult: 'CRITICAL', checklist: [] }, TEST_GARAGE_ID);
 
     const data = prismaMock.qualityControl.create.mock.calls[0][0].data;
     expect(data.round).toBe(1);
@@ -519,7 +528,7 @@ describe('WorkshopService.addQualityControl()', () => {
     prismaMock.$queryRaw.mockResolvedValue([{ max_round: 2 }]);
     prismaMock.qualityControl.create.mockResolvedValue({ id: 'qc-1', round: 3 });
 
-    await service.addQualityControl('ot-1', 'user-1', { overallResult: 'OK', checklist: [] });
+    await service.addQualityControl('ot-1', 'user-1', { overallResult: 'OK', checklist: [] }, TEST_GARAGE_ID);
 
     const data = prismaMock.qualityControl.create.mock.calls[0][0].data;
     expect(data.round).toBe(3);
@@ -530,7 +539,7 @@ describe('WorkshopService.addQualityControl()', () => {
     prismaMock.$queryRaw.mockResolvedValue([{ max_round: 0 }]);
     prismaMock.qualityControl.create.mockResolvedValue({ id: 'qc-1' });
 
-    await service.addQualityControl('ot-1', 'user-1', { overallResult: 'OK', checklist: [] });
+    await service.addQualityControl('ot-1', 'user-1', { overallResult: 'OK', checklist: [] }, TEST_GARAGE_ID);
 
     const data = prismaMock.qualityControl.create.mock.calls[0][0].data;
     expect(data.isApproved).toBe(true);
@@ -541,7 +550,7 @@ describe('WorkshopService.addQualityControl()', () => {
     prismaMock.$queryRaw.mockResolvedValue([{ max_round: 0 }]);
     prismaMock.qualityControl.create.mockResolvedValue({ id: 'qc-1' });
 
-    await service.addQualityControl('ot-1', 'user-1', { overallResult: 'CRITICAL', checklist: [] });
+    await service.addQualityControl('ot-1', 'user-1', { overallResult: 'CRITICAL', checklist: [] }, TEST_GARAGE_ID);
 
     const data = prismaMock.qualityControl.create.mock.calls[0][0].data;
     expect(data.isApproved).toBe(false);
@@ -553,7 +562,7 @@ describe('WorkshopService.addQualityControl()', () => {
     prismaMock.qualityControl.create.mockResolvedValue({ id: 'qc-1' });
 
     const checklist = [{ itemId: 'c-1', result: 'OK' }, { itemId: 'c-2', result: 'WARNING' }];
-    await service.addQualityControl('ot-1', 'user-1', { overallResult: 'OK', checklist });
+    await service.addQualityControl('ot-1', 'user-1', { overallResult: 'OK', checklist }, TEST_GARAGE_ID);
 
     const data = prismaMock.qualityControl.create.mock.calls[0][0].data;
     expect(data.checklist).toEqual(checklist);
@@ -564,7 +573,7 @@ describe('WorkshopService.addQualityControl()', () => {
     prismaMock.$queryRaw.mockResolvedValue([{ max_round: 0 }]);
     prismaMock.qualityControl.create.mockResolvedValue({ id: 'qc-1' });
 
-    await service.addQualityControl('ot-1', 'user-1', { overallResult: 'OK' } as any);
+    await service.addQualityControl('ot-1', 'user-1', { overallResult: 'OK' } as any, TEST_GARAGE_ID);
 
     const data = prismaMock.qualityControl.create.mock.calls[0][0].data;
     expect(Array.isArray(data.checklist)).toBe(true);
@@ -580,12 +589,12 @@ describe('WorkshopService.assignChef()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.serviceOrder.update.mockResolvedValue({ id: 'ot-1', assignedChef: 'chef-1' });
 
-    await service.assignChef('ot-1', 'chef-1');
+    await service.assignChef('ot-1', 'chef-1', TEST_GARAGE_ID);
 
     expect(prismaMock.serviceOrder.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'ot-1' },
-        data: { assignedChef: 'chef-1' },
+        where: expect.objectContaining({ id: 'ot-1' }),
+        data: expect.objectContaining({ assignedChef: 'chef-1' }),
       }),
     );
   });
@@ -600,7 +609,7 @@ describe('WorkshopService.removeWorkItem()', () => {
     const { service, prismaMock } = makeDeps();
     prismaMock.oTWorkItem.delete.mockResolvedValue({ id: 'wi-1' });
 
-    await service.removeWorkItem('ot-1', 'wi-1');
+    await service.removeWorkItem('ot-1', 'wi-1', TEST_GARAGE_ID);
 
     expect(prismaMock.oTWorkItem.delete).toHaveBeenCalledWith({
       where: { id: 'wi-1', serviceOrderId: 'ot-1' },
