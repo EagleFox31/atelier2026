@@ -1799,7 +1799,7 @@ export function LandingPage() {
           >
             {[
               { Icon: ShieldCheck, text: 'Aucune carte bancaire' },
-              { Icon: Globe,       text: 'Données hébergées en Europe' },
+              { Icon: Wifi,        text: 'Fonctionne sur 3G et hors-ligne' },
               { Icon: Mail,        text: 'Support en français' },
             ].map(({ Icon, text }) => (
               <span key={text} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: C.muted, fontWeight: 500 }}>
