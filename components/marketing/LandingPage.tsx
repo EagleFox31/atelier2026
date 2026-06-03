@@ -656,7 +656,7 @@ export function LandingPage() {
                   fontFamily: '"Playfair Display", serif',
                   fontSize: 'clamp(5rem, 10vw, 8rem)',
                   fontWeight: 900, lineHeight: 1,
-                  color: `${PAIN_STORIES[activePainStep].color}18`,
+                  color: 'rgba(255,255,255,0.15)',
                   marginBottom: '-1rem',
                   userSelect: 'none',
                 }}>
