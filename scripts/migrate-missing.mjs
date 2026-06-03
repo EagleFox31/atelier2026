@@ -324,12 +324,12 @@ async function migrateDefaultGarageForSeededData() {
   await q(`
     INSERT INTO workshop_settings (
       id, garage_id, shop_name, tagline, niu, email, phone, address,
-      default_labor_rate_xaf, tax_rate_pct
+      default_labor_rate_xaf, tax_rate_pct, updated_at
     ) VALUES (
       $1, $2, 'Garage Démo — Atelier Maître',
       'Environnement de démonstration — Yaoundé, Cameroun',
       'M012345678901X', 'admin@atelier.cm', '+237 699 00 00 00',
-      'Bastos, Rue 1.042, Yaoundé, Cameroun', 15000, 19.25
+      'Bastos, Rue 1.042, Yaoundé, Cameroun', 15000, 19.25, now()
     )
     ON CONFLICT (id) DO NOTHING
   `, [settingsId, garageId]);
@@ -538,7 +538,7 @@ async function migrateWorkshopSettings() {
   await q(`
     INSERT INTO workshop_settings (
       id, shop_name, tagline, niu, email, phone, address,
-      default_labor_rate_xaf, tax_rate_pct
+      default_labor_rate_xaf, tax_rate_pct, updated_at
     ) VALUES (
       'default',
       'Atelier Maître',
@@ -548,7 +548,8 @@ async function migrateWorkshopSettings() {
       '+237 699 00 00 00',
       'Bastos, Rue 1.042, Yaoundé, Cameroun',
       15000,
-      19.25
+      19.25,
+      now()
     ) ON CONFLICT (id) DO NOTHING
   `);
 
