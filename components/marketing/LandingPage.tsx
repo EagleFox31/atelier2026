@@ -1004,10 +1004,10 @@ export function LandingPage() {
                             <div style={{ flex: 1, height: 18, background: 'rgba(255,255,255,0.07)', borderRadius: 6, marginLeft: 8 }} />
                           </div>
                           {/* Screen */}
-                          <div style={{ borderRadius: '6px 6px 0 0', overflow: 'hidden', position: 'relative', aspectRatio: '16/10' }}>
+                          <div style={{ borderRadius: '6px 6px 0 0', overflow: 'hidden', background: C.surface }}>
                             <AnimatePresence mode="wait">
-                              <motion.div key={activeFeature} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} style={{ position: 'absolute', inset: 0 }}>
-                                <Image src={DEMOS[activeFeature].desktop} alt={DEMOS[activeFeature].title} fill sizes="640px" style={{ objectFit: 'cover', objectPosition: 'top' }} />
+                              <motion.div key={activeFeature} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                                <Image src={DEMOS[activeFeature].desktop} alt={DEMOS[activeFeature].title} width={1440} height={900} style={{ width: '100%', height: 'auto', display: 'block' }} />
                               </motion.div>
                             </AnimatePresence>
                           </div>
@@ -1036,10 +1036,10 @@ export function LandingPage() {
                             <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#1a1a1a', border: '1px solid #333' }} />
                           </div>
                           {/* Screen */}
-                          <div style={{ borderRadius: 28, overflow: 'hidden', position: 'relative', aspectRatio: '9/19.5' }}>
+                          <div style={{ borderRadius: 28, overflow: 'hidden', background: C.surface }}>
                             <AnimatePresence mode="wait">
-                              <motion.div key={activeFeature} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} style={{ position: 'absolute', inset: 0 }}>
-                                <Image src={DEMOS[activeFeature].mobile} alt={DEMOS[activeFeature].title} fill sizes="260px" style={{ objectFit: 'cover', objectPosition: 'top' }} />
+                              <motion.div key={activeFeature} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                                <Image src={DEMOS[activeFeature].mobile} alt={DEMOS[activeFeature].title} width={390} height={844} style={{ width: '100%', height: 'auto', display: 'block' }} />
                               </motion.div>
                             </AnimatePresence>
                           </div>
