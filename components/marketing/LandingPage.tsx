@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useScroll, useTransform, useReducedMotion } from 'motion/react';
 import {
@@ -33,6 +34,16 @@ import {
 
 import { LANDING_COLORS as C } from '@/components/marketing/landing-colors';
 import { LandingKenteBar } from '@/components/marketing/LandingKenteBar';
+
+const ROLES = [
+  { photo: '/landing/gérant_garage.jpg',  role: 'Gérant',         desc: 'Vue CA consolidée, pilotage multi-sites et alertes en temps réel.' },
+  { photo: '/landing/chef_atelier.jpg',        role: 'Chef d\'atelier', desc: 'Crée les OT, suit l\'avancement et valide le contrôle qualité.' },
+  { photo: '/landing/mecanicien.jpg',           role: 'Technicien',     desc: 'Consulte ses missions et renseigne ses observations depuis son téléphone.' },
+  { photo: '/landing/reception.jpg',            role: 'Réceptionnaire', desc: 'Accueille le client, ouvre l\'OT et programme le RDV en 30 secondes.' },
+  { photo: '/landing/caissier.jpg',             role: 'Caissier',       desc: 'Génère la facture, enregistre l\'encaissement et clôture la journée.' },
+  { photo: '/landing/carrossier.jpg',           role: 'Carrossier',     desc: 'Accès à ses fiches véhicule et historique d\'interventions carrosserie.' },
+];
+import { BrandCalligraphy } from '@/components/marketing/brand-calligraphy';
 const FEATURES = [
   {
     Icon: ClipboardList,
@@ -342,11 +353,10 @@ export function LandingPage() {
       <section
         ref={heroRef}
         style={{
-          minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
-          padding: '100px 5% 60px',
+          padding: '6rem 5% 2.5rem',
           position: 'relative',
           overflow: 'hidden',
           background: 'linear-gradient(145deg, #1A1209 0%, #2D1B09 40%, #3D2310 70%, #C8511A 120%)',
@@ -372,7 +382,7 @@ export function LandingPage() {
           pointerEvents: 'none',
         }} />
 
-        <div style={{ ...inner, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+        <div style={{ ...inner, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', alignItems: 'center', position: 'relative', zIndex: 2 }}>
           {/* Copie */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ y: copyY, opacity: copyOpacity }}>
             {/* Badge */}
@@ -381,7 +391,7 @@ export function LandingPage() {
               background: 'rgba(212,164,50,0.15)', border: '1px solid rgba(212,164,50,0.35)',
               color: C.goldLight, padding: '0.35rem 0.9rem', borderRadius: 99,
               fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-              marginBottom: '1.5rem',
+              marginBottom: '1rem',
             }}>
               <Globe size={12} color={C.goldLight} />
               Logiciel garage · Cameroun
@@ -391,19 +401,19 @@ export function LandingPage() {
               fontFamily: '"Playfair Display", serif',
               fontSize: 'clamp(2.4rem, 4.5vw, 3.75rem)',
               fontWeight: 900, lineHeight: 1.1, letterSpacing: '-0.03em',
-              color: '#FFFFFF', marginBottom: '1.5rem',
+              color: '#FFFFFF', marginBottom: '1rem',
             }}>
               Votre atelier,{' '}
               <span style={{ color: C.goldLight }}>enfin maîtrisé.</span>
               <br />Du premier OT à l&apos;encaissement.
             </h1>
 
-            <p style={{ fontSize: '1.1rem', lineHeight: 1.75, color: 'rgba(255,255,255,0.7)', maxWidth: 480, marginBottom: '2.5rem' }}>
+            <p style={{ fontSize: '1.05rem', lineHeight: 1.7, color: 'rgba(255,255,255,0.7)', maxWidth: 480, marginBottom: '1.5rem' }}>
               OT, devis, stock, planning et factures en XAF — tout dans un seul flux.
               Sans carnet, sans ressaisie, sans perdre le fil.
             </p>
 
-            <div style={{ display: 'flex', gap: '0.875rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', gap: '0.875rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
               <Link href="/demo" style={btnPrimary}>
                 Réserver une démo <ArrowRight size={16} />
               </Link>
@@ -424,6 +434,26 @@ export function LandingPage() {
                   {label as string}
                 </span>
               ))}
+            </div>
+
+            {/* Social proof avatars */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+              <div style={{ display: 'flex' }}>
+                {['/landing/gérant_garage.jpg', '/landing/chef_atelier.jpg', '/landing/mecanicien.jpg'].map((src, i) => (
+                  <div key={src} style={{
+                    width: 34, height: 34, borderRadius: '50%', overflow: 'hidden',
+                    border: '2px solid rgba(200,81,26,0.6)',
+                    marginLeft: i > 0 ? -10 : 0,
+                    position: 'relative', flexShrink: 0,
+                  }}>
+                    <Image src={src} alt="" fill sizes="34px" style={{ objectFit: 'cover' }} />
+                  </div>
+                ))}
+              </div>
+              <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>
+                <strong style={{ color: 'rgba(255,255,255,0.8)' }}>Garages camerounais</strong><br />
+                déjà structurés avec Atelier Maître
+              </p>
             </div>
           </motion.div>
 
@@ -482,7 +512,7 @@ export function LandingPage() {
           </motion.div>
         </div>
 
-        <a href="#probleme" style={{ position: 'relative', zIndex: 2, margin: '3rem auto 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}>
+        <a href="#probleme" style={{ position: 'relative', zIndex: 2, margin: '1.25rem auto 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem', color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}>
           <span style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Suite</span>
           <ChevronDown size={20} />
         </a>
@@ -624,6 +654,58 @@ export function LandingPage() {
           ))}
         </div>
       </div>
+
+      {/* ── ÉQUIPE / RÔLES ── */}
+      <section style={{ background: C.white, ...sectionPad }}>
+        <div style={{ ...inner, textAlign: 'center' }}>
+          <Eyebrow>Pour toute votre équipe</Eyebrow>
+          <SectionHeading>Un outil, six rôles, zéro confusion.</SectionHeading>
+          <Lead style={{ maxWidth: 540, margin: '0.875rem auto 0' }}>
+            Chacun voit exactement ce dont il a besoin. Ni trop, ni trop peu.
+          </Lead>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: '1.5rem',
+            marginTop: '3rem',
+          }}>
+            {ROLES.map(({ photo, role, desc }, i) => (
+              <motion.div
+                key={role}
+                initial={{ opacity: 0, y: 14 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.35, delay: i * 0.07 }}
+                style={{
+                  background: C.sand,
+                  border: '1px solid rgba(200,81,26,0.08)',
+                  borderRadius: 20,
+                  padding: '1.75rem 1.25rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  textAlign: 'center',
+                }}
+              >
+                <div style={{
+                  width: 80, height: 80, borderRadius: '50%',
+                  overflow: 'hidden', flexShrink: 0,
+                  border: `3px solid ${C.brand}33`,
+                  position: 'relative',
+                }}>
+                  <Image src={photo} alt={role} fill sizes="80px" style={{ objectFit: 'cover' }} />
+                </div>
+                <div>
+                  <p style={{ fontWeight: 700, fontSize: '0.95rem', color: C.earth, marginBottom: '0.4rem' }}>{role}</p>
+                  <p style={{ fontSize: '0.8rem', color: C.muted, lineHeight: 1.55 }}>{desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* ── MULTI-GARAGES ── */}
       <section id="multi-garages" style={{ background: C.sand, ...sectionPad }}>
@@ -829,22 +911,65 @@ export function LandingPage() {
               Connexion atelier
             </Link>
           </div>
+
+          {/* Témoignage gérant */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            style={{
+              display: 'inline-flex', alignItems: 'flex-start', gap: '1rem',
+              marginTop: '2.5rem',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 16, padding: '1.25rem 1.5rem',
+              maxWidth: 480, textAlign: 'left',
+            }}
+          >
+            <div style={{ width: 52, height: 52, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: `2px solid ${C.gold}55`, position: 'relative' }}>
+              <Image src="/landing/gérant_garage.jpg" alt="Gérant atelier" fill sizes="52px" style={{ objectFit: 'cover' }} />
+            </div>
+            <div>
+              <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)', lineHeight: 1.6, fontStyle: 'italic', marginBottom: '0.5rem' }}>
+                &ldquo;Avant, je ne savais pas combien je gagnais vraiment. Maintenant j&apos;ai le chiffre en temps réel.&rdquo;
+              </p>
+              <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>Gérant · Garage automobile, Douala</p>
+            </div>
+          </motion.div>
         </div>
       </section>
 
       {/* ── FOOTER ── */}
       <footer style={{ background: '#1A1209', borderTop: 'none' }}>
         <LandingKenteBar />
-        <div style={{ ...inner, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', padding: '2.5rem 5%' }}>
-          <span style={{ fontFamily: '"Playfair Display", serif', fontSize: '1.1rem', fontWeight: 700, color: '#FFFFFF' }}>
-            Atelier <span style={{ color: C.goldLight }}>Maître</span>
-          </span>
-          <div style={{ display: 'flex', gap: '1.5rem' }}>
-            {['Mentions légales', 'Confidentialité', 'Contact'].map((l) => (
-              <Link key={l} href="#" style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>{l}</Link>
-            ))}
+        <div style={{ ...inner, padding: '2.5rem 5%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+            <span style={{ fontFamily: '"Playfair Display", serif', fontSize: '1.1rem', fontWeight: 700, color: '#FFFFFF' }}>
+              Atelier <span style={{ color: C.goldLight }}>Maître</span>
+            </span>
+            <div style={{ display: 'flex', gap: '1.5rem' }}>
+              {['Mentions légales', 'Confidentialité', 'Contact'].map((l) => (
+                <Link key={l} href="#" style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>{l}</Link>
+              ))}
+            </div>
+            <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.25)' }}>© 2026 Atelier Maître · Logiciel garage Cameroun</p>
           </div>
-          <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.25)' }}>© 2026 Atelier Maître · Logiciel garage Cameroun</p>
+          <p
+            style={{
+              marginTop: '1.5rem',
+              paddingTop: '1.25rem',
+              borderTop: '1px solid rgba(255,255,255,0.06)',
+              display: 'flex',
+              alignItems: 'baseline',
+              justifyContent: 'center',
+              gap: '0.375rem',
+            }}
+          >
+            <BrandCalligraphy className="text-[1.35em] !text-[#F2C95A]">by</BrandCalligraphy>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.06em', color: 'rgba(255,255,255,0.4)' }}>
+              Trigenys Group
+            </span>
+          </p>
         </div>
       </footer>
 
