@@ -1196,16 +1196,14 @@ export function LandingPage() {
         return (
           <div
             ref={statsStoryRef}
-            style={{
-              height: '500vh', position: 'relative',
-              background: `linear-gradient(145deg, rgba(26,18,9,0.82) 0%, rgba(45,27,9,0.75) 50%, rgba(61,35,16,0.68) 100%)`,
-            }}
+            style={{ height: '500vh', position: 'relative' }}
           >
             <div style={{
               position: 'sticky', top: 0, height: '100vh',
               display: 'flex', flexDirection: 'column',
               alignItems: 'center', justifyContent: 'center',
               overflow: 'hidden', padding: '0 6%',
+              background: 'rgba(20,10,4,0.45)',
             }}>
               {/* Glow décoratif */}
               <div style={{
