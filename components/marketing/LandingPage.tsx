@@ -1705,15 +1705,40 @@ export function LandingPage() {
           <div className="landing-grid-pricing">
             {/* Pro */}
             <motion.div
-              initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-              style={{ background: '#FFF8F4', border: `2px solid ${C.brand}`, borderRadius: 20, padding: '2rem', display: 'flex', flexDirection: 'column', textAlign: 'left', position: 'relative' }}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -8, boxShadow: `0 24px 56px ${C.brand}30` }}
+              transition={{ duration: 0.35 }}
+              style={{
+                background: 'linear-gradient(135deg, #FFF8F4 0%, #FFF3EC 100%)',
+                border: `2px solid ${C.brand}`,
+                borderRadius: 20, padding: '2rem',
+                display: 'flex', flexDirection: 'column', textAlign: 'left',
+                position: 'relative', overflow: 'hidden', cursor: 'default',
+              }}
             >
-              <span style={{ display: 'inline-block', background: C.brand, color: '#FFF', fontSize: '0.68rem', fontWeight: 700, padding: '0.25rem 0.75rem', borderRadius: 6, marginBottom: '1rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                Recommandé
-              </span>
+              {/* Shimmer décoratif */}
+              <div style={{
+                position: 'absolute', top: -40, right: -40,
+                width: 160, height: 160, borderRadius: '50%',
+                background: `radial-gradient(circle, ${C.brand}18 0%, transparent 70%)`,
+                pointerEvents: 'none',
+              }} />
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <span style={{ background: C.brand, color: '#FFF', fontSize: '0.68rem', fontWeight: 700, padding: '0.25rem 0.75rem', borderRadius: 6, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  Recommandé
+                </span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: C.brand, background: `${C.brand}12`, padding: '0.2rem 0.6rem', borderRadius: 99 }}>
+                  Réponse sous 48h
+                </span>
+              </div>
+
               <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.brand, marginBottom: '0.5rem' }}>Atelier Maître Pro</p>
-              <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '2.25rem', fontWeight: 900, color: C.earth }}>Sur devis</p>
-              <p style={{ fontSize: '0.82rem', color: C.muted, marginBottom: '1.5rem' }}>Adapté à vos garages et techniciens</p>
+              <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '2.25rem', fontWeight: 900, color: C.earth, lineHeight: 1 }}>Sur devis</p>
+              <p style={{ fontSize: '0.82rem', color: C.muted, marginTop: '0.25rem', marginBottom: '1.5rem' }}>Adapté à vos garages et techniciens</p>
+
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
                 {['OT, devis, factures PDF illimités', 'Stock + alertes seuil', 'Planning & rendez-vous', 'SMS Orange / MTN intégrés', 'Tableau de bord temps réel', 'Multi-garages inclus', 'Support dédié en français'].map((item) => (
                   <CheckItem key={item} color={C.brand}>{item}</CheckItem>
@@ -1726,40 +1751,63 @@ export function LandingPage() {
 
             {/* Pilote */}
             <motion.div
-              initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-              transition={{ delay: 0.06 }}
-              style={{ background: C.white, border: '1.5px solid rgba(29,106,74,0.2)', borderRadius: 20, padding: '2rem', display: 'flex', flexDirection: 'column', textAlign: 'left' }}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.08 }}
+              whileHover={{ y: -8, boxShadow: '0 24px 56px rgba(29,106,74,0.18)' }}
+              style={{
+                background: C.white,
+                border: '1.5px solid rgba(29,106,74,0.2)',
+                borderRadius: 20, padding: '2rem',
+                display: 'flex', flexDirection: 'column', textAlign: 'left',
+                cursor: 'default', position: 'relative', overflow: 'hidden',
+              }}
             >
+              <div style={{
+                position: 'absolute', top: -40, right: -40,
+                width: 140, height: 140, borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(29,106,74,0.08) 0%, transparent 70%)',
+                pointerEvents: 'none',
+              }} />
+
               <span style={{ display: 'inline-block', background: C.green, color: '#FFF', fontSize: '0.68rem', fontWeight: 700, padding: '0.25rem 0.75rem', borderRadius: 6, marginBottom: '1rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                 Pilote gratuit
               </span>
               <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.green, marginBottom: '0.5rem' }}>Essai pilote</p>
-              <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '2.25rem', fontWeight: 900, color: C.earth }}>Gratuit</p>
-              <p style={{ fontSize: '0.82rem', color: C.muted, marginBottom: '1.5rem' }}>Pendant toute la période de test</p>
+              <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '2.25rem', fontWeight: 900, color: C.earth, lineHeight: 1 }}>Gratuit</p>
+              <p style={{ fontSize: '0.82rem', color: C.muted, marginTop: '0.25rem', marginBottom: '1.5rem' }}>Pendant toute la période de test</p>
+
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
                 {['Accès complet à la plateforme', '1 garage, équipe complète', 'Accompagnement au démarrage', 'Données conservées après le pilote', 'Aucune carte bancaire requise'].map((item) => (
                   <CheckItem key={item} color={C.green}>{item}</CheckItem>
                 ))}
               </ul>
-              <Link
-                href="/inscription"
-                style={{
-                  ...btnPrimary, background: 'transparent', color: C.green,
-                  border: `1.5px solid ${C.green}`, marginTop: '1.75rem', justifyContent: 'center',
-                }}
-              >
+              <Link href="/inscription" style={{ ...btnPrimary, background: 'transparent', color: C.green, border: `1.5px solid ${C.green}`, marginTop: '1.75rem', justifyContent: 'center' }}>
                 <UserPlus size={16} /> Démarrer le pilote
               </Link>
             </motion.div>
           </div>
 
-          <p style={{ marginTop: '1.5rem', fontSize: '0.82rem', color: C.muted, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            <Mail size={13} color={C.brand} />
-            Des questions ?{' '}
-            <Link href="/demo" style={{ color: C.brand, fontWeight: 600, textDecoration: 'none' }}>
-              Contactez-nous
-            </Link>
-          </p>
+          {/* Proof bar */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', flexWrap: 'wrap' }}
+          >
+            {[
+              { Icon: ShieldCheck, text: 'Aucune carte bancaire' },
+              { Icon: Globe,       text: 'Données hébergées en Europe' },
+              { Icon: Mail,        text: 'Support en français' },
+            ].map(({ Icon, text }) => (
+              <span key={text} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.78rem', color: C.muted, fontWeight: 500 }}>
+                <Icon size={14} color={C.brand} />
+                {text}
+              </span>
+            ))}
+          </motion.div>
         </div>
       </section>
 
