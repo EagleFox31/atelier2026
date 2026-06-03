@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 
 import { LANDING_COLORS as C } from '@/components/marketing/landing-colors';
+import { LandingKenteBar } from '@/components/marketing/LandingKenteBar';
 const FEATURES = [
   {
     Icon: ClipboardList,
@@ -303,14 +304,22 @@ export function LandingPage() {
   const inner: React.CSSProperties = { maxWidth: 1200, margin: '0 auto' };
 
   return (
-    <div style={{ fontFamily: '"DM Sans", system-ui, sans-serif', background: C.surface, color: C.earth, overflowX: 'hidden' }}>
+    <div
+      className="landing-page"
+      style={{ fontFamily: '"DM Sans", system-ui, sans-serif', background: C.surface, color: C.earth, overflowX: 'hidden' }}
+    >
 
-      {/* ── NAV ── */}
-      <nav style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        background: 'rgba(253,250,244,0.93)', backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(200,81,26,0.1)', padding: '0 5%',
-      }}>
+      {/* ── NAV + bandeau kente ── */}
+      <header style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100 }}>
+        <LandingKenteBar />
+        <nav
+          style={{
+            background: 'rgba(253,250,244,0.93)',
+            backdropFilter: 'blur(12px)',
+            borderBottom: '1px solid rgba(200,81,26,0.1)',
+            padding: '0 5%',
+          }}
+        >
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
           <span style={{ fontFamily: '"Playfair Display", serif', fontSize: '1.25rem', fontWeight: 700, color: C.earth }}>
             Atelier <span style={{ color: C.brand }}>Maître</span>
@@ -326,7 +335,8 @@ export function LandingPage() {
             Réserver une démo <ArrowRight size={14} />
           </Link>
         </div>
-      </nav>
+        </nav>
+      </header>
 
       {/* ── HERO ── */}
       <section
@@ -823,8 +833,9 @@ export function LandingPage() {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer style={{ background: '#1A1209', padding: '2.5rem 5%', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ ...inner, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+      <footer style={{ background: '#1A1209', borderTop: 'none' }}>
+        <LandingKenteBar />
+        <div style={{ ...inner, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', padding: '2.5rem 5%' }}>
           <span style={{ fontFamily: '"Playfair Display", serif', fontSize: '1.1rem', fontWeight: 700, color: '#FFFFFF' }}>
             Atelier <span style={{ color: C.goldLight }}>Maître</span>
           </span>
