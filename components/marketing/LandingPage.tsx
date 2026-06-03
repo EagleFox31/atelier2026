@@ -362,7 +362,7 @@ export function LandingPage() {
           y: bgParallaxY,
         }} />
         {/* Voile très léger pour harmoniser avec les sections */}
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(20,12,5,0.25)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(20,12,5,0.10)' }} />
       </div>
 
       {/* ── CONTENU (au-dessus du fond fixe) ── */}
