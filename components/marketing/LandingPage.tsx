@@ -1200,10 +1200,43 @@ export function LandingPage() {
           >
             <div style={{
               position: 'sticky', top: 0, height: '100vh',
-              display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center',
-              overflow: 'hidden', padding: '0 6%',
+              display: 'grid',
+              gridTemplateColumns: '180px 1fr 180px',
+              overflow: 'hidden',
             }}>
+
+              {/* ── COLONNE GAUCHE — remonte ── */}
+              {(() => {
+                const IMGS_L = [
+                  '/landing/text-revealing/arrive_en_atelier.jpg',
+                  '/landing/text-revealing/ot_30s.jpg',
+                  '/landing/text-revealing/process_digitalisé.jpg',
+                  '/landing/text-revealing/service_transparent.jpg',
+                ];
+                const doubled = [...IMGS_L, ...IMGS_L];
+                return (
+                  <div style={{ overflow: 'hidden', padding: '0.5rem', maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)' }}>
+                    <motion.div
+                      animate={{ y: ['0%', '-50%'] }}
+                      transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+                      style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}
+                    >
+                      {doubled.map((src, i) => (
+                        <div key={i} style={{ borderRadius: 10, overflow: 'hidden', flexShrink: 0, position: 'relative', aspectRatio: '3/4', width: '100%' }}>
+                          <Image src={src} alt="" fill sizes="180px" style={{ objectFit: 'cover' }} />
+                        </div>
+                      ))}
+                    </motion.div>
+                  </div>
+                );
+              })()}
+
+              {/* ── CENTRE : texte storytelling ── */}
+              <div style={{
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                padding: '0 2rem', position: 'relative', zIndex: 2,
+              }}>
               {/* Glow décoratif */}
               <div style={{
                 position: 'absolute', top: '30%', left: '50%', transform: 'translateX(-50%)',
@@ -1282,8 +1315,36 @@ export function LandingPage() {
                       style={{ height: 3, borderRadius: 99 }}
                     />
                   ))}
-                </div>
-              </div>
+                </div>{/* fin progress */}
+              </div>{/* fin content z-1 */}
+              </div>{/* fin centre */}
+
+              {/* ── COLONNE DROITE — remonte (décalée) ── */}
+              {(() => {
+                const IMGS_R = [
+                  '/landing/text-revealing/devis_envoye_instantanement_au_client.jpg',
+                  '/landing/text-revealing/retour_vehicule_client.jpg',
+                  '/landing/text-revealing/visibilite_dashboard.jpg',
+                  '/landing/text-revealing/adopter_atelier_maitre.jpg',
+                ];
+                const doubled = [...IMGS_R, ...IMGS_R];
+                return (
+                  <div style={{ overflow: 'hidden', padding: '0.5rem', maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)' }}>
+                    <motion.div
+                      animate={{ y: ['-25%', '-75%'] }}
+                      transition={{ duration: 22, repeat: Infinity, ease: 'linear' }}
+                      style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}
+                    >
+                      {doubled.map((src, i) => (
+                        <div key={i} style={{ borderRadius: 10, overflow: 'hidden', flexShrink: 0, position: 'relative', aspectRatio: '3/4', width: '100%' }}>
+                          <Image src={src} alt="" fill sizes="180px" style={{ objectFit: 'cover' }} />
+                        </div>
+                      ))}
+                    </motion.div>
+                  </div>
+                );
+              })()}
+
             </div>
           </div>
         );
