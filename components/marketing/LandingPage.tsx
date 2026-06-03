@@ -603,47 +603,53 @@ export function LandingPage() {
             height: '100%',
             display: 'grid',
             gridTemplateColumns: '1fr 1fr',
-            gap: '2rem',
-            padding: '5vh 6%',
+            gap: '3rem',
+            padding: '0 6%',
             maxWidth: 1200,
             margin: '0 auto',
-            alignItems: 'start',
+            alignItems: 'center',
           }}>
 
             {/* ── GAUCHE : cartes texte empilées ── */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '1.5vh' }}>
-              <Eyebrow light>Le quotidien de 80 % des garages</Eyebrow>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ marginBottom: '0.5rem' }}>
+                <Eyebrow light>Le quotidien de 80 % des garages</Eyebrow>
+                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.45)', marginTop: '0.25rem' }}>
+                  Vous reconnaissez-vous ?
+                </p>
+              </div>
 
               {PAIN_STORIES.map((story, i) => (
                 <motion.div
                   key={story.step}
                   animate={{
-                    opacity: i === activePainStep ? 1 : 0.38,
-                    scale: i === activePainStep ? 1 : 0.975,
-                    borderColor: i === activePainStep ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.07)',
-                    background: i === activePainStep ? 'rgba(255,255,255,0.13)' : 'rgba(255,255,255,0.04)',
+                    opacity: i === activePainStep ? 1 : 0.32,
+                    scale: i === activePainStep ? 1 : 0.97,
+                    borderColor: i === activePainStep ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.07)',
+                    background: i === activePainStep ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.03)',
                   }}
                   transition={{ duration: 0.35 }}
                   style={{
-                    borderRadius: 14,
-                    padding: '1rem 1.25rem',
+                    borderRadius: 16,
+                    padding: '1.1rem 1.4rem',
                     border: '1px solid',
                     cursor: 'default',
                     transformOrigin: 'left center',
                     overflow: 'hidden',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: i === activePainStep ? '0.5rem' : 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.875rem', marginBottom: i === activePainStep ? '0.6rem' : 0 }}>
                     <span style={{
                       fontFamily: '"Playfair Display", serif',
-                      fontSize: '0.7rem', fontWeight: 900,
-                      color: story.color, letterSpacing: '0.06em',
+                      fontSize: '0.68rem', fontWeight: 900,
+                      color: story.color, letterSpacing: '0.08em',
+                      paddingTop: '0.15rem', flexShrink: 0,
                     }}>
                       {story.step}
                     </span>
                     <p style={{
-                      fontSize: 'clamp(0.85rem, 1.1vw, 1rem)',
-                      fontWeight: 700, color: '#FFFFFF', lineHeight: 1.3,
+                      fontSize: 'clamp(0.88rem, 1.1vw, 1.02rem)',
+                      fontWeight: 700, color: '#FFFFFF', lineHeight: 1.35,
                     }}>
                       {story.headline}
                     </p>
