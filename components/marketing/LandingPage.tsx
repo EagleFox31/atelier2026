@@ -913,7 +913,7 @@ export function LandingPage() {
       {(() => {
         const DEMOS = [
           { Icon: BarChart3,    color: C.brand,  bg: '#FEE2C5', title: 'Tableau de bord live',  desc: 'CA, OT en cours, stock bas — tout en un coup d\'œil. Décisions en temps réel.', desktop: '/features/dashboard-desktop.png',  mobile: '/features/dashboard-mobile.jpg' },
-          { Icon: ClipboardList,color: C.earth,  bg: '#E5E0D8', title: 'Ordres de travail',      desc: 'De la réception au contrôle qualité. Statuts, historique, signature client.', desktop: '/features/workshop-desktop.png',   mobile: '/features/workshop-mobile.jpg' },
+          { Icon: ClipboardList,color: C.earth,  bg: '#E5E0D8', title: 'Ordres de travail',      desc: 'De la réception au contrôle qualité. Statuts, historique, signature client.', desktop: '/features/workshop-desktop.png',   mobile: '/features/workshop-mobile.jpg', desktop2: '/features/workshop-detail-desktop.png', mobile2: '/features/workshop-detail-mobile.jpg' },
           { Icon: FileText,     color: C.gold,   bg: '#FEF3C7', title: 'Devis & factures',       desc: 'TVA 19,25 %, timbre fiscal, PDF en XAF — sans ressaisie, sans erreur.', desktop: '/features/billing-desktop.png',   mobile: '/features/billing-mobile.jpg' },
           { Icon: Package,      color: C.green,  bg: '#D1FAE5', title: 'Stock pièces',           desc: 'Alertes seuil, mouvements liés aux OT, vente comptoir en temps réel.', desktop: '/features/stock-desktop.png',     mobile: '/features/stock-mobile.jpg' },
           { Icon: CalendarDays, color: C.brandDeep, bg: '#FEE2C5', title: 'Planning atelier',   desc: 'Rendez-vous, charge atelier, vue réception optimisée pour le mobile.', desktop: '/features/planning-desktop.png',  mobile: '/features/planning-mobile.jpg' },
@@ -980,80 +980,84 @@ export function LandingPage() {
                 </div>
 
                 {/* ── DROITE : mockup device ── */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', position: 'relative' }}>
+                {(() => {
+                  const demo = DEMOS[activeFeature];
+                  const hasDouble = !!(isMacbook ? demo.desktop2 : demo.mobile2);
 
-                  <AnimatePresence mode="wait">
-                    {isMacbook ? (
-                      /* ── FRAME MACBOOK ── */
-                      <motion.div key="macbook"
-                        initial={{ opacity: 0, scale: 0.96, x: 30 }}
-                        animate={{ opacity: 1, scale: 1, x: 0 }}
-                        exit={{ opacity: 0, scale: 0.96, x: 30 }}
-                        transition={{ duration: 0.3, ease: 'easeOut' }}
-                        style={{ width: '100%', maxWidth: 640 }}
-                      >
-                        {/* Écran */}
-                        <div style={{
-                          background: '#1A1209', borderRadius: '14px 14px 0 0',
-                          padding: '10px 10px 0', boxShadow: '0 32px 80px rgba(0,0,0,0.35)',
-                          border: '1px solid rgba(255,255,255,0.08)',
-                        }}>
-                          {/* Barre titre */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px 8px' }}>
-                            {['#ff5f57','#ffbd2e','#28ca41'].map(c => <span key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c, flexShrink: 0 }} />)}
-                            <div style={{ flex: 1, height: 18, background: 'rgba(255,255,255,0.07)', borderRadius: 6, marginLeft: 8 }} />
-                          </div>
-                          {/* Screen */}
-                          <div style={{ borderRadius: '6px 6px 0 0', overflow: 'hidden', background: C.surface }}>
-                            <AnimatePresence mode="wait">
-                              <motion.div key={activeFeature} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                                <Image src={DEMOS[activeFeature].desktop} alt={DEMOS[activeFeature].title} width={1440} height={900} style={{ width: '100%', height: 'auto', display: 'block' }} />
-                              </motion.div>
-                            </AnimatePresence>
-                          </div>
+                  const MacBook = ({ src }: { src: string }) => (
+                    <div style={{ width: '100%' }}>
+                      <div style={{ background: '#1A1209', borderRadius: '14px 14px 0 0', padding: '10px 10px 0', boxShadow: '0 24px 60px rgba(0,0,0,0.35)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '5px 7px 7px' }}>
+                          {['#ff5f57','#ffbd2e','#28ca41'].map(c => <span key={c} style={{ width: 9, height: 9, borderRadius: '50%', background: c, flexShrink: 0 }} />)}
+                          <div style={{ flex: 1, height: 14, background: 'rgba(255,255,255,0.07)', borderRadius: 5, marginLeft: 6 }} />
                         </div>
-                        {/* Base clavier */}
-                        <div style={{ background: 'linear-gradient(to bottom, #2a2a2a, #1a1a1a)', height: 22, borderRadius: '0 0 4px 4px', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }} />
-                        <div style={{ background: '#111', height: 6, borderRadius: '0 0 12px 12px', margin: '0 5%', boxShadow: '0 4px 16px rgba(0,0,0,0.25)' }} />
-                      </motion.div>
-                    ) : (
-                      /* ── FRAME TÉLÉPHONE ── */
-                      <motion.div key="phone"
-                        initial={{ opacity: 0, scale: 0.96, x: -30 }}
-                        animate={{ opacity: 1, scale: 1, x: 0 }}
-                        exit={{ opacity: 0, scale: 0.96, x: -30 }}
-                        transition={{ duration: 0.3, ease: 'easeOut' }}
-                        style={{ width: 260, flexShrink: 0 }}
-                      >
-                        <div style={{
-                          background: '#1A1209', borderRadius: 40,
-                          padding: '10px 8px', position: 'relative',
-                          boxShadow: '0 32px 80px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.08)',
-                          border: '1px solid rgba(255,255,255,0.06)',
-                        }}>
-                          {/* Dynamic island */}
-                          <div style={{ width: 80, height: 24, background: '#000', borderRadius: 20, margin: '0 auto 6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#1a1a1a', border: '1px solid #333' }} />
-                          </div>
-                          {/* Screen */}
-                          <div style={{ borderRadius: 28, overflow: 'hidden', background: C.surface }}>
-                            <AnimatePresence mode="wait">
-                              <motion.div key={activeFeature} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                                <Image src={DEMOS[activeFeature].mobile} alt={DEMOS[activeFeature].title} width={390} height={844} style={{ width: '100%', height: 'auto', display: 'block' }} />
-                              </motion.div>
-                            </AnimatePresence>
-                          </div>
-                          {/* Home indicator */}
-                          <div style={{ width: 80, height: 4, background: 'rgba(255,255,255,0.25)', borderRadius: 99, margin: '8px auto 2px' }} />
+                        <div style={{ borderRadius: '5px 5px 0 0', overflow: 'hidden', background: C.surface }}>
+                          <AnimatePresence mode="wait">
+                            <motion.div key={src} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                              <Image src={src} alt="" width={1440} height={900} style={{ width: '100%', height: 'auto', display: 'block' }} />
+                            </motion.div>
+                          </AnimatePresence>
                         </div>
-                        {/* Boutons côté */}
-                        <div style={{ position: 'absolute', right: -3, top: '25%', width: 3, height: 40, background: '#333', borderRadius: '0 2px 2px 0' }} />
-                        <div style={{ position: 'absolute', left: -3, top: '20%', width: 3, height: 28, background: '#333', borderRadius: '2px 0 0 2px' }} />
-                        <div style={{ position: 'absolute', left: -3, top: '28%', width: 3, height: 28, background: '#333', borderRadius: '2px 0 0 2px' }} />
+                      </div>
+                      <div style={{ background: 'linear-gradient(to bottom, #2a2a2a, #1a1a1a)', height: 18, borderRadius: '0 0 4px 4px' }} />
+                      <div style={{ background: '#111', height: 5, borderRadius: '0 0 10px 10px', margin: '0 5%' }} />
+                    </div>
+                  );
+
+                  const Phone = ({ src }: { src: string }) => (
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      <div style={{ background: '#1A1209', borderRadius: 36, padding: '9px 7px', boxShadow: '0 24px 60px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div style={{ width: 68, height: 20, background: '#000', borderRadius: 16, margin: '0 auto 5px' }} />
+                        <div style={{ borderRadius: 24, overflow: 'hidden', background: C.surface }}>
+                          <AnimatePresence mode="wait">
+                            <motion.div key={src} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+                              <Image src={src} alt="" width={390} height={844} style={{ width: '100%', height: 'auto', display: 'block' }} />
+                            </motion.div>
+                          </AnimatePresence>
+                        </div>
+                        <div style={{ width: 70, height: 4, background: 'rgba(255,255,255,0.22)', borderRadius: 99, margin: '7px auto 1px' }} />
+                      </div>
+                    </div>
+                  );
+
+                  return (
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={`${isMacbook ? 'mac' : 'ph'}-${hasDouble ? 'dbl' : 'sgl'}`}
+                        initial={{ opacity: 0, scale: 0.97, x: isMacbook ? 20 : -20 }}
+                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.97 }}
+                        transition={{ duration: 0.3, ease: 'easeOut' }}
+                        style={{
+                          display: 'flex', gap: hasDouble ? '1rem' : 0,
+                          alignItems: 'center', justifyContent: 'center',
+                          width: '100%', height: '100%',
+                          padding: hasDouble ? '2vh 0' : '4vh 0',
+                        }}
+                      >
+                        {isMacbook ? (
+                          hasDouble ? (
+                            <>
+                              <div style={{ flex: 1, minWidth: 0 }}><MacBook src={demo.desktop} /></div>
+                              <div style={{ flex: 1, minWidth: 0 }}><MacBook src={demo.desktop2!} /></div>
+                            </>
+                          ) : (
+                            <div style={{ width: '100%', maxWidth: 620 }}><MacBook src={demo.desktop} /></div>
+                          )
+                        ) : (
+                          hasDouble ? (
+                            <>
+                              <div style={{ width: 'calc(50% - 0.5rem)', maxWidth: 200 }}><Phone src={demo.mobile} /></div>
+                              <div style={{ width: 'calc(50% - 0.5rem)', maxWidth: 200 }}><Phone src={demo.mobile2!} /></div>
+                            </>
+                          ) : (
+                            <div style={{ width: 240 }}><Phone src={demo.mobile} /></div>
+                          )
+                        )}
                       </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                    </AnimatePresence>
+                  );
+                })()}
               </div>
 
               {/* Toggle MacBook / Phone — absolu en bas à droite */}
