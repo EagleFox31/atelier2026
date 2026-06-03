@@ -119,7 +119,7 @@ const FAQ = [
   },
   {
     q: 'Faut-il un serveur sur place ?',
-    a: 'Non en mode cloud : navigateur + téléphone suffit. Déploiement possible sur un VPS si vous préférez garder vos données en local.',
+    a: 'Non. Un téléphone avec internet suffit — rien à installer, rien à acheter. Vos données sont sécurisées en ligne et accessibles depuis n\'importe où.',
   },
   {
     q: 'Que deviennent mes données existantes ?',
