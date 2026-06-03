@@ -596,7 +596,7 @@ export function LandingPage() {
       <div ref={painStoryRef} id="probleme" style={{ height: `${PAIN_STORIES.length * 100}vh`, position: 'relative' }}>
         <div
           ref={painRef}
-          style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: 'rgba(10,5,2,0.75)' }}
+          style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: 'transparent' }}
         >
           {/* Orb parallax décoratif */}
           <motion.div style={{
@@ -634,11 +634,12 @@ export function LandingPage() {
             </AnimatePresence>
           </div>
 
-          {/* Texte gauche */}
+          {/* Texte gauche — dégradé derrière pour lisibilité sans écraser l'image */}
           <div style={{
             position: 'absolute', left: 0, top: 0, bottom: 0, width: '55%',
             display: 'flex', flexDirection: 'column', justifyContent: 'center',
             padding: '0 5% 0 7%', zIndex: 2,
+            background: 'linear-gradient(to right, rgba(8,4,1,0.55) 0%, rgba(8,4,1,0.30) 70%, transparent 100%)',
           }}>
             <Eyebrow light>Le quotidien de 80 % des garages</Eyebrow>
 
