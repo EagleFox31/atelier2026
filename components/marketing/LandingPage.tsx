@@ -581,16 +581,55 @@ export function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.35, delay: i * 0.08 }}
-                style={{
-                  background: 'rgba(255,255,255,0.04)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 12, padding: '1.5rem',
+                whileHover="hovered"
+                animate="rest"
+                variants={{
+                  rest: {
+                    y: 0,
+                    background: 'rgba(255,255,255,0.04)',
+                    borderColor: 'rgba(255,255,255,0.08)',
+                    boxShadow: `0 0 0px ${color}00`,
+                  },
+                  hovered: {
+                    y: -8,
+                    background: `${color}18`,
+                    borderColor: `${color}55`,
+                    boxShadow: `0 16px 40px ${color}25`,
+                    transition: { type: 'spring', stiffness: 320, damping: 22 },
+                  },
                 }}
+                style={{ borderRadius: 16, padding: '1.5rem', border: '1px solid', cursor: 'default' }}
               >
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-                  <Icon size={20} color={color} />
-                </div>
-                <p style={{ fontSize: '0.875rem', color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, fontWeight: 500 }}>{text}</p>
+                {/* Icône — secousse "alerte" au hover */}
+                <motion.div
+                  variants={{
+                    rest: { rotate: 0, scale: 1 },
+                    hovered: {
+                      rotate: [0, -12, 12, -8, 8, -4, 4, 0],
+                      scale: 1.15,
+                      transition: { duration: 0.55, ease: 'easeInOut' },
+                    },
+                  }}
+                  style={{
+                    width: 44, height: 44, borderRadius: 11,
+                    background: `${color}22`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    marginBottom: '1rem',
+                  }}
+                >
+                  <Icon size={21} color={color} />
+                </motion.div>
+
+                {/* Texte — s'éclaircit au hover */}
+                <motion.p
+                  variants={{
+                    rest: { color: 'rgba(255,255,255,0.62)' },
+                    hovered: { color: 'rgba(255,255,255,0.95)' },
+                  }}
+                  style={{ fontSize: '0.875rem', lineHeight: 1.65, fontWeight: 500 }}
+                >
+                  {text}
+                </motion.p>
               </motion.div>
             ))}
           </div>
