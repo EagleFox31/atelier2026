@@ -927,9 +927,9 @@ export function LandingPage() {
             <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: C.surface }}>
               <div style={{
                 height: '100%', display: 'grid',
-                gridTemplateColumns: '40% 1fr',
-                gap: '0', maxWidth: 1280, margin: '0 auto',
-                padding: '0 5%', alignItems: 'center',
+                gridTemplateColumns: '34% 1fr',
+                gap: '0', maxWidth: 1400, margin: '0 auto',
+                padding: '0 4%', alignItems: 'center',
               }}>
 
                 {/* ── GAUCHE : liste features ── */}
@@ -1029,10 +1029,10 @@ export function LandingPage() {
                         exit={{ opacity: 0, scale: 0.97 }}
                         transition={{ duration: 0.3, ease: 'easeOut' }}
                         style={{
-                          display: 'flex', gap: hasDouble ? '1rem' : 0,
+                          display: 'flex', gap: hasDouble ? '1.25rem' : 0,
                           alignItems: 'center', justifyContent: 'center',
                           width: '100%', height: '100%',
-                          padding: hasDouble ? '2vh 0' : '4vh 0',
+                          padding: '3vh 2%',
                         }}
                       >
                         {isMacbook ? (
@@ -1042,7 +1042,7 @@ export function LandingPage() {
                               <div style={{ flex: 1, minWidth: 0 }}><MacBook src={demo.desktop2!} /></div>
                             </>
                           ) : (
-                            <div style={{ width: '100%', maxWidth: 620 }}><MacBook src={demo.desktop} /></div>
+                            <div style={{ width: '100%' }}><MacBook src={demo.desktop} /></div>
                           )
                         ) : (
                           hasDouble ? (
