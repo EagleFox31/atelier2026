@@ -636,7 +636,7 @@ export function LandingPage() {
               </Link>
             </div>
 
-            <div className="mt-0 md:mt-3" style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
+            <div className="mt-3 md:mt-3" style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
               {[
                 [ShieldCheck, C.green,   'Essai pilote gratuit'],
                 [Globe,       C.gold,    'Support en français'],
@@ -738,10 +738,41 @@ export function LandingPage() {
           ref={painRef}
           style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden' }}
         >
-          {/* ── Layout grille : texte gauche + carte image flottante droite ── */}
+          {/* ── MOBILE : image plein fond + text card overlay ── */}
+          {isMobile && (
+            <div style={{ position: 'absolute', inset: 0, zIndex: 10 }}>
+              <AnimatePresence mode="wait">
+                <motion.div key={activePainStep} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} style={{ position: 'absolute', inset: 0 }}>
+                  <Image src={PAIN_STORIES[activePainStep].image} alt="" fill sizes="100vw" style={{ objectFit: 'cover', objectPosition: 'center' }} />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(200,81,26,0.3) 0%, rgba(10,5,2,0.8) 70%)' }} />
+                </motion.div>
+              </AnimatePresence>
+              {/* Text card overlay bas */}
+              <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '1.5rem', zIndex: 2 }}>
+                <Eyebrow light>Le quotidien de 80 % des garages</Eyebrow>
+                <AnimatePresence mode="wait">
+                  <motion.div key={activePainStep} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.3 }}
+                    style={{ background: 'rgba(255,255,255,0.10)', backdropFilter: 'blur(12px)', borderRadius: 18, padding: '1.25rem 1.5rem', border: '1px solid rgba(255,255,255,0.18)', marginTop: '0.75rem' }}
+                  >
+                    <span style={{ fontFamily: '"Playfair Display", serif', fontSize: '0.9rem', fontWeight: 900, color: PAIN_STORIES[activePainStep].color }}>{PAIN_STORIES[activePainStep].step}</span>
+                    <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '1.2rem', fontWeight: 900, color: '#FFFFFF', lineHeight: 1.25, margin: '0.4rem 0 0.625rem' }}>{PAIN_STORIES[activePainStep].headline}</p>
+                    <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.68)', lineHeight: 1.6 }}>{PAIN_STORIES[activePainStep].detail}</p>
+                  </motion.div>
+                </AnimatePresence>
+                {/* Dots */}
+                <div style={{ display: 'flex', gap: '0.4rem', marginTop: '1rem', justifyContent: 'center' }}>
+                  {PAIN_STORIES.map((s, i) => (
+                    <motion.div key={i} animate={{ width: i === activePainStep ? 24 : 6, background: i === activePainStep ? s.color : 'rgba(255,255,255,0.3)' }} transition={{ duration: 0.3 }} style={{ height: 4, borderRadius: 99 }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── DESKTOP : layout grille texte + image flottante ── */}
           <div style={{
             height: '100%',
-            display: 'grid',
+            display: isMobile ? 'none' : 'grid',
             gridTemplateColumns: '1fr 1fr',
             gap: '3rem',
             padding: '0 6%',
@@ -1308,6 +1339,16 @@ export function LandingPage() {
               </div>{/* fin centre */}
 
               {/* ── DEUX COLONNES DROITE — une monte, l'autre descend ── */}
+              {/* Carousel horizontal sur mobile */}
+              {isMobile && (
+                <div style={{ position: 'absolute', bottom: '3rem', left: 0, right: 0, overflowX: 'auto', overflowY: 'hidden', scrollSnapType: 'x mandatory', display: 'flex', gap: '0.75rem', padding: '0 1.5rem', zIndex: 2, scrollbarWidth: 'none' }}>
+                  {[...PAIN_STORIES.map(s=>s.image), '/landing/gérant_garage.jpg', '/landing/chef_atelier.jpg', '/landing/mecanicien.jpg', '/landing/reception.jpg'].map((src, i) => (
+                    <div key={i} style={{ flexShrink: 0, width: 120, height: 160, borderRadius: 14, overflow: 'hidden', scrollSnapAlign: 'start', position: 'relative' }}>
+                      <Image src={src} alt="" fill sizes="120px" style={{ objectFit: 'cover' }} />
+                    </div>
+                  ))}
+                </div>
+              )}
               {!isMobile && <div style={{ display: 'flex', gap: '0.625rem', overflow: 'hidden', padding: '0.75rem 0.75rem 0.75rem 0' }}>
                 {[
                   {
@@ -1828,7 +1869,7 @@ export function LandingPage() {
         <div className="landing-inner landing-grid-2" style={{ alignItems: 'start', gap: '4rem' }}>
 
           {/* Gauche — titre + CTA */}
-          <div style={{ position: 'sticky', top: '6rem' }}>
+          <div style={{ position: isMobile ? 'static' : 'sticky', top: isMobile ? undefined : '6rem' }}>
             <Eyebrow>Questions fréquentes</Eyebrow>
             <SectionHeading>Ce que les garages demandent</SectionHeading>
             <Lead style={{ maxWidth: 360, marginTop: '0.875rem' }}>
