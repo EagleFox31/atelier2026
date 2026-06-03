@@ -349,9 +349,13 @@ export function LandingPage() {
     target: stepsStoryRef,
     offset: ['start start', 'end end'],
   });
-  const stepsLineWidth = useTransform(stepsScroll, [0, 1], ['0%', '100%']);
+  // Ligne : démarre à 15% de scroll, finit à 85% — plus de "pause" aux extrémités
+  const stepsLineWidth = useTransform(stepsScroll, [0.05, 0.90], ['0%', '100%']);
   useMotionValueEvent(stepsScroll, 'change', (v) => {
-    setActiveStepsStep(Math.min(2, Math.floor(v * 3)));
+    // Chaque step prend ~30% de scroll — transitions plus lentes et dramatiques
+    if (v < 0.30) setActiveStepsStep(0);
+    else if (v < 0.62) setActiveStepsStep(1);
+    else setActiveStepsStep(2);
   });
 
   /* ── Scroll rôles ── */
@@ -769,7 +773,7 @@ export function LandingPage() {
           { step: '03', Icon: Zap,      color: C.brand,  title: 'Gérez vos premiers OT', desc: 'Créez un OT, envoyez un devis PDF en XAF, encaissez. Tout est lié. Automatiquement.' },
         ];
         return (
-          <div ref={stepsStoryRef} id="demarrage" style={{ height: '400vh', position: 'relative', background: 'rgba(245,240,233,0.55)' }}>
+          <div ref={stepsStoryRef} id="demarrage" style={{ height: '550vh', position: 'relative', background: 'rgba(245,240,233,0.55)' }}>
             <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 6%' }}>
               <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%' }}>
 
@@ -777,9 +781,9 @@ export function LandingPage() {
                 <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
                   <Eyebrow>Démarrage</Eyebrow>
                   <SectionHeading>Opérationnel en 3 étapes</SectionHeading>
-                  <Lead style={{ maxWidth: 460, margin: '0.75rem auto 0' }}>
+                  <p style={{ maxWidth: 460, margin: '0.75rem auto 0', fontSize: '1.05rem', lineHeight: 1.7, color: C.earth, opacity: 0.72 }}>
                     Aucune installation. Votre atelier en ligne en moins de 10 minutes.
-                  </Lead>
+                  </p>
                 </div>
 
                 {/* Timeline */}
@@ -810,12 +814,12 @@ export function LandingPage() {
                           <motion.div
                             animate={{
                               background: active ? C.brand : C.white,
-                              boxShadow: active ? `0 0 0 4px ${C.brand}33, 0 8px 24px ${C.brand}30` : `0 0 0 2px rgba(200,81,26,0.15)`,
-                              scale: active ? 1.1 : 1,
+                              boxShadow: active ? `0 0 0 6px ${C.brand}40, 0 12px 32px ${C.brand}45` : `0 0 0 2px rgba(200,81,26,0.15)`,
+                              scale: active ? 1.25 : 1,
                             }}
-                            transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+                            transition={{ type: 'spring', stiffness: 200, damping: 18 }}
                             style={{
-                              width: 42, height: 42, borderRadius: '50%',
+                              width: 48, height: 48, borderRadius: '50%',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
                               marginBottom: '1.5rem', zIndex: 1, position: 'relative',
                             }}
@@ -833,8 +837,8 @@ export function LandingPage() {
 
                           {/* Contenu */}
                           <motion.div
-                            animate={{ opacity: active ? 1 : 0.35, y: active ? 0 : 6 }}
-                            transition={{ duration: 0.4 }}
+                            animate={{ opacity: active ? 1 : 0.28, y: active ? 0 : 18, scale: active ? 1 : 0.96 }}
+                            transition={{ duration: 0.5, ease: 'easeOut' }}
                             style={{
                               background: active ? C.white : 'rgba(255,255,255,0.5)',
                               borderRadius: 16, padding: '1.5rem',
