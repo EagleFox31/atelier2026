@@ -453,7 +453,7 @@ export function LandingPage() {
               </Link>
             </div>
 
-            <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
+            <div className="mt-0 md:mt-3" style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
               {[
                 [ShieldCheck, C.green,   'Essai pilote gratuit'],
                 [Globe,       C.gold,    'Support en français'],
