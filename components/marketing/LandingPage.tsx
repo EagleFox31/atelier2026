@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { motion, useScroll, useTransform, useReducedMotion } from 'motion/react';
 import {
   ArrowRight,
-  Wrench,
   ChevronDown,
   FileText,
   Package,
@@ -34,6 +33,8 @@ import {
 
 import { LANDING_COLORS as C } from '@/components/marketing/landing-colors';
 import { LandingKenteBar } from '@/components/marketing/LandingKenteBar';
+import { LandingNav } from '@/components/marketing/LandingNav';
+import { BrandCalligraphy } from '@/components/marketing/brand-calligraphy';
 
 const ROLES = [
   { photo: '/landing/gérant_garage.jpg',  role: 'Gérant',         desc: 'Vue CA consolidée, pilotage multi-sites et alertes en temps réel.' },
@@ -43,7 +44,7 @@ const ROLES = [
   { photo: '/landing/caissier.jpg',             role: 'Caissier',       desc: 'Génère la facture, enregistre l\'encaissement et clôture la journée.' },
   { photo: '/landing/carrossier.jpg',           role: 'Carrossier',     desc: 'Accès à ses fiches véhicule et historique d\'interventions carrosserie.' },
 ];
-import { BrandCalligraphy } from '@/components/marketing/brand-calligraphy';
+
 const FEATURES = [
   {
     Icon: ClipboardList,
@@ -224,7 +225,7 @@ function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
         onClick={() => setOpen((o) => !o)}
         style={{
           width: '100%',
-          padding: '1.125rem 1.5rem',
+          padding: '1rem 1.125rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -339,8 +340,7 @@ export function LandingPage() {
     transition: 'background 0.2s',
   };
 
-  const sectionPad: React.CSSProperties = { padding: '5rem 5%' };
-  const inner: React.CSSProperties = { maxWidth: 1200, margin: '0 auto' };
+  const sectionClass = 'landing-section-y landing-px';
 
   return (
     <div
@@ -348,43 +348,16 @@ export function LandingPage() {
       style={{ fontFamily: '"DM Sans", system-ui, sans-serif', background: C.surface, color: C.earth, overflowX: 'hidden' }}
     >
 
-      {/* ── NAV + bandeau kente ── */}
-      <header style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100 }}>
-        <LandingKenteBar />
-        <nav
-          style={{
-            background: 'rgba(253,250,244,0.93)',
-            backdropFilter: 'blur(12px)',
-            borderBottom: '1px solid rgba(200,81,26,0.1)',
-            padding: '0 5%',
-          }}
-        >
-        <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 64 }}>
-          <span style={{ fontFamily: '"Playfair Display", serif', fontSize: '1.25rem', fontWeight: 700, color: C.earth }}>
-            Atelier <span style={{ color: C.brand }}>Maître</span>
-          </span>
-          <div style={{ display: 'flex', gap: '2rem', listStyle: 'none' }} role="list">
-            {[['#fonctionnalites', 'Fonctionnalités'], ['#tarifs', 'Tarifs'], ['#faq', 'FAQ']].map(([href, label]) => (
-              <Link key={href} href={href} style={{ textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500, color: C.muted }}>
-                {label}
-              </Link>
-            ))}
-          </div>
-          <Link href="/demo" style={{ ...btnPrimary, padding: '0.5rem 1.25rem', fontSize: '0.875rem' }}>
-            Réserver une démo <ArrowRight size={14} />
-          </Link>
-        </div>
-        </nav>
-      </header>
+      <LandingNav btnPrimary={btnPrimary} />
 
       {/* ── HERO ── */}
       <section
         ref={heroRef}
+        className="landing-px pt-[5.25rem] pb-8 sm:pt-24 sm:pb-10"
         style={{
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
-          padding: '6rem 5% 2.5rem',
           position: 'relative',
           overflow: 'hidden',
           background: 'linear-gradient(145deg, #1A1209 0%, #2D1B09 40%, #3D2310 70%, #C8511A 120%)',
@@ -413,7 +386,7 @@ export function LandingPage() {
           y: glow2Y,
         }} />
 
-        <div style={{ ...inner, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+        <div className="landing-inner landing-grid-hero relative z-[2]">
           {/* Copie */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ y: copyY, opacity: copyOpacity }}>
             {/* Badge */}
@@ -444,11 +417,11 @@ export function LandingPage() {
               Sans carnet, sans ressaisie, sans perdre le fil.
             </p>
 
-            <div style={{ display: 'flex', gap: '0.875rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-              <Link href="/demo" style={btnPrimary}>
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <Link href="/demo" className="w-full sm:w-auto" style={{ ...btnPrimary, justifyContent: 'center' }}>
                 Réserver une démo <ArrowRight size={16} />
               </Link>
-              <Link href="/inscription" style={btnGhost}>
+              <Link href="/inscription" className="w-full sm:w-auto" style={{ ...btnGhost, justifyContent: 'center' }}>
                 <UserPlus size={16} /> Créer mon atelier
               </Link>
             </div>
@@ -509,7 +482,7 @@ export function LandingPage() {
                 </span>
               </div>
               {/* KPIs */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.625rem', padding: '1rem', background: C.surface }}>
+              <div className="landing-kpi-row" style={{ padding: '1rem', background: C.surface }}>
                 {[
                   { label: 'OT en cours', value: '12',   color: C.earth  },
                   { label: 'CA du jour',   value: '485k', color: C.brand  },
@@ -528,8 +501,8 @@ export function LandingPage() {
                   { ref: 'OT-2026-0138', veh: 'Peugeot 301 · LT 8890 CD',       status: 'PRÊT',       bg: C.greenLight, fg: C.green },
                   { ref: 'OT-2026-0135', veh: 'Nissan Hardbody · SW 4455 EF',   status: 'CONTRÔLE Q', bg: '#FEF3C7', fg: '#92400E' },
                 ].map((row) => (
-                  <div key={row.ref} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.875rem', borderRadius: 8, background: C.sand, marginBottom: '0.5rem', gap: '0.75rem' }}>
-                    <div>
+                  <div key={row.ref} className="landing-ot-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.65rem 0.875rem', borderRadius: 8, background: C.sand, marginBottom: '0.5rem', gap: '0.75rem' }}>
+                    <div className="min-w-0 flex-1">
                       <p style={{ fontSize: '0.75rem', fontWeight: 700, color: C.earth }}>{row.ref}</p>
                       <p style={{ fontSize: '0.68rem', color: C.muted, marginTop: 1 }}>{row.veh}</p>
                     </div>
@@ -550,7 +523,7 @@ export function LandingPage() {
       </section>
 
       {/* ── PAIN ── */}
-      <section ref={painRef} id="probleme" style={{ background: '#1A1209', ...sectionPad, position: 'relative', overflow: 'hidden' }}>
+      <section ref={painRef} id="probleme" className={`${sectionClass} relative overflow-hidden`} style={{ background: '#1A1209' }}>
         {/* Orbs parallax */}
         <motion.div style={{
           position: 'absolute', top: '-15%', right: '-5%',
@@ -566,14 +539,14 @@ export function LandingPage() {
           pointerEvents: 'none',
           y: painOrb2Y,
         }} />
-        <div style={{ ...inner, textAlign: 'center', position: 'relative', zIndex: 1 }}>
+        <div className="landing-inner text-center relative z-[1]">
           <Eyebrow light>Le quotidien de 80 % des garages</Eyebrow>
           <SectionHeading light>Vous vous reconnaissez ?</SectionHeading>
           <Lead light style={{ maxWidth: 520, margin: '0.875rem auto 0' }}>
             Chaque jour, des heures perdues. Des clients qui rappellent. Du chiffre qui s&apos;évapore. Ce n&apos;est pas une fatalité.
           </Lead>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginTop: '2.5rem' }}>
+          <div className="landing-grid-4 mt-10">
             {PAIN_POINTS.map(({ Icon, color, text }, i) => (
               <motion.div
                 key={text}
@@ -612,8 +585,8 @@ export function LandingPage() {
       </section>
 
       {/* ── STEPS ── */}
-      <section id="demarrage" style={{ background: C.sand, ...sectionPad }}>
-        <div style={inner}>
+      <section id="demarrage" className={sectionClass} style={{ background: C.sand }}>
+        <div className="landing-inner">
           <div style={{ textAlign: 'center' }}>
             <Eyebrow>Démarrage</Eyebrow>
             <SectionHeading>Opérationnel en 3 étapes</SectionHeading>
@@ -621,7 +594,7 @@ export function LandingPage() {
               Aucune installation, aucun serveur. Votre atelier en ligne en moins de 10 minutes.
             </Lead>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginTop: '3rem' }}>
+          <div className="landing-grid-3 mt-12">
             {[
               { step: '01', Icon: UserPlus,  color: C.brand,  bg: '#FEE2C5', title: 'Créez votre garage',     desc: 'Nom, ville, contact — 3 minutes. Votre espace est prêt, personnalisé à votre enseigne.' },
               { step: '02', Icon: Users,     color: C.earth,  bg: '#E5E0D8', title: 'Invitez votre équipe',   desc: 'Techniciens, réceptionniste, caissier — chacun reçoit son accès avec les bons droits.' },
@@ -650,12 +623,12 @@ export function LandingPage() {
       </section>
 
       {/* ── FEATURES ── */}
-      <section id="fonctionnalites" style={{ background: C.white, ...sectionPad }}>
-        <div style={inner}>
+      <section id="fonctionnalites" className={sectionClass} style={{ background: C.white }}>
+        <div className="landing-inner">
           <Eyebrow>Plateforme</Eyebrow>
           <SectionHeading>Tout l&apos;atelier. Une seule plateforme.</SectionHeading>
           <Lead style={{ maxWidth: 520 }}>Inspiré des meilleurs logiciels garage — adapté au terrain camerounais, sans complexité inutile.</Lead>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem', marginTop: '3rem' }}>
+          <div className="landing-grid-3 mt-12">
             {FEATURES.map(({ Icon, color, bg, title, desc }, i) => (
               <motion.div
                 key={title}
@@ -682,8 +655,8 @@ export function LandingPage() {
       </section>
 
       {/* ── STATS ── */}
-      <div style={{ background: `linear-gradient(135deg, ${C.brand} 0%, ${C.brandDeep} 100%)`, padding: '3.5rem 5%' }}>
-        <div style={{ ...inner, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+      <div className="landing-stats-band" style={{ background: `linear-gradient(135deg, ${C.brand} 0%, ${C.brandDeep} 100%)` }}>
+        <div className="landing-inner landing-grid-4">
           {STATS.map(({ Icon, color, value, label }, i) => (
             <motion.div
               key={label}
@@ -702,7 +675,7 @@ export function LandingPage() {
       </div>
 
       {/* ── ÉQUIPE / RÔLES ── */}
-      <section ref={rolesRef} style={{ background: C.white, ...sectionPad, position: 'relative', overflow: 'hidden' }}>
+      <section ref={rolesRef} className={`${sectionClass} relative overflow-hidden`} style={{ background: C.white }}>
         {/* Cercle décoratif parallax */}
         <motion.div style={{
           position: 'absolute', top: '50%', right: '-12%',
@@ -711,19 +684,14 @@ export function LandingPage() {
           pointerEvents: 'none', zIndex: 0,
           y: rolesBgY,
         }} />
-        <div style={{ ...inner, textAlign: 'center', position: 'relative', zIndex: 1 }}>
+        <div className="landing-inner text-center relative z-[1]">
           <Eyebrow>Pour toute votre équipe</Eyebrow>
           <SectionHeading>Un outil, six rôles, zéro confusion.</SectionHeading>
           <Lead style={{ maxWidth: 540, margin: '0.875rem auto 0' }}>
             Chacun voit exactement ce dont il a besoin. Ni trop, ni trop peu.
           </Lead>
 
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-            gap: '1.5rem',
-            marginTop: '3rem',
-          }}>
+          <div className="landing-grid-roles mt-12">
             {ROLES.map(({ photo, role, desc }, i) => (
               <motion.div
                 key={role}
@@ -762,8 +730,8 @@ export function LandingPage() {
       </section>
 
       {/* ── MULTI-GARAGES ── */}
-      <section id="multi-garages" style={{ background: C.sand, ...sectionPad }}>
-        <div style={{ ...inner, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
+      <section id="multi-garages" className={sectionClass} style={{ background: C.sand }}>
+        <div className="landing-inner landing-grid-2">
           <div>
             <Eyebrow>Réseaux & groupes</Eyebrow>
             <SectionHeading>Un patron, plusieurs garages.</SectionHeading>
@@ -814,8 +782,8 @@ export function LandingPage() {
       </section>
 
       {/* ── MOBILE & CONTEXTE ── */}
-      <section style={{ background: C.white, ...sectionPad }}>
-        <div style={{ ...inner, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center' }}>
+      <section className={sectionClass} style={{ background: C.white }}>
+        <div className="landing-inner landing-grid-2">
           <div>
             <Eyebrow>Terrain</Eyebrow>
             <SectionHeading>Mobile dès la réception.</SectionHeading>
@@ -855,15 +823,15 @@ export function LandingPage() {
       </section>
 
       {/* ── PRICING ── */}
-      <section id="tarifs" style={{ background: C.sand, ...sectionPad }}>
-        <div style={{ ...inner, textAlign: 'center' }}>
+      <section id="tarifs" className={sectionClass} style={{ background: C.sand }}>
+        <div className="landing-inner text-center">
           <Eyebrow>Tarifs</Eyebrow>
           <SectionHeading>Simple. Transparent. Engagé.</SectionHeading>
           <Lead style={{ maxWidth: 500, margin: '0.875rem auto 0' }}>
             Un seul plan avec tout inclus dès le premier jour. Testez gratuitement, engagez-vous ensuite.
           </Lead>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '3rem', maxWidth: 800, marginLeft: 'auto', marginRight: 'auto' }}>
+          <div className="landing-grid-pricing">
             {/* Pro */}
             <motion.div
               initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
@@ -925,8 +893,8 @@ export function LandingPage() {
       </section>
 
       {/* ── FAQ ── */}
-      <section id="faq" style={{ background: C.white, ...sectionPad }}>
-        <div style={{ ...inner, textAlign: 'center' }}>
+      <section id="faq" className={sectionClass} style={{ background: C.white }}>
+        <div className="landing-inner text-center">
           <Eyebrow>Questions fréquentes</Eyebrow>
           <SectionHeading>Ce que les garages demandent</SectionHeading>
           <Lead style={{ maxWidth: 480, margin: '0.875rem auto 0', textAlign: 'center' }}>
@@ -941,13 +909,12 @@ export function LandingPage() {
       </section>
 
       {/* ── CTA FINAL ── */}
-      <section ref={ctaRef} style={{
+      <section ref={ctaRef} className={`${sectionClass} relative overflow-hidden text-center`} style={{
         background: 'linear-gradient(135deg, #1A1209 0%, #2D1B09 50%, #3D2310 100%)',
-        padding: '5rem 5%', textAlign: 'center', position: 'relative', overflow: 'hidden',
       }}>
         <motion.div style={{
           position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
-          width: 600, height: 300, borderRadius: '50%',
+          width: 'min(600px, 100%)', height: 300, borderRadius: '50%',
           background: 'radial-gradient(ellipse, rgba(200,81,26,0.25) 0%, transparent 70%)',
           pointerEvents: 'none',
           y: ctaGlowY,
@@ -972,13 +939,12 @@ export function LandingPage() {
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
+            className="landing-cta-testimonial"
             style={{
-              display: 'inline-flex', alignItems: 'flex-start', gap: '1rem',
               marginTop: '2.5rem',
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: 16, padding: '1.25rem 1.5rem',
-              maxWidth: 480, textAlign: 'left',
             }}
           >
             <div style={{ width: 52, height: 52, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: `2px solid ${C.gold}55`, position: 'relative' }}>
@@ -997,12 +963,12 @@ export function LandingPage() {
       {/* ── FOOTER ── */}
       <footer style={{ background: '#1A1209', borderTop: 'none' }}>
         <LandingKenteBar />
-        <div style={{ ...inner, padding: '2.5rem 5%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+        <div className="landing-inner landing-px py-10 sm:py-12">
+          <div className="landing-footer-row">
             <span style={{ fontFamily: '"Playfair Display", serif', fontSize: '1.1rem', fontWeight: 700, color: '#FFFFFF' }}>
               Atelier <span style={{ color: C.goldLight }}>Maître</span>
             </span>
-            <div style={{ display: 'flex', gap: '1.5rem' }}>
+            <div className="landing-footer-links">
               {['Mentions légales', 'Confidentialité', 'Contact'].map((l) => (
                 <Link key={l} href="#" style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.35)', textDecoration: 'none' }}>{l}</Link>
               ))}

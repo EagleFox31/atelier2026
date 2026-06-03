@@ -19,6 +19,7 @@ import {
   Users,
 } from 'lucide-react';
 import { PasswordStrengthIndicator } from '@/components/signup/PasswordStrengthIndicator';
+import { Loader } from '@/components/ui/loader';
 import { LandingKenteBar } from '@/components/marketing/LandingKenteBar';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -230,7 +231,7 @@ export function SignupWizard() {
   if (checking) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-brand" />
+        <Loader size="md" />
       </div>
     );
   }
