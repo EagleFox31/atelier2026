@@ -106,24 +106,24 @@ const STATS = [
 
 const FAQ = [
   {
-    q: 'Pour qui est Atelier Maître ?',
-    a: 'Garages indépendants et petits groupes (2–5 sites) au Cameroun : mécanique, réception, caisse, chef d\'atelier. Pensé pour le terrain, pas pour une grande chaîne.',
+    q: 'Pour qui est fait Atelier Maître ?',
+    a: 'Pour les propriétaires de garage au Cameroun — qu\'ils aient un seul atelier ou plusieurs. Que vous ayez 2 employés ou 20, l\'application s\'adapte à votre équipe.',
   },
   {
-    q: 'Puis-je gérer plusieurs garages ?',
-    a: 'Oui. Un compte patron regroupe plusieurs ateliers (ex. Douala + Yaoundé). Chaque employé reste rattaché à un seul garage avec ses propres accès.',
+    q: 'Je gère plusieurs garages, ça marche ?',
+    a: 'Oui. Vous créez un compte, vous ajoutez vos garages (Douala, Yaoundé, Bafoussam…). Chaque employé travaille dans son atelier, vous voyez tout depuis un seul tableau de bord.',
   },
   {
-    q: 'Comment installer l\'app sur mon téléphone ?',
-    a: 'Sur Android ou ordinateur : installation en un clic. Sur iPhone : Partager → Sur l\'écran d\'accueil dans Safari. Aucun Play Store requis.',
+    q: 'Comment l\'avoir sur mon téléphone ?',
+    a: 'Sur Android : ouvrez le site, appuyez sur "Ajouter à l\'écran d\'accueil" — c\'est comme une appli normale. Sur iPhone : dans Safari, appuyez sur Partager puis "Sur l\'écran d\'accueil". Gratuit, sans passer par un store.',
   },
   {
     q: 'Faut-il un serveur sur place ?',
     a: 'Non. Un téléphone avec internet suffit — rien à installer, rien à acheter. Vos données sont sécurisées en ligne et accessibles depuis n\'importe où.',
   },
   {
-    q: 'Que deviennent mes données existantes ?',
-    a: 'Reprise clients et véhicules possible au déploiement. On prépare l\'import avec vous — aucune perte d\'historique.',
+    q: 'Et mes clients et véhicules déjà enregistrés ?',
+    a: 'On s\'en occupe. On vous aide à importer votre liste de clients et de véhicules au démarrage — vous ne repartez pas de zéro.',
   },
 ];
 
@@ -482,8 +482,8 @@ export function LandingPage() {
                 ))}
               </div>
               <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>
-                <strong style={{ color: 'rgba(255,255,255,0.8)' }}>Garages camerounais</strong><br />
-                déjà structurés avec Atelier Maître
+                <strong style={{ color: 'rgba(255,255,255,0.8)' }}>10+ garages</strong><br />
+                déjà sur Atelier Maître
               </p>
             </div>
           </motion.div>
