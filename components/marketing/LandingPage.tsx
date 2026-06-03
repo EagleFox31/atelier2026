@@ -1244,8 +1244,9 @@ export function LandingPage() {
           >
             <div style={{
               position: 'sticky', top: 0, height: '100vh',
-              display: 'grid',
-              gridTemplateColumns: isMobile ? '1fr' : '1fr 380px',
+              display: isMobile ? 'flex' : 'grid',
+              flexDirection: isMobile ? 'column' : undefined,
+              gridTemplateColumns: isMobile ? undefined : '1fr 380px',
               overflow: 'hidden',
             }}>
 
@@ -1253,8 +1254,10 @@ export function LandingPage() {
               <div style={{
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center',
-                padding: '0 2rem', position: 'relative', zIndex: 2,
-                height: '100%',
+                padding: isMobile ? '2rem 2rem 0' : '0 2rem',
+                position: 'relative', zIndex: 2,
+                flex: isMobile ? '1' : undefined,
+                height: isMobile ? undefined : '100%',
               }}>
               {/* Glow décoratif */}
               <div style={{
@@ -1339,7 +1342,7 @@ export function LandingPage() {
               </div>{/* fin centre */}
 
               {/* ── DEUX COLONNES DROITE — une monte, l'autre descend ── */}
-              {/* Marquee horizontal automatique sur mobile */}
+              {/* Marquee horizontal — dans le flux, en bas du flex */}
               {isMobile && (() => {
                 const ALL_IMGS = [
                   'arrive_en_atelier','ot_30s','process_digitalise','service_transparent',
@@ -1347,15 +1350,15 @@ export function LandingPage() {
                 ];
                 const doubled = [...ALL_IMGS, ...ALL_IMGS];
                 return (
-                  <div style={{ position: 'absolute', bottom: '4rem', left: 0, right: 0, overflow: 'hidden', zIndex: 2 }}>
+                  <div style={{ overflow: 'hidden', paddingBottom: '1.5rem', flexShrink: 0 }}>
                     <motion.div
                       animate={{ x: ['0%', '-50%'] }}
                       transition={{ duration: 35, repeat: Infinity, ease: 'linear' }}
                       style={{ display: 'flex', gap: '0.625rem', width: 'max-content' }}
                     >
                       {doubled.map((name, i) => (
-                        <div key={i} style={{ flexShrink: 0, width: 100, height: 140, borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
-                          <Image src={`/landing/text-revealing/${name}.jpg`} alt="" fill sizes="100px" style={{ objectFit: 'cover' }} />
+                        <div key={i} style={{ flexShrink: 0, width: 90, height: 120, borderRadius: 10, overflow: 'hidden', position: 'relative' }}>
+                          <Image src={`/landing/text-revealing/${name}.jpg`} alt="" fill sizes="90px" style={{ objectFit: 'cover' }} />
                         </div>
                       ))}
                     </motion.div>
