@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Loader } from '@/components/ui/loader';
 import { Wrench, Loader2, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { getApiErrorMessage, type ApiUser } from '@/lib/api';
 import { resolvePostLoginRoute } from '@/lib/role-routing';
@@ -60,7 +61,7 @@ export default function LoginPage() {
   if (isLoading || isAuthenticated) {
     return (
       <div className="landing-page landing-auth-shell flex min-h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-brand" />
+        <Loader size="md" />
       </div>
     );
   }
