@@ -369,6 +369,13 @@ function SplitFlap({ value, active, color = '#F2C95A' }: { value: string; active
 export function LandingPage() {
   const DEFAULT_ROLE_PHOTO = '/landing/gérant_garage.jpg';
   const [hoveredRolePhoto, setHoveredRolePhoto] = useState<string>(DEFAULT_ROLE_PHOTO);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
   const [activePainStep, setActivePainStep] = useState(0);
   const [activeStepsStep, setActiveStepsStep] = useState(0);
   const stepsStoryRef = useRef<HTMLDivElement>(null);
@@ -906,22 +913,22 @@ export function LandingPage() {
                 {/* Timeline */}
                 <div style={{ position: 'relative' }}>
 
-                  {/* Ligne de fond (grise) */}
-                  <div style={{
+                  {/* Ligne de fond (grise) — desktop only */}
+                  {!isMobile && <div style={{
                     position: 'absolute', top: 20, left: '16.6%', right: '16.6%', height: 2,
                     background: 'rgba(200,81,26,0.12)', borderRadius: 99,
-                  }} />
+                  }} />}
 
-                  {/* Ligne qui se dessine */}
-                  <motion.div style={{
+                  {/* Ligne qui se dessine — desktop only */}
+                  {!isMobile && <motion.div style={{
                     position: 'absolute', top: 20, left: '16.6%', height: 2,
                     background: `linear-gradient(to right, ${C.brand}, ${C.gold})`,
                     borderRadius: 99, width: stepsLineWidth,
                     maxWidth: 'calc(100% - 33.2%)',
-                  }} />
+                  }} />}
 
                   {/* Steps */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '2rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: isMobile ? '1.25rem' : '2rem' }}>
                     {STEPS.map(({ step, Icon, color, title, desc }, i) => {
                       const active = i <= activeStepsStep;
                       return (
@@ -1002,20 +1009,22 @@ export function LandingPage() {
           { Icon: TrendingUp,   color: C.red,    bg: '#FEE2E2', title: 'Rapports & performances',desc: 'CA, performance techniciens, factures en attente — indicateurs clés.', desktop: '/features/reports-desktop.png',   mobile: '/features/reports-mobile.jpg' },
         ];
 
-        const isMacbook = deviceView === 'macbook';
+        const isMacbook = !isMobile && deviceView === 'macbook';
 
         return (
           <div ref={featuresStoryRef} id="fonctionnalites" style={{ height: '750vh', position: 'relative', background: C.surface }}>
             <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: C.surface }}>
               <div style={{
                 height: '100%', display: 'grid',
-                gridTemplateColumns: '30% 1fr',
+                gridTemplateColumns: isMobile ? '1fr' : '30% 1fr',
+                gridTemplateRows: isMobile ? 'auto 1fr' : undefined,
                 gap: '0', maxWidth: 1500, margin: '0 auto',
-                padding: '0 3%', alignItems: 'center',
+                padding: isMobile ? '2rem 5%' : '0 3%', alignItems: 'center',
+                overflowY: isMobile ? 'auto' : undefined,
               }}>
 
                 {/* ── GAUCHE : liste features ── */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', paddingRight: '2.5rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', paddingRight: isMobile ? 0 : '2.5rem' }}>
                   <div style={{ marginBottom: '1rem' }}>
                     <Eyebrow>Plateforme</Eyebrow>
                     <p style={{ fontFamily: '"Playfair Display", serif', fontSize: 'clamp(1.5rem, 2.2vw, 2rem)', fontWeight: 900, color: C.earth, lineHeight: 1.2, marginTop: '0.4rem' }}>
@@ -1205,7 +1214,7 @@ export function LandingPage() {
             <div style={{
               position: 'sticky', top: 0, height: '100vh',
               display: 'grid',
-              gridTemplateColumns: '1fr 380px',
+              gridTemplateColumns: isMobile ? '1fr' : '1fr 380px',
               overflow: 'hidden',
             }}>
 
@@ -1299,7 +1308,7 @@ export function LandingPage() {
               </div>{/* fin centre */}
 
               {/* ── DEUX COLONNES DROITE — une monte, l'autre descend ── */}
-              <div style={{ display: 'flex', gap: '0.625rem', overflow: 'hidden', padding: '0.75rem 0.75rem 0.75rem 0' }}>
+              {!isMobile && <div style={{ display: 'flex', gap: '0.625rem', overflow: 'hidden', padding: '0.75rem 0.75rem 0.75rem 0' }}>
                 {[
                   {
                     imgs: ['arrive_en_atelier','ot_30s','process_digitalise','service_transparent'],
@@ -1330,7 +1339,7 @@ export function LandingPage() {
                     </div>
                   );
                 })}
-              </div>
+              </div>}
 
             </div>
           </div>
