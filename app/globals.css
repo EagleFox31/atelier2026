@@ -148,35 +148,86 @@
     }
 }
 
-/* Page marketing publique — confort visuel & lisibilité */
+/* Page marketing publique — palette terre cuite / kente (landing, login, inscription) */
 .landing-page {
-  /* Palette inspirée textiles & paysages d'Afrique centrale / kente */
-  --afrique-brand: #1d6fa4;
-  --afrique-gold: #d4a017;
-  --afrique-ochre: #e8a838;
-  --afrique-terracotta: #c4693a;
-  --afrique-forest: #1f6b45;
-  --afrique-savanna: #5a8f4a;
-  --afrique-earth: #8b5e3c;
-  --afrique-coral: #d45d4a;
-  --afrique-sand: #faf6f0;
-  --afrique-cream: #f3ebe0;
-  --afrique-sky: #eef4fa;
+  --brand: #c8511a;
+  --brand-hover: #8b3210;
+  --brand-light: #fee2c5;
 
-  --afrique-gold-soft: rgb(212 160 23 / 0.14);
-  --afrique-gold-ring: rgb(212 160 23 / 0.28);
-  --afrique-forest-soft: rgb(31 107 69 / 0.12);
-  --afrique-forest-ring: rgb(31 107 69 / 0.22);
-  --afrique-terra-soft: rgb(196 105 58 / 0.12);
-  --afrique-terra-ring: rgb(196 105 58 / 0.25);
-  --afrique-brand-soft: rgb(29 111 164 / 0.12);
-  --afrique-brand-ring: rgb(29 111 164 / 0.2);
+  --afrique-brand: #c8511a;
+  --afrique-brand-deep: #8b3210;
+  --afrique-gold: #d4a432;
+  --afrique-gold-light: #f2c95a;
+  --afrique-ochre: #d4a432;
+  --afrique-terracotta: #c8511a;
+  --afrique-forest: #1d6a4a;
+  --afrique-savanna: #1d6a4a;
+  --afrique-earth: #1a1209;
+  --afrique-earth-muted: #6b5b4e;
+  --afrique-coral: #b91c1c;
+  --afrique-sand: #f5edd8;
+  --afrique-sand-2: #ede0c4;
+  --afrique-surface: #fdfaf4;
+  --afrique-cream: #f5edd8;
+  --afrique-sky: #fdfaf4;
+
+  --afrique-gold-soft: rgb(212 164 50 / 0.14);
+  --afrique-gold-ring: rgb(212 164 50 / 0.28);
+  --afrique-forest-soft: rgb(29 106 74 / 0.12);
+  --afrique-forest-ring: rgb(29 106 74 / 0.22);
+  --afrique-terra-soft: rgb(200 81 26 / 0.12);
+  --afrique-terra-ring: rgb(200 81 26 / 0.22);
+  --afrique-brand-soft: rgb(200 81 26 / 0.1);
+  --afrique-brand-ring: rgb(200 81 26 / 0.18);
 
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
   text-rendering: optimizeLegibility;
-  background-color: var(--afrique-sand);
+  background-color: var(--afrique-surface);
+  color: var(--afrique-earth);
+}
+
+.landing-auth-shell {
+  background-color: var(--afrique-surface);
+}
+
+.landing-auth-panel {
+  background: linear-gradient(
+    145deg,
+    #1a1209 0%,
+    #2d1b09 40%,
+    #3d2310 70%,
+    #c8511a 120%
+  );
+}
+
+.landing-auth-card {
+  border: 1px solid rgb(200 81 26 / 0.12);
+  background: var(--afrique-white, #ffffff);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgb(26 18 9 / 0.06);
+}
+
+.landing-auth-input {
+  border-color: rgb(200 81 26 / 0.18) !important;
+  background: rgb(255 255 255 / 0.95) !important;
+}
+
+.landing-auth-input:focus-visible {
+  border-color: var(--afrique-brand) !important;
+  --tw-ring-color: rgb(200 81 26 / 0.2) !important;
+}
+
+.landing-auth-btn-primary {
+  background: var(--afrique-brand) !important;
+  color: #ffffff !important;
+  border-radius: 0.75rem !important;
+  font-weight: 600 !important;
+}
+
+.landing-auth-btn-primary:hover {
+  background: var(--afrique-brand-deep) !important;
 }
 
 /* Bandeau kente discret */
@@ -202,9 +253,8 @@
   background: linear-gradient(
     105deg,
     var(--afrique-brand) 0%,
-    #2a8fd4 35%,
-    var(--afrique-gold) 70%,
-    var(--afrique-terracotta) 100%
+    var(--afrique-gold) 55%,
+    var(--afrique-brand-deep) 100%
   );
   -webkit-background-clip: text;
   background-clip: text;
@@ -230,11 +280,11 @@
 
 .landing-cta-africa {
   background: linear-gradient(
-    135deg,
-    var(--afrique-brand) 0%,
-    #1a5c7a 30%,
-    var(--afrique-forest) 65%,
-    #155a87 100%
+    145deg,
+    #1a1209 0%,
+    #2d1b09 45%,
+    #3d2310 75%,
+    var(--afrique-brand) 120%
   );
 }
 

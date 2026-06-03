@@ -37,14 +37,17 @@ export function SectionEyebrow({
 export function SectionTitle({
   children,
   className,
+  id,
   as: Tag = 'h2',
 }: {
   children: React.ReactNode;
   className?: string;
+  id?: string;
   as?: 'h1' | 'h2' | 'h3';
 }) {
   return (
     <Tag
+      id={id}
       className={cn(
         'text-balance font-bold tracking-tight text-slate-800',
         Tag === 'h1' && 'text-4xl sm:text-5xl lg:text-[3.25rem] lg:leading-[1.08]',

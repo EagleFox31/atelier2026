@@ -237,7 +237,7 @@ export function SignupWizard() {
 
   if (unavailable) {
     return (
-      <div className="mx-auto max-w-md rounded-2xl border border-[var(--afrique-gold)]/25 bg-white p-8 text-center shadow-lg">
+      <div className="mx-auto max-w-md rounded-2xl border border-[var(--afrique-brand-ring)] bg-white p-8 text-center shadow-sm">
         <p className="text-slate-600">{unavailable}</p>
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
           <Link href="/login" className={buttonVariants()}>
@@ -296,7 +296,7 @@ export function SignupWizard() {
           ))}
         </ul>
         <Button
-          className="w-full h-12 rounded-xl bg-gradient-to-r from-brand to-[var(--afrique-forest)] text-white"
+          className="landing-auth-btn-primary h-12 w-full rounded-xl"
           onClick={() => router.replace('/dashboard')}
         >
           Accéder au tableau de bord
@@ -339,7 +339,7 @@ export function SignupWizard() {
               </span>
               {i < STEPS.length - 1 && (
                 <div
-                  className="absolute hidden h-0.5 w-full bg-gradient-to-r from-[var(--afrique-gold)]/40 to-[var(--afrique-forest)]/40 md:block"
+                  className="absolute hidden h-0.5 w-full bg-gradient-to-r from-[var(--afrique-brand)]/30 to-[var(--afrique-gold)]/40 md:block"
                   aria-hidden
                 />
               )}
@@ -348,7 +348,7 @@ export function SignupWizard() {
         })}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[var(--afrique-gold)]/20 bg-white shadow-xl shadow-[var(--afrique-terra-soft)] ring-1 ring-slate-900/[0.04]">
+      <div className="overflow-hidden rounded-2xl border border-[var(--afrique-brand-ring)] bg-white shadow-sm ring-1 ring-[var(--afrique-terra-soft)]">
         <LandingKenteBar className="h-1.5" />
         <div className="p-6 sm:p-8">
           {step === 1 && (
@@ -442,7 +442,7 @@ export function SignupWizard() {
                 </Field>
                 <Button
                   type="submit"
-                  className="h-12 w-full rounded-xl bg-gradient-to-r from-brand via-[#1a6a9c] to-[var(--afrique-forest)] text-white shadow-md ring-1 ring-[var(--afrique-gold)]/30"
+                  className="landing-auth-btn-primary h-12 w-full rounded-xl shadow-sm"
                 >
                   Continuer <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -500,7 +500,7 @@ export function SignupWizard() {
                   </Button>
                   <Button
                     type="submit"
-                    className="h-11 flex-[2] rounded-xl bg-gradient-to-r from-brand to-[var(--afrique-forest)] text-white"
+                    className="landing-auth-btn-primary h-11 flex-[2] rounded-xl"
                   >
                     Continuer <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
@@ -590,7 +590,7 @@ export function SignupWizard() {
                 </Button>
                 <Button
                   type="button"
-                  className="h-11 flex-1 rounded-xl bg-gradient-to-r from-[var(--afrique-gold)] to-[var(--afrique-terracotta)] text-white shadow-md"
+                  className="landing-auth-btn-primary h-11 flex-1 rounded-xl shadow-sm"
                   disabled={submitting}
                   onClick={() => finishSignup(false)}
                 >
