@@ -300,6 +300,8 @@ function FaqItem({ q, a, index }: { q: string; a: string; index: number }) {
 export function LandingPage() {
   const [hoveredRolePhoto, setHoveredRolePhoto] = useState<string | null>(null);
   const [activePainStep, setActivePainStep] = useState(0);
+  const [activeStepsStep, setActiveStepsStep] = useState(0);
+  const stepsStoryRef = useRef<HTMLDivElement>(null);
   const painStoryRef = useRef<HTMLDivElement>(null);
   // painRef réutilisé comme ref div pour le sticky inner
 
@@ -340,6 +342,16 @@ export function LandingPage() {
   });
   useMotionValueEvent(painStoryScroll, 'change', (v) => {
     setActivePainStep(Math.min(PAIN_STORIES.length - 1, Math.floor(v * PAIN_STORIES.length)));
+  });
+
+  /* ── Scroll steps timeline ── */
+  const { scrollYProgress: stepsScroll } = useScroll({
+    target: stepsStoryRef,
+    offset: ['start start', 'end end'],
+  });
+  const stepsLineWidth = useTransform(stepsScroll, [0, 1], ['0%', '100%']);
+  useMotionValueEvent(stepsScroll, 'change', (v) => {
+    setActiveStepsStep(Math.min(2, Math.floor(v * 3)));
   });
 
   /* ── Scroll rôles ── */
@@ -749,43 +761,114 @@ export function LandingPage() {
         </div>
       </div>
 
-      {/* ── STEPS ── */}
-      <section id="demarrage" className={sectionClass} style={{ background: C.sand }}>
-        <div className="landing-inner">
-          <div style={{ textAlign: 'center' }}>
-            <Eyebrow>Démarrage</Eyebrow>
-            <SectionHeading>Opérationnel en 3 étapes</SectionHeading>
-            <Lead style={{ maxWidth: 520, margin: '0.875rem auto 0' }}>
-              Aucune installation, aucun serveur. Votre atelier en ligne en moins de 10 minutes.
-            </Lead>
-          </div>
-          <div className="landing-grid-3 mt-12">
-            {[
-              { step: '01', Icon: UserPlus,  color: C.brand,  bg: '#FEE2C5', title: 'Créez votre garage',     desc: 'Nom, ville, contact — 3 minutes. Votre espace est prêt, personnalisé à votre enseigne.' },
-              { step: '02', Icon: Users,     color: C.earth,  bg: '#E5E0D8', title: 'Invitez votre équipe',   desc: 'Techniciens, réceptionniste, caissier — chacun reçoit son accès avec les bons droits.' },
-              { step: '03', Icon: Zap,       color: C.brand,  bg: '#FEE2C5', title: 'Gérez vos premiers OT', desc: 'Créez un OT, envoyez un devis PDF en XAF, encaissez. Tout est lié. Automatiquement.' },
-            ].map(({ step, Icon, color, bg, title, desc }, i) => (
-              <motion.div
-                key={step}
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.35, delay: i * 0.08 }}
-                style={{ background: C.white, borderRadius: 20, padding: '2rem', border: '1px solid rgba(200,81,26,0.08)', position: 'relative', overflow: 'hidden' }}
-              >
-                <span style={{ position: 'absolute', top: '-0.5rem', right: '1rem', fontFamily: '"Playfair Display", serif', fontSize: '5rem', fontWeight: 900, color: 'rgba(200,81,26,0.06)', lineHeight: 1, userSelect: 'none' }}>
-                  {step}
-                </span>
-                <div style={{ width: 48, height: 48, borderRadius: 12, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem' }}>
-                  <Icon size={22} color={color} />
+      {/* ── STEPS — timeline horizontale au scroll ── */}
+      {(() => {
+        const STEPS = [
+          { step: '01', Icon: UserPlus, color: C.brand,  title: 'Créez votre garage',   desc: 'Nom, ville, contact — 3 minutes. Votre espace est prêt, personnalisé à votre enseigne.' },
+          { step: '02', Icon: Users,    color: C.earth,  title: 'Invitez votre équipe', desc: 'Techniciens, réceptionnaire, caissier — chacun reçoit son accès avec les bons droits.' },
+          { step: '03', Icon: Zap,      color: C.brand,  title: 'Gérez vos premiers OT', desc: 'Créez un OT, envoyez un devis PDF en XAF, encaissez. Tout est lié. Automatiquement.' },
+        ];
+        return (
+          <div ref={stepsStoryRef} id="demarrage" style={{ height: '400vh', position: 'relative', background: 'rgba(245,240,233,0.55)' }}>
+            <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 6%' }}>
+              <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+
+                {/* Header */}
+                <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
+                  <Eyebrow>Démarrage</Eyebrow>
+                  <SectionHeading>Opérationnel en 3 étapes</SectionHeading>
+                  <Lead style={{ maxWidth: 460, margin: '0.75rem auto 0' }}>
+                    Aucune installation. Votre atelier en ligne en moins de 10 minutes.
+                  </Lead>
                 </div>
-                <h3 style={{ fontWeight: 700, fontSize: '1rem', color: C.earth, marginBottom: '0.5rem' }}>{title}</h3>
-                <p style={{ fontSize: '0.875rem', color: C.muted, lineHeight: 1.7 }}>{desc}</p>
+
+                {/* Timeline */}
+                <div style={{ position: 'relative' }}>
+
+                  {/* Ligne de fond (grise) */}
+                  <div style={{
+                    position: 'absolute', top: 20, left: '16.6%', right: '16.6%', height: 2,
+                    background: 'rgba(200,81,26,0.12)', borderRadius: 99,
+                  }} />
+
+                  {/* Ligne qui se dessine */}
+                  <motion.div style={{
+                    position: 'absolute', top: 20, left: '16.6%', height: 2,
+                    background: `linear-gradient(to right, ${C.brand}, ${C.gold})`,
+                    borderRadius: 99, width: stepsLineWidth,
+                    maxWidth: 'calc(100% - 33.2%)',
+                  }} />
+
+                  {/* Steps */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '2rem' }}>
+                    {STEPS.map(({ step, Icon, color, title, desc }, i) => {
+                      const active = i <= activeStepsStep;
+                      return (
+                        <div key={step} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+
+                          {/* Node + icône */}
+                          <motion.div
+                            animate={{
+                              background: active ? C.brand : C.white,
+                              boxShadow: active ? `0 0 0 4px ${C.brand}33, 0 8px 24px ${C.brand}30` : `0 0 0 2px rgba(200,81,26,0.15)`,
+                              scale: active ? 1.1 : 1,
+                            }}
+                            transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+                            style={{
+                              width: 42, height: 42, borderRadius: '50%',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              marginBottom: '1.5rem', zIndex: 1, position: 'relative',
+                            }}
+                          >
+                            <Icon size={18} color={active ? '#fff' : C.muted} />
+                          </motion.div>
+
+                          {/* Numéro */}
+                          <motion.span
+                            animate={{ color: active ? C.brand : C.muted }}
+                            style={{ fontFamily: '"Playfair Display", serif', fontSize: '0.75rem', fontWeight: 900, letterSpacing: '0.08em', marginBottom: '0.5rem', display: 'block' }}
+                          >
+                            {step}
+                          </motion.span>
+
+                          {/* Contenu */}
+                          <motion.div
+                            animate={{ opacity: active ? 1 : 0.35, y: active ? 0 : 6 }}
+                            transition={{ duration: 0.4 }}
+                            style={{
+                              background: active ? C.white : 'rgba(255,255,255,0.5)',
+                              borderRadius: 16, padding: '1.5rem',
+                              border: `1px solid ${active ? 'rgba(200,81,26,0.14)' : 'rgba(200,81,26,0.06)'}`,
+                              boxShadow: active ? '0 8px 32px rgba(200,81,26,0.10)' : 'none',
+                              width: '100%',
+                            }}
+                          >
+                            <h3 style={{ fontWeight: 700, fontSize: '0.95rem', color: C.earth, marginBottom: '0.5rem' }}>{title}</h3>
+                            <p style={{ fontSize: '0.83rem', color: C.muted, lineHeight: 1.65 }}>{desc}</p>
+                          </motion.div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Scroll hint */}
+              <motion.div
+                animate={{ opacity: activeStepsStep === 0 ? 1 : 0 }}
+                style={{
+                  position: 'absolute', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem',
+                  color: C.muted, pointerEvents: 'none',
+                }}
+              >
+                <span style={{ fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Scroll</span>
+                <ChevronDown size={16} />
               </motion.div>
-            ))}
+            </div>
           </div>
-        </div>
-      </section>
+        );
+      })()}
 
       {/* ── FEATURES ── */}
       <section id="fonctionnalites" className={sectionClass} style={{ background: C.white }}>
