@@ -596,125 +596,144 @@ export function LandingPage() {
       <div ref={painStoryRef} id="probleme" style={{ height: `${(PAIN_STORIES.length + 1) * 100}vh`, position: 'relative', background: C.brand }}>
         <div
           ref={painRef}
-          style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: 'transparent' }}
+          style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden' }}
         >
-          {/* Orb parallax décoratif */}
-          <motion.div style={{
-            position: 'absolute', top: '-15%', right: '-5%',
-            width: 500, height: 500, borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(200,81,26,0.10) 0%, transparent 65%)',
-            pointerEvents: 'none', y: painOrb1Y,
-          }} />
-
-          {/* Image droite — crossfade entre steps */}
-          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '50%' }}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activePainStep}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.25 }}
-                style={{ position: 'absolute', inset: 0 }}
-              >
-                <Image
-                  src={PAIN_STORIES[activePainStep].image}
-                  alt=""
-                  fill
-                  priority
-                  sizes="50vw"
-                  style={{ objectFit: 'cover', objectPosition: 'center' }}
-                />
-                {/* Gradient gauche → transparent pour fondre avec le texte */}
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  background: 'linear-gradient(to right, rgba(10,5,2,0.70) 0%, rgba(10,5,2,0.10) 45%, transparent 100%)',
-                }} />
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          {/* Texte gauche — dégradé derrière pour lisibilité sans écraser l'image */}
+          {/* ── Layout grille : texte gauche + carte image flottante droite ── */}
           <div style={{
-            position: 'absolute', left: 0, top: 0, bottom: 0, width: '55%',
-            display: 'flex', flexDirection: 'column', justifyContent: 'center',
-            padding: '0 5% 0 7%', zIndex: 2,
-            background: 'linear-gradient(to right, rgba(8,4,1,0.55) 0%, rgba(8,4,1,0.30) 70%, transparent 100%)',
+            height: '100%',
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '2rem',
+            padding: '5vh 6%',
+            maxWidth: 1200,
+            margin: '0 auto',
+            alignItems: 'start',
           }}>
-            <Eyebrow light>Le quotidien de 80 % des garages</Eyebrow>
 
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activePainStep}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -16 }}
-                transition={{ duration: 0.3, ease: 'easeOut' }}
-              >
-                {/* Numéro step */}
-                <p style={{
-                  fontFamily: '"Playfair Display", serif',
-                  fontSize: 'clamp(5rem, 10vw, 8rem)',
-                  fontWeight: 900, lineHeight: 1,
-                  color: 'rgba(255,255,255,0.15)',
-                  marginBottom: '-1rem',
-                  userSelect: 'none',
-                }}>
-                  {PAIN_STORIES[activePainStep].step}
-                </p>
+            {/* ── GAUCHE : cartes texte empilées ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingTop: '1.5vh' }}>
+              <Eyebrow light>Le quotidien de 80 % des garages</Eyebrow>
 
-                <h2 style={{
-                  fontFamily: '"Playfair Display", serif',
-                  fontSize: 'clamp(1.6rem, 3vw, 2.5rem)',
-                  fontWeight: 900, lineHeight: 1.15,
-                  color: '#FFFFFF', letterSpacing: '-0.02em',
-                  marginBottom: '1rem',
-                }}>
-                  {PAIN_STORIES[activePainStep].headline}
-                </h2>
-
-                <p style={{
-                  fontSize: '1.05rem', lineHeight: 1.75,
-                  color: 'rgba(255,255,255,0.62)', maxWidth: 420,
-                }}>
-                  {PAIN_STORIES[activePainStep].detail}
-                </p>
-              </motion.div>
-            </AnimatePresence>
-
-            {/* Barre de progression */}
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '3rem', alignItems: 'center' }}>
-              {PAIN_STORIES.map((s, i) => (
+              {PAIN_STORIES.map((story, i) => (
                 <motion.div
-                  key={i}
+                  key={story.step}
                   animate={{
-                    width: i === activePainStep ? 32 : 8,
-                    background: i === activePainStep ? s.color : 'rgba(255,255,255,0.2)',
+                    opacity: i === activePainStep ? 1 : 0.38,
+                    scale: i === activePainStep ? 1 : 0.975,
+                    borderColor: i === activePainStep ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.07)',
+                    background: i === activePainStep ? 'rgba(255,255,255,0.13)' : 'rgba(255,255,255,0.04)',
                   }}
-                  transition={{ duration: 0.3 }}
-                  style={{ height: 4, borderRadius: 99 }}
-                />
+                  transition={{ duration: 0.35 }}
+                  style={{
+                    borderRadius: 14,
+                    padding: '1rem 1.25rem',
+                    border: '1px solid',
+                    cursor: 'default',
+                    transformOrigin: 'left center',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: i === activePainStep ? '0.5rem' : 0 }}>
+                    <span style={{
+                      fontFamily: '"Playfair Display", serif',
+                      fontSize: '0.7rem', fontWeight: 900,
+                      color: story.color, letterSpacing: '0.06em',
+                    }}>
+                      {story.step}
+                    </span>
+                    <p style={{
+                      fontSize: 'clamp(0.85rem, 1.1vw, 1rem)',
+                      fontWeight: 700, color: '#FFFFFF', lineHeight: 1.3,
+                    }}>
+                      {story.headline}
+                    </p>
+                  </div>
+
+                  {/* Détail — slide down sur la carte active */}
+                  <motion.div
+                    animate={{ height: i === activePainStep ? 'auto' : 0, opacity: i === activePainStep ? 1 : 0 }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <p style={{ fontSize: '0.83rem', color: 'rgba(255,255,255,0.60)', lineHeight: 1.65 }}>
+                      {story.detail}
+                    </p>
+                  </motion.div>
+                </motion.div>
               ))}
-              <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)', marginLeft: '0.5rem', fontWeight: 600 }}>
-                {activePainStep + 1} / {PAIN_STORIES.length}
-              </span>
             </div>
+
+            {/* ── DROITE : carte image qui voyage ── */}
+            <div style={{ position: 'relative', height: '90vh' }}>
+              {/* Carte qui se déplace en spring vers le step actif */}
+              <motion.div
+                animate={{ y: `${activePainStep * 12}vh` }}
+                transition={{ type: 'spring', stiffness: 180, damping: 26 }}
+                style={{
+                  position: 'absolute',
+                  left: 0, right: 0,
+                  height: '56vh',
+                  borderRadius: 24,
+                  overflow: 'hidden',
+                  boxShadow: '0 32px 80px rgba(0,0,0,0.45)',
+                }}
+              >
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activePainStep}
+                    initial={{ opacity: 0, scale: 1.04 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ position: 'absolute', inset: 0 }}
+                  >
+                    <Image
+                      src={PAIN_STORIES[activePainStep].image}
+                      alt={PAIN_STORIES[activePainStep].headline}
+                      fill
+                      priority
+                      sizes="45vw"
+                      style={{ objectFit: 'cover', objectPosition: 'center' }}
+                    />
+                    {/* Léger dégradé bas pour la lisibilité */}
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(to top, rgba(8,4,1,0.50) 0%, transparent 50%)',
+                    }} />
+                    {/* Label step en bas de la carte */}
+                    <div style={{
+                      position: 'absolute', bottom: '1.25rem', left: '1.25rem',
+                      display: 'flex', alignItems: 'center', gap: '0.5rem',
+                    }}>
+                      <span style={{
+                        background: PAIN_STORIES[activePainStep].color,
+                        color: '#fff', fontWeight: 700, fontSize: '0.7rem',
+                        padding: '0.2rem 0.6rem', borderRadius: 99,
+                        letterSpacing: '0.06em',
+                      }}>
+                        {PAIN_STORIES[activePainStep].step}
+                      </span>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </motion.div>
+            </div>
+
           </div>
 
-          {/* Scroll hint (disparaît après le 1er step) */}
-          {activePainStep === 0 && (
-            <motion.div
-              initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              style={{
-                position: 'absolute', bottom: '2rem', left: '50%', transform: 'translateX(-50%)',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem',
-                color: 'rgba(255,255,255,0.25)',
-              }}
-            >
-              <span style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Continuez à scroller</span>
-              <ChevronDown size={18} />
-            </motion.div>
-          )}
+          {/* Scroll hint */}
+          <motion.div
+            animate={{ opacity: activePainStep === 0 ? 1 : 0 }}
+            transition={{ duration: 0.3 }}
+            style={{
+              position: 'absolute', bottom: '1.5rem', left: '50%', transform: 'translateX(-50%)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem',
+              color: 'rgba(255,255,255,0.30)', pointerEvents: 'none',
+            }}
+          >
+            <span style={{ fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Scroll</span>
+            <ChevronDown size={16} />
+          </motion.div>
         </div>
       </div>
 
