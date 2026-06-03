@@ -596,7 +596,7 @@ export function LandingPage() {
       <div ref={painStoryRef} id="probleme" style={{ height: `${PAIN_STORIES.length * 100}vh`, position: 'relative' }}>
         <div
           ref={painRef}
-          style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: 'rgba(10,5,2,0.96)' }}
+          style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', background: 'rgba(10,5,2,0.75)' }}
         >
           {/* Orb parallax décoratif */}
           <motion.div style={{
@@ -628,7 +628,7 @@ export function LandingPage() {
                 {/* Gradient gauche → transparent pour fondre avec le texte */}
                 <div style={{
                   position: 'absolute', inset: 0,
-                  background: 'linear-gradient(to right, rgba(10,5,2,0.85) 0%, rgba(10,5,2,0.2) 50%, transparent 100%)',
+                  background: 'linear-gradient(to right, rgba(10,5,2,0.70) 0%, rgba(10,5,2,0.10) 45%, transparent 100%)',
                 }} />
               </motion.div>
             </AnimatePresence>
@@ -899,7 +899,7 @@ export function LandingPage() {
                 {/* Gradient permanent bas → haut pour lisibilité */}
                 <div style={{
                   position: 'absolute', inset: 0,
-                  background: 'linear-gradient(to top, rgba(10,5,2,0.82) 0%, rgba(10,5,2,0.18) 55%, transparent 100%)',
+                  background: 'linear-gradient(to top, rgba(10,5,2,0.62) 0%, rgba(10,5,2,0.08) 55%, transparent 100%)',
                 }} />
 
                 {/* ── Sous-card texte (glassmorphism) ── */}
