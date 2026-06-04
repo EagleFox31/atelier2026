@@ -1,4 +1,5 @@
-# NestJS API — linux/arm64 (Oracle Always Free Ampere)
+# syntax=docker/dockerfile:1
+# NestJS API — linux/amd64
 FROM node:20-bookworm-slim AS builder
 
 WORKDIR /app
@@ -7,7 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-cert
   && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
 
 COPY prisma ./prisma
 COPY prisma.config.ts ./
@@ -29,7 +31,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm install prisma@7.7.0 --no-save --ignore-scripts && npm cache clean --force
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev && npm install prisma@7.7.0 --no-save --ignore-scripts
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma

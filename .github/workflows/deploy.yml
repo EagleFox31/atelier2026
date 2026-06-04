@@ -1,6 +1,5 @@
 name: Deploy
 
-# Déclenché après réussite du CI sur main (qui inclut semantic-release), ou manuellement
 on:
   workflow_run:
     workflows: ['CI']
@@ -9,21 +8,61 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ── Job 1 : build les images sur le runner GitHub et pousse vers GHCR ─────────
+  # ── Détection des changements ─────────────────────────────────────────────────
+  changes:
+    name: Detect changed files
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'src/**'
+              - 'server.ts'
+              - 'prisma/**'
+              - 'scripts/**'
+              - 'tsconfig.server*.json'
+              - 'deploy/docker/Dockerfile.api'
+              - 'package.json'
+              - 'package-lock.json'
+            web:
+              - 'app/**'
+              - 'components/**'
+              - 'lib/**'
+              - 'contexts/**'
+              - 'hooks/**'
+              - 'public/**'
+              - 'styles/**'
+              - 'deploy/docker/Dockerfile.web'
+              - 'next.config.*'
+              - 'tailwind.config.*'
+              - 'package.json'
+              - 'package-lock.json'
+
+  # ── Build & push — uniquement les images modifiées ───────────────────────────
   build-push:
     name: Build & push → GHCR
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    needs: changes
+    if: ${{ needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch' }}
     permissions:
       contents: read
-      packages: write   # nécessaire pour pousser vers ghcr.io
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # nécessaire pour lire les tags git
+          fetch-depth: 0
 
-      - name: Set image names + version (lowercase — GHCR l'exige)
+      - name: Set image names + version
         run: |
           OWNER="${{ github.repository_owner }}"
           git fetch --tags --force
@@ -40,38 +79,37 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up QEMU (émulation arm64 sur runner amd64)
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-
+      # QEMU supprimé — on build seulement linux/amd64 (natif sur runner)
+      # Le serveur Oracle ARM64 fait tourner les images amd64 via compatibilité
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build & push API image
+        if: ${{ needs.changes.outputs.api == 'true' || github.event_name == 'workflow_dispatch' }}
         uses: docker/build-push-action@v5
         with:
           context: .
           file: deploy/docker/Dockerfile.api
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: ${{ env.API_IMAGE }}:latest
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
 
       - name: Build & push Web image
+        if: ${{ needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch' }}
         uses: docker/build-push-action@v5
         with:
           context: .
           file: deploy/docker/Dockerfile.web
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: ${{ env.WEB_IMAGE }}:latest
           build-args: NEXT_PUBLIC_APP_VERSION=${{ env.APP_VERSION }}
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
 
-  # ── Job 2 : le serveur pull les nouvelles images et redémarre ─────────────────
+  # ── Deploy ────────────────────────────────────────────────────────────────────
   deploy:
     name: Deploy to production
     needs: build-push
