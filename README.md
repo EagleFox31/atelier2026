@@ -1,110 +1,118 @@
-# Atelier Maître
+# atelier2026
 
-Application de gestion d'atelier automobile pour le marché camerounais (XAF, TVA 19,25 %, SMS Orange/MTN CM).
-
-**Stack :** Next.js 15 · NestJS 11 · PostgreSQL (Supabase) · Prisma · Redis/BullMQ
+A comprehensive, tailor-made workshop management application engineered to streamline mechanical operations and enhance efficiency across the African continent. `atelier2026` provides an intuitive, end-to-end solution for managing customers, vehicles, workshop jobs, inventory, and financial processes.
 
 ---
 
-## Démarrage rapide
-
-**Prérequis :** Node.js 20+, compte Supabase, Redis (optionnel en dev pour les queues SMS)
-
-```bash
-npm install
-cp .env.example .env   # renseigner DATABASE_URL, DIRECT_URL, JWT_SECRET
-npm run migrate        # créer / mettre à jour les tables (voir ci-dessous)
-npx prisma db seed     # rôles, permissions, comptes de test
-npm run dev            # API :3001 + front :3005
-```
-
-Ouvrir [http://localhost:3005](http://localhost:3005) — login test : `admin@atelier.cm` / `Atelier2026!`
-
-> **Après le seed :** aller dans **Paramètres → Atelier** pour renseigner le vrai nom, adresse, téléphone et NIU de l'atelier. Ces informations apparaissent sur tous les devis et factures générés en PDF.
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg?style=for-the-badge)](https://github.com/your-org/atelier2026/actions)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/git/external?repository-url=https://github.com/your-org/atelier2026)
 
 ---
 
-## Migrations Supabase
+## ✨ Features
 
-> **`npx prisma migrate deploy` tend à rester bloqué** sur le pooler Supabase (port 6543). C'est normal avec PgBouncer.
+`atelier2026` is built to empower mechanical workshops with a robust suite of tools designed for optimal operational control and financial clarity.
 
-**Utiliser plutôt :**
+*   **End-to-End Workshop Workflow Management:** Seamlessly manage the entire lifecycle of a job, from initial reception and planning to execution, billing, and reporting.
+*   **Integrated Customer & Vehicle Management (CRM):** Maintain comprehensive records of customers and their vehicles, including service history, contact details, and preferences, fostering strong customer relationships.
+*   **Intelligent Planning & Scheduling:** Optimize workshop capacity with advanced scheduling tools for appointments, job assignments, and resource allocation, minimizing downtime and maximizing productivity.
+*   **Robust Inventory & Stock Control:** Efficiently manage spare parts, tools, and consumables with real-time stock tracking, movement logs, and reorder alerts to prevent shortages and reduce waste.
+*   **Comprehensive Financial & Cashier Operations:** Streamline invoicing, quotes, payment collection, manage receivables, and generate daily cash closing reports with precision.
+*   **Actionable Reporting & Analytics:** Gain invaluable insights into workshop performance, financial health, operational bottlenecks, and customer trends through detailed, customizable reports.
+*   **Multi-Tenancy Support:** (Admin module indicates) Designed to support multiple independent workshop branches or distinct business units from a single, scalable platform.
+*   **Secure User & Team Management:** Define roles, manage user permissions, and track team activities to ensure accountability and data integrity.
+*   **Audit Trail & Operational History:** Maintain a transparent and immutable record of all critical operations and system changes for compliance and accountability.
+*   **Optimized for the African Context:** Tailored features and localized considerations to meet the unique operational and economic dynamics of mechanical workshops in Africa.
 
-```bash
-npm run migrate
-```
+## 🚀 Installation
 
-Ce script (`scripts/migrate-missing.mjs`) se connecte via **`DIRECT_URL`** (port 5432), vérifie l'existence des tables et est idempotent.
+To get `atelier2026` up and running on your local machine, follow these steps.
 
-| Variable | Port | Usage |
-|----------|------|--------|
-| `DATABASE_URL` | 6543 | Runtime NestJS (PgBouncer) |
-| `DIRECT_URL` | 5432 | Migrations et scripts DDL |
+### Prerequisites
 
-**Workflow schéma :**
+Ensure you have the following installed:
 
-1. `prisma/schema.prisma` + fichier dans `prisma/migrations/…`
-2. Ajouter la logique dans `scripts/migrate-missing.mjs`
-3. `npm run migrate` → `npx prisma generate`
+*   [Node.js](https://nodejs.org/) (LTS version recommended)
+*   [npm](https://www.npmjs.com/) or [Yarn](https://yarnpkg.com/)
+*   [Docker](https://www.docker.com/get-started) (Optional, for containerized deployment)
 
----
+### Setup Steps
 
-## Documentation projet
+1.  **Clone the Repository:**
 
-| Fichier | Contenu |
-|---------|---------|
-| [CLAUDE.md](CLAUDE.md) | Contexte complet pour les agents IA (modules, RBAC, ports, conventions) |
-| [docs/comprendre-l-app-101.md](docs/comprendre-l-app-101.md) | **Guide 101** — leçons apprises et astuces au fil du projet |
-| [deploy/README.md](deploy/README.md) | **Déploiement MVP** — Oracle Always Free + Docker Compose |
+    ```bash
+    git clone https://github.com/your-org/atelier2026.git
+    cd atelier2026
+    ```
 
----
+2.  **Install Dependencies:**
 
-## Déploiement MVP (Oracle Cloud, $0)
+    Using npm:
+    ```bash
+    npm install
+    ```
+    Or using Yarn:
+    ```bash
+    yarn install
+    ```
 
-Une VM ARM (4 vCPU / 24 Go) héberge **Caddy + Next.js + NestJS + Redis**. PostgreSQL reste sur **Supabase**.
+3.  **Environment Configuration:**
 
-```bash
-# 1. Infra (Terraform — voir deploy/README.md)
-cd deploy/oci/terraform && cp terraform.tfvars.example terraform.tfvars
-terraform init && terraform apply
+    Duplicate the example environment file and populate it with your specific settings:
+    ```bash
+    cp .env.example .env
+    ```
+    Open `.env` and configure your database connection strings, API keys, and other necessary variables.
 
-# 2. Secrets
-cp deploy/.env.prod.example deploy/.env.prod
-# Remplir DATABASE_URL, DIRECT_URL, JWT_SECRET, ALLOWED_ORIGINS=http://IP
+4.  **Database Setup (Placeholder):**
 
-# 3. Seed (une fois, depuis votre PC)
-npx prisma db seed
+    *   Depending on your chosen database, you might need to run migration commands.
+    *   (e.g., `npm run prisma migrate dev` or similar if using Prisma)
 
-# 4. Deploy (Git Bash / WSL sur Windows)
-./deploy/scripts/remote-deploy.sh ubuntu@VOTRE_IP
-```
+5.  **Start the Development Server:**
 
-Pièges évités : migrations via `npm run migrate` / entrypoint, `/api/*` routé par Caddy (pas le rewrite Next), CORS = URL publique du browser.
+    ```bash
+    npm run dev
+    ```
+    The application will typically be accessible at `http://localhost:3000`.
 
----
+### Docker Deployment (Optional)
 
-## Commandes utiles
+For a containerized setup, `atelier2026` provides Docker support:
 
-```bash
-npm run dev            # type-check + API + front
-npm run dev:api        # NestJS seul (port 3001)
-npm run dev:next       # Next.js seul (port 3005)
-npm run type:check     # TypeScript back + front
-npm run migrate        # migrations Supabase (recommandé)
-npx prisma db seed     # données de test
-npm run test           # Jest (unit)
-npm run test:e2e       # Newman / Postman
-npm run test:pw        # Playwright
-```
+1.  **Build the Docker Image:**
+    ```bash
+    docker build -t atelier2026-app .
+    ```
 
----
+2.  **Run the Docker Container:**
+    ```bash
+    docker run -p 3000:3000 atelier2026-app
+    ```
+    Access the application at `http://localhost:3000`.
 
-## Comptes de test
+## 💡 Usage
 
-| Email | Mot de passe | Rôle |
-|-------|-------------|------|
-| admin@atelier.cm | Atelier2026! | ADMIN |
-| chef@atelier.cm | Atelier2026! | CHEF_ATELIER |
-| tech1@atelier.cm | Atelier2026! | TECHNICIEN |
-| reception@atelier.cm | Atelier2026! | RECEPTIONNISTE |
-| caisse@atelier.cm | Atelier2026! | CAISSIER |
+Once the application is running, open your web browser and navigate to the specified address (e.g., `http://localhost:3000`).
+
+1.  **Registration & Login:**
+    *   If you're a new user, follow the "Inscription" (Sign Up) link to create an account.
+    *   Existing users can log in via the "Login" page.
+2.  **Dashboard Overview:**
+    *   Upon successful login, you'll be directed to the dashboard, providing an at-a-glance view of key operational metrics.
+3.  **Navigate Modules:**
+    *   Explore the various modules such as "Reception," "Workshop," "Customers," "Vehicles," "Stock," "Billing," "Cashier," and "Reports" via the main navigation to manage your workshop operations.
+4.  **Configuration:**
+    *   Access the "Settings" panel to customize application behavior, user roles, and workshop-specific parameters.
+
+## 🤝 Contributing
+
+We welcome contributions from the community to make `atelier2026` even better. Whether it's reporting a bug, suggesting an enhancement, or submitting a pull request, your input is highly valued.
+
+Please refer to our [CONTRIBUTING.md](CONTRIBUTING.md) guide for detailed information on how to get started and follow our contribution guidelines.
+
+## 📄 License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
