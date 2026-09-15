@@ -1,0 +1,323 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Atelier Maitre production infrastructure: one Ubuntu EC2 instance in a
+  dedicated VPC, managed with AWS Systems Manager and exposed through HTTP/HTTPS.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedPattern: '^[a-z0-9-]+$'
+    Description: Environment name used in resource names and tags.
+
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t3.micro
+      - t3.small
+    Description: Start with t3.micro; resize to t3.small if memory is insufficient.
+
+  RootVolumeSize:
+    Type: Number
+    Default: 20
+    MinValue: 8
+    MaxValue: 100
+    Description: Encrypted gp3 root volume size in GiB.
+
+  UbuntuAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id
+    Description: Canonical Ubuntu Server 24.04 LTS amd64 AMI.
+
+Resources:
+  AtelierVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.20.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: atelier-maitre-${Environment}-vpc
+        - Key: Project
+          Value: atelier-maitre
+        - Key: Environment
+          Value:
+            Ref: Environment
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: atelier-maitre-${Environment}-igw
+        - Key: Project
+          Value: atelier-maitre
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId:
+        Ref: InternetGateway
+      VpcId:
+        Ref: AtelierVpc
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: AtelierVpc
+      CidrBlock: 10.20.1.0/24
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: atelier-maitre-${Environment}-public-subnet
+        - Key: Project
+          Value: atelier-maitre
+        - Key: Environment
+          Value:
+            Ref: Environment
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: AtelierVpc
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: atelier-maitre-${Environment}-public-rt
+        - Key: Project
+          Value: atelier-maitre
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway
+      RouteTableId:
+        Ref: PublicRouteTable
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      SubnetId:
+        Ref: PublicSubnet
+
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Public HTTP and HTTPS access for Atelier Maitre
+      VpcId:
+        Ref: AtelierVpc
+      SecurityGroupIngress:
+        - Description: HTTP
+          IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - Description: HTTPS
+          IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - Description: Outbound internet access
+          IpProtocol: '-1'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: atelier-maitre-${Environment}-web-sg
+        - Key: Project
+          Value: atelier-maitre
+        - Key: Environment
+          Value:
+            Ref: Environment
+
+  Ec2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: atelier-maitre-${Environment}-ec2-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: ReadAtelierProductionParameters
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:GetParameters
+                Resource:
+                  Fn::Sub: arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/atelier-maitre/${Environment}/*
+      Tags:
+        - Key: Project
+          Value: atelier-maitre
+        - Key: Environment
+          Value:
+            Ref: Environment
+
+  Ec2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName:
+        Fn::Sub: atelier-maitre-${Environment}-instance-profile
+      Roles:
+        - Ref: Ec2Role
+
+  AtelierInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId:
+        Ref: UbuntuAmiId
+      InstanceType:
+        Ref: InstanceType
+      IamInstanceProfile:
+        Ref: Ec2InstanceProfile
+      CreditSpecification:
+        CPUCredits: standard
+      DisableApiTermination: false
+      Monitoring: false
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpPutResponseHopLimit: 2
+        HttpTokens: required
+        InstanceMetadataTags: enabled
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: false
+          DeleteOnTermination: true
+          DeviceIndex: '0'
+          GroupSet:
+            - Ref: WebSecurityGroup
+          SubnetId:
+            Ref: PublicSubnet
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            DeleteOnTermination: true
+            Encrypted: true
+            Iops: 3000
+            Throughput: 125
+            VolumeSize:
+              Ref: RootVolumeSize
+            VolumeType: gp3
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: atelier-maitre-${Environment}
+        - Key: Project
+          Value: atelier-maitre
+        - Key: Environment
+          Value:
+            Ref: Environment
+        - Key: ManagedBy
+          Value: cloudformation
+      UserData:
+        Fn::Base64:
+          Fn::Sub: |
+            #!/bin/bash
+            set -euxo pipefail
+            export DEBIAN_FRONTEND=noninteractive
+
+            apt-get update
+            apt-get install -y ca-certificates curl git gnupg jq unzip
+
+            install -m 0755 -d /etc/apt/keyrings
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+            chmod a+r /etc/apt/keyrings/docker.asc
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu noble stable" > /etc/apt/sources.list.d/docker.list
+            apt-get update
+            apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            systemctl enable --now docker
+            usermod -aG docker ubuntu
+
+            aws_cli_dir=$(mktemp -d)
+            curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o "$aws_cli_dir/awscliv2.zip"
+            unzip -q "$aws_cli_dir/awscliv2.zip" -d "$aws_cli_dir"
+            "$aws_cli_dir/aws/install"
+            find "$aws_cli_dir" -mindepth 1 -delete
+            rmdir "$aws_cli_dir"
+
+            install -d -m 0700 /root/.aws
+            printf '[default]\nregion = ${AWS::Region}\n' > /root/.aws/config
+
+            if ! swapon --show | grep -q /swapfile; then
+              fallocate -l 2G /swapfile
+              chmod 600 /swapfile
+              mkswap /swapfile
+              swapon /swapfile
+              echo '/swapfile none swap sw 0 0' >> /etc/fstab
+            fi
+
+            snap start amazon-ssm-agent || true
+            systemctl enable --now snap.amazon-ssm-agent.amazon-ssm-agent.service || true
+            systemctl enable --now amazon-ssm-agent.service || true
+
+            install -d -o ubuntu -g ubuntu /opt/atelier-maitre
+
+  ElasticIp:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Sub: atelier-maitre-${Environment}-eip
+        - Key: Project
+          Value: atelier-maitre
+        - Key: Environment
+          Value:
+            Ref: Environment
+
+  ElasticIpAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId:
+        Fn::GetAtt:
+          - ElasticIp
+          - AllocationId
+      InstanceId:
+        Ref: AtelierInstance
+
+Outputs:
+  InstanceId:
+    Description: EC2 instance identifier used by the deployment workflow.
+    Value:
+      Ref: AtelierInstance
+
+  PublicIp:
+    Description: Static public IPv4 address. Public IPv4 pricing applies.
+    Value:
+      Ref: ElasticIp
+
+  HttpUrl:
+    Description: Temporary HTTP URL before DNS and TLS are configured.
+    Value:
+      Fn::Sub: http://${ElasticIp}
+
+  SessionManagerUrl:
+    Description: Browser terminal URL; no inbound SSH port is required.
+    Value:
+      Fn::Sub: https://${AWS::Region}.console.aws.amazon.com/systems-manager/session-manager/${AtelierInstance}?region=${AWS::Region}

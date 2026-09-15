@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy AWS
 
 on:
   workflow_run:
@@ -7,19 +7,33 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: atelier-maitre-production
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-west-3
+  STACK_NAME: atelier-maitre-prod
+  DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
 jobs:
-  # ── Détection des changements ─────────────────────────────────────────────────
   changes:
     name: Detect changed files
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      contents: read
     outputs:
       api: ${{ steps.filter.outputs.api }}
       web: ${{ steps.filter.outputs.web }}
+      runtime: ${{ steps.filter.outputs.runtime }}
+      infra: ${{ steps.filter.outputs.infra }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ env.DEPLOY_SHA }}
           fetch-depth: 2
+
       - uses: dorny/paths-filter@v3
         id: filter
         with:
@@ -46,31 +60,96 @@ jobs:
               - 'tailwind.config.*'
               - 'package.json'
               - 'package-lock.json'
+            runtime:
+              - 'deploy/docker/docker-compose.aws.yml'
+              - 'deploy/docker/Caddyfile'
+              - 'deploy/scripts/aws-ssm-deploy.sh'
+            infra:
+              - 'infra/aws/atelier-maitre.yml'
 
-  # ── Build & push — uniquement les images modifiées ───────────────────────────
-  build-push:
-    name: Build & push → GHCR
-    runs-on: ubuntu-latest
+  provision:
+    name: Provision AWS infrastructure
     needs: changes
-    if: ${{ needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch' }}
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.api == 'true' ||
+      needs.changes.outputs.web == 'true' ||
+      needs.changes.outputs.runtime == 'true' ||
+      needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
-
+      id-token: write
+    outputs:
+      instance-id: ${{ steps.stack.outputs.instance-id }}
+      public-ip: ${{ steps.stack.outputs.public-ip }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Authenticate to AWS with GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: atelier-maitre-infra
+
+      - name: Validate CloudFormation template
+        run: aws cloudformation validate-template --template-body file://infra/aws/atelier-maitre.yml
+
+      - name: Deploy CloudFormation stack
+        run: |
+          aws cloudformation deploy \
+            --template-file infra/aws/atelier-maitre.yml \
+            --stack-name "$STACK_NAME" \
+            --role-arn "${{ vars.AWS_CLOUDFORMATION_ROLE_ARN }}" \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides Environment=prod InstanceType=t3.micro RootVolumeSize=20 \
+            --no-fail-on-empty-changeset
+
+      - name: Read stack outputs
+        id: stack
+        run: |
+          INSTANCE_ID=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='InstanceId'].OutputValue | [0]" \
+            --output text)
+          PUBLIC_IP=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='PublicIp'].OutputValue | [0]" \
+            --output text)
+          echo "instance-id=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
+          echo "public-ip=$PUBLIC_IP" >> "$GITHUB_OUTPUT"
+          echo "### AWS infrastructure" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Instance: \`$INSTANCE_ID\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Temporary URL: http://$PUBLIC_IP" >> "$GITHUB_STEP_SUMMARY"
+
+  build-push:
+    name: Build and push GHCR images
+    runs-on: ubuntu-latest
+    needs: changes
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.api == 'true' ||
+      needs.changes.outputs.web == 'true'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
           fetch-depth: 0
 
-      - name: Set image names + version
+      - name: Set image names and version
         run: |
           OWNER="${{ github.repository_owner }}"
           git fetch --tags --force
           VERSION=$(git tag --sort=-version:refname | grep -E '^v[0-9]' | head -n1)
-          echo "API_IMAGE=ghcr.io/${OWNER,,}/atelier2026-api" >> $GITHUB_ENV
-          echo "WEB_IMAGE=ghcr.io/${OWNER,,}/atelier2026-web" >> $GITHUB_ENV
-          echo "APP_VERSION=${VERSION:-dev}" >> $GITHUB_ENV
-          echo "Version détectée : ${VERSION:-dev}"
+          echo "API_IMAGE=ghcr.io/${OWNER,,}/atelier2026-api" >> "$GITHUB_ENV"
+          echo "WEB_IMAGE=ghcr.io/${OWNER,,}/atelier2026-web" >> "$GITHUB_ENV"
+          echo "APP_VERSION=${VERSION:-dev}" >> "$GITHUB_ENV"
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -79,12 +158,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # QEMU supprimé — on build seulement linux/amd64 (natif sur runner)
-      # Le serveur Oracle ARM64 fait tourner les images amd64 via compatibilité
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
 
-      - name: Build & push API image
+      - name: Build and push API image
         if: ${{ needs.changes.outputs.api == 'true' || github.event_name == 'workflow_dispatch' }}
         uses: docker/build-push-action@v5
         with:
@@ -96,7 +172,7 @@ jobs:
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
 
-      - name: Build & push Web image
+      - name: Build and push Web image
         if: ${{ needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch' }}
         uses: docker/build-push-action@v5
         with:
@@ -109,65 +185,109 @@ jobs:
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
 
-  # ── Deploy ────────────────────────────────────────────────────────────────────
   deploy:
-    name: Deploy to production
-    needs: build-push
+    name: Deploy application with Session Manager
+    needs: [changes, provision, build-push]
+    if: >-
+      always() &&
+      needs.changes.result == 'success' &&
+      needs.provision.result == 'success' &&
+      (needs.build-push.result == 'success' || needs.build-push.result == 'skipped') &&
+      (github.event_name == 'workflow_dispatch' ||
+       needs.changes.outputs.api == 'true' ||
+       needs.changes.outputs.web == 'true' ||
+       needs.changes.outputs.runtime == 'true' ||
+       needs.changes.outputs.infra == 'true')
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Authenticate to AWS with GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: atelier-maitre-app
 
-      - name: Setup SSH key
+      - name: Wait for Session Manager
+        env:
+          INSTANCE_ID: ${{ needs.provision.outputs.instance-id }}
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H 94.237.59.178 >> ~/.ssh/known_hosts
+          for attempt in $(seq 1 30); do
+            STATUS=$(aws ssm describe-instance-information \
+              --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
+              --query 'InstanceInformationList[0].PingStatus' \
+              --output text)
+            if [ "$STATUS" = "Online" ]; then
+              exit 0
+            fi
+            echo "Waiting for Session Manager ($attempt/30)..."
+            sleep 10
+          done
+          echo "The EC2 instance did not become available in Session Manager." >&2
+          exit 1
 
-      - name: Write .env.prod on server
+      - name: Deploy through AWS Systems Manager
+        env:
+          INSTANCE_ID: ${{ needs.provision.outputs.instance-id }}
         run: |
-          echo "${{ secrets.ENV_PROD }}" | \
-            ssh -i ~/.ssh/deploy_key root@94.237.59.178 \
-              "mkdir -p /opt/atelier2026/deploy && cat > /opt/atelier2026/deploy/.env.prod"
+          cat > ssm-commands.json <<EOF
+          {
+            "commands": [
+              "set -eu",
+              "cloud-init status --wait",
+              "install -d /opt/atelier-maitre",
+              "if [ ! -d /opt/atelier-maitre/repo/.git ]; then git clone --no-checkout https://github.com/EagleFox31/atelier2026.git /opt/atelier-maitre/repo; fi",
+              "git -C /opt/atelier-maitre/repo fetch --depth 1 origin ${DEPLOY_SHA}",
+              "git -C /opt/atelier-maitre/repo checkout --force ${DEPLOY_SHA}",
+              "chmod +x /opt/atelier-maitre/repo/deploy/scripts/aws-ssm-deploy.sh",
+              "/opt/atelier-maitre/repo/deploy/scripts/aws-ssm-deploy.sh"
+            ]
+          }
+          EOF
 
-      - name: Send docker-compose.prod.yml + Caddyfile + compose-prod.sh
-        run: |
-          ssh -i ~/.ssh/deploy_key root@94.237.59.178 \
-            "mkdir -p /opt/atelier2026/deploy/docker /opt/atelier2026/deploy/scripts"
-          scp -i ~/.ssh/deploy_key deploy/docker/docker-compose.prod.yml \
-            root@94.237.59.178:/opt/atelier2026/deploy/docker/docker-compose.prod.yml
-          scp -i ~/.ssh/deploy_key deploy/docker/Caddyfile \
-            root@94.237.59.178:/opt/atelier2026/deploy/docker/Caddyfile
-          scp -i ~/.ssh/deploy_key deploy/scripts/compose-prod.sh \
-            root@94.237.59.178:/opt/atelier2026/deploy/scripts/compose-prod.sh
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --comment "Deploy Atelier Maitre ${DEPLOY_SHA}" \
+            --parameters file://ssm-commands.json \
+            --query 'Command.CommandId' \
+            --output text)
 
-      - name: Pull images + restart + prune
-        run: |
-          ssh -o ServerAliveInterval=60 -o ServerAliveCountMax=10 \
-              -i ~/.ssh/deploy_key root@94.237.59.178 << 'ENDSSH'
-            set -e
-            echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-            cd /opt/atelier2026
-            chmod +x deploy/scripts/compose-prod.sh
-            ./deploy/scripts/compose-prod.sh pull api web
-            ./deploy/scripts/compose-prod.sh up -d || {
-              echo "=== LOGS API (dernières 150 lignes) ==="
-              ./deploy/scripts/compose-prod.sh logs --no-log-prefix --tail=150 api
-              exit 1
-            }
-            docker system prune -f
-          ENDSSH
+          FINAL_STATUS=""
+          for attempt in $(seq 1 240); do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID" \
+              --query 'Status' \
+              --output text 2>/dev/null || true)
+            case "$STATUS" in
+              Success)
+                FINAL_STATUS="$STATUS"
+                break
+                ;;
+              Failed|Cancelled|TimedOut|Cancelling)
+                FINAL_STATUS="$STATUS"
+                break
+                ;;
+            esac
+            echo "Deployment command status: ${STATUS:-Pending} ($attempt/240)"
+            sleep 5
+          done
 
-      - name: Check health
-        run: |
-          sleep 30
-          curl --fail --retry 5 --retry-delay 10 \
-            http://94.237.59.178/api/health \
-            && echo "✅ API healthy" || echo "⚠️  Health check failed"
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID" \
+            --query '{Status:Status,Output:StandardOutputContent,Errors:StandardErrorContent}'
 
-      - name: Container status
-        if: always()
+          if [ "$FINAL_STATUS" != "Success" ]; then
+            exit 1
+          fi
+
+      - name: Publish deployment URL
+        env:
+          PUBLIC_IP: ${{ needs.provision.outputs.public-ip }}
         run: |
-          ssh -i ~/.ssh/deploy_key root@94.237.59.178 \
-            "cd /opt/atelier2026 && chmod +x deploy/scripts/compose-prod.sh && ./deploy/scripts/compose-prod.sh ps"
+          echo "### Atelier Maitre deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "Temporary URL: http://$PUBLIC_IP" >> "$GITHUB_STEP_SUMMARY"

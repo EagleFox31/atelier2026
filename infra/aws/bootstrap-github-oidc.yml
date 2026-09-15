@@ -1,0 +1,198 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  One-time bootstrap for GitHub Actions OIDC and the CloudFormation execution
+  role used by Atelier Maitre. Deploy this stack manually before enabling CI/CD.
+
+Parameters:
+  GitHubRepository:
+    Type: String
+    Default: EagleFox31/atelier2026
+    AllowedPattern: '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'
+    Description: GitHub repository allowed to assume the deployment role.
+
+  ImmutableGitHubRepository:
+    Type: String
+    Default: EagleFox31@86088743/atelier2026@1250512662
+    AllowedPattern: '^[A-Za-z0-9_.-]+@[0-9]+/[A-Za-z0-9_.-]+@[0-9]+$'
+    Description: Immutable GitHub owner and repository IDs for the same repository.
+
+  GitHubBranch:
+    Type: String
+    Default: main
+    AllowedPattern: '^[A-Za-z0-9_./-]+$'
+    Description: Branch allowed to deploy to AWS.
+
+  ApplicationStackName:
+    Type: String
+    Default: atelier-maitre-prod
+    AllowedPattern: '^[A-Za-z][-A-Za-z0-9]*$'
+    Description: Exact CloudFormation application stack name GitHub may manage.
+
+Resources:
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      Tags:
+        - Key: Project
+          Value: atelier-maitre
+
+  CloudFormationExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: atelier-maitre-cloudformation-execution-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/PowerUserAccess
+      Policies:
+        - PolicyName: ManageAtelierInstanceRole
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iam:AddRoleToInstanceProfile
+                  - iam:AttachRolePolicy
+                  - iam:CreateInstanceProfile
+                  - iam:CreateRole
+                  - iam:DeleteInstanceProfile
+                  - iam:DeleteRole
+                  - iam:DeleteRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:GetInstanceProfile
+                  - iam:GetRole
+                  - iam:GetRolePolicy
+                  - iam:ListAttachedRolePolicies
+                  - iam:ListInstanceProfilesForRole
+                  - iam:ListRolePolicies
+                  - iam:PassRole
+                  - iam:PutRolePolicy
+                  - iam:RemoveRoleFromInstanceProfile
+                  - iam:TagRole
+                  - iam:UntagRole
+                  - iam:UpdateAssumeRolePolicy
+                Resource:
+                  - Fn::Sub: arn:${AWS::Partition}:iam::${AWS::AccountId}:role/atelier-maitre-*
+                  - Fn::Sub: arn:${AWS::Partition}:iam::${AWS::AccountId}:instance-profile/atelier-maitre-*
+      Tags:
+        - Key: Project
+          Value: atelier-maitre
+
+  GitHubActionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: atelier-maitre-github-actions-role
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated:
+                Ref: GitHubOidcProvider
+            Action:
+              - sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                token.actions.githubusercontent.com:sub:
+                  - Fn::Sub: repo:${GitHubRepository}:ref:refs/heads/${GitHubBranch}
+                  - Fn::Sub: repo:${ImmutableGitHubRepository}:ref:refs/heads/${GitHubBranch}
+      Policies:
+        - PolicyName: DeployAtelierInfrastructure
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ManageApplicationStack
+                Effect: Allow
+                Action:
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:CreateStack
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:DescribeStacks
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:GetTemplate
+                  - cloudformation:GetTemplateSummary
+                  - cloudformation:ListStackResources
+                  - cloudformation:UpdateStack
+                Resource:
+                  Fn::Sub: arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/${ApplicationStackName}/*
+              - Sid: ValidateTemplates
+                Effect: Allow
+                Action:
+                  - cloudformation:ValidateTemplate
+                Resource: '*'
+              - Sid: PassCloudFormationRole
+                Effect: Allow
+                Action:
+                  - iam:PassRole
+                Resource:
+                  Fn::GetAtt:
+                    - CloudFormationExecutionRole
+                    - Arn
+                Condition:
+                  StringEquals:
+                    iam:PassedToService: cloudformation.amazonaws.com
+        - PolicyName: DeployAtelierApplication
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: UseRunShellScriptDocument
+                Effect: Allow
+                Action:
+                  - ssm:SendCommand
+                Resource:
+                  Fn::Sub: arn:${AWS::Partition}:ssm:*::document/AWS-RunShellScript
+              - Sid: SendCommandToAtelierInstances
+                Effect: Allow
+                Action:
+                  - ssm:SendCommand
+                Resource:
+                  Fn::Sub: arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:instance/*
+                Condition:
+                  StringEquals:
+                    ssm:resourceTag/Project: atelier-maitre
+                    ssm:resourceTag/Environment: prod
+              - Sid: ReadCommandStatus
+                Effect: Allow
+                Action:
+                  - ssm:DescribeInstanceInformation
+                  - ssm:GetCommandInvocation
+                  - ssm:ListCommandInvocations
+                  - ssm:ListCommands
+                Resource: '*'
+              - Sid: DiscoverApplicationInstance
+                Effect: Allow
+                Action:
+                  - ec2:DescribeInstances
+                Resource: '*'
+      Tags:
+        - Key: Project
+          Value: atelier-maitre
+
+Outputs:
+  GitHubActionsRoleArn:
+    Description: Save this value as repository variable AWS_DEPLOY_ROLE_ARN.
+    Value:
+      Fn::GetAtt:
+        - GitHubActionsRole
+        - Arn
+
+  CloudFormationExecutionRoleArn:
+    Description: Save this value as repository variable AWS_CLOUDFORMATION_ROLE_ARN.
+    Value:
+      Fn::GetAtt:
+        - CloudFormationExecutionRole
+        - Arn
