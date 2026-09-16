@@ -1,118 +1,92 @@
-# atelier2026
+# Atelier Maître
 
-A comprehensive, tailor-made workshop management application engineered to streamline mechanical operations and enhance efficiency across the African continent. `atelier2026` provides an intuitive, end-to-end solution for managing customers, vehicles, workshop jobs, inventory, and financial processes.
+**Production workshop management platform for automotive service operations.**
 
----
+Atelier Maître brings the main day-to-day workflows of a mechanical workshop into one system: customers and vehicles, work orders, planning, inventory, billing, cash operations and activity monitoring.
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
-[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg?style=for-the-badge)](https://github.com/your-org/atelier2026/actions)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/git/external?repository-url=https://github.com/your-org/atelier2026)
+**Live:** https://atelier-maitre.duckdns.org/
 
----
+## What it covers
 
-## ✨ Features
+- **Workshop operations** — reception, work orders, planning, execution and job follow-up
+- **Customers & vehicles** — customer records, vehicles and service history
+- **Inventory** — spare parts, stock movements and availability tracking
+- **Billing & cash operations** — quotations, invoices, payments and daily cash workflows
+- **Team access** — authenticated users, roles and permissions
+- **Reporting** — operational and financial indicators for workshop activity
 
-`atelier2026` is built to empower mechanical workshops with a robust suite of tools designed for optimal operational control and financial clarity.
+The application is designed around real workshop workflows rather than a generic CRUD structure: operational actions, stock movements and financial events are connected so that the state of a job can be followed from reception to closure.
 
-*   **End-to-End Workshop Workflow Management:** Seamlessly manage the entire lifecycle of a job, from initial reception and planning to execution, billing, and reporting.
-*   **Integrated Customer & Vehicle Management (CRM):** Maintain comprehensive records of customers and their vehicles, including service history, contact details, and preferences, fostering strong customer relationships.
-*   **Intelligent Planning & Scheduling:** Optimize workshop capacity with advanced scheduling tools for appointments, job assignments, and resource allocation, minimizing downtime and maximizing productivity.
-*   **Robust Inventory & Stock Control:** Efficiently manage spare parts, tools, and consumables with real-time stock tracking, movement logs, and reorder alerts to prevent shortages and reduce waste.
-*   **Comprehensive Financial & Cashier Operations:** Streamline invoicing, quotes, payment collection, manage receivables, and generate daily cash closing reports with precision.
-*   **Actionable Reporting & Analytics:** Gain invaluable insights into workshop performance, financial health, operational bottlenecks, and customer trends through detailed, customizable reports.
-*   **Multi-Tenancy Support:** (Admin module indicates) Designed to support multiple independent workshop branches or distinct business units from a single, scalable platform.
-*   **Secure User & Team Management:** Define roles, manage user permissions, and track team activities to ensure accountability and data integrity.
-*   **Audit Trail & Operational History:** Maintain a transparent and immutable record of all critical operations and system changes for compliance and accountability.
-*   **Optimized for the African Context:** Tailored features and localized considerations to meet the unique operational and economic dynamics of mechanical workshops in Africa.
+## Architecture
 
-## 🚀 Installation
+```text
+Next.js 15 + React 19
+        │
+        ▼
+NestJS 11 API
+        │
+        ├── Prisma ORM
+        ├── PostgreSQL
+        ├── Redis / BullMQ
+        └── scheduled/background jobs
+```
 
-To get `atelier2026` up and running on your local machine, follow these steps.
+Production deployment is containerized with Docker and hosted on AWS infrastructure.
 
-### Prerequisites
+### Main stack
 
-Ensure you have the following installed:
+- **Frontend:** Next.js, React, TypeScript, Tailwind CSS
+- **Backend:** NestJS, TypeScript, Swagger, JWT authentication
+- **Data:** PostgreSQL, Prisma
+- **Async processing:** Redis, BullMQ
+- **Testing:** Jest, Supertest, Playwright, Newman
+- **Delivery:** Docker, semantic-release, GitHub Actions, AWS
 
-*   [Node.js](https://nodejs.org/) (LTS version recommended)
-*   [npm](https://www.npmjs.com/) or [Yarn](https://yarnpkg.com/)
-*   [Docker](https://www.docker.com/get-started) (Optional, for containerized deployment)
+## Development
 
-### Setup Steps
+### Requirements
 
-1.  **Clone the Repository:**
+- Node.js
+- npm
+- PostgreSQL
+- Redis for queue-backed features
 
-    ```bash
-    git clone https://github.com/your-org/atelier2026.git
-    cd atelier2026
-    ```
+### Setup
 
-2.  **Install Dependencies:**
+```bash
+git clone https://github.com/EagleFox31/atelier2026.git
+cd atelier2026
+npm install
+cp .env.example .env
+npm run dev
+```
 
-    Using npm:
-    ```bash
-    npm install
-    ```
-    Or using Yarn:
-    ```bash
-    yarn install
-    ```
+The repository includes `.env.example` with the configuration expected by the frontend, API and supporting services.
 
-3.  **Environment Configuration:**
+### Useful commands
 
-    Duplicate the example environment file and populate it with your specific settings:
-    ```bash
-    cp .env.example .env
-    ```
-    Open `.env` and configure your database connection strings, API keys, and other necessary variables.
+```bash
+npm run dev            # frontend + API development
+npm run type:check     # frontend and backend TypeScript checks
+npm test               # unit/integration tests
+npm run test:e2e       # API end-to-end collection
+npm run test:pw        # browser tests with Playwright
+npm run build          # Next.js production build
+npm run build:api      # API production build
+```
 
-4.  **Database Setup (Placeholder):**
+## Project status
 
-    *   Depending on your chosen database, you might need to run migration commands.
-    *   (e.g., `npm run prisma migrate dev` or similar if using Prisma)
+**Status: Production**
 
-5.  **Start the Development Server:**
+The current focus is production hardening: monitoring, backup verification, deployment reliability and continued validation of the operational workflows.
 
-    ```bash
-    npm run dev
-    ```
-    The application will typically be accessible at `http://localhost:3000`.
+## Repository note
 
-### Docker Deployment (Optional)
+This repository contains the application source for Atelier Maître. It is a real delivered project, not a generated demo or template. Public documentation intentionally focuses on the product and technical architecture rather than client-specific operational data or production secrets.
 
-For a containerized setup, `atelier2026` provides Docker support:
+## License
 
-1.  **Build the Docker Image:**
-    ```bash
-    docker build -t atelier2026-app .
-    ```
+Copyright © 2026 EagleFox31. **All rights reserved.**
 
-2.  **Run the Docker Container:**
-    ```bash
-    docker run -p 3000:3000 atelier2026-app
-    ```
-    Access the application at `http://localhost:3000`.
-
-## 💡 Usage
-
-Once the application is running, open your web browser and navigate to the specified address (e.g., `http://localhost:3000`).
-
-1.  **Registration & Login:**
-    *   If you're a new user, follow the "Inscription" (Sign Up) link to create an account.
-    *   Existing users can log in via the "Login" page.
-2.  **Dashboard Overview:**
-    *   Upon successful login, you'll be directed to the dashboard, providing an at-a-glance view of key operational metrics.
-3.  **Navigate Modules:**
-    *   Explore the various modules such as "Reception," "Workshop," "Customers," "Vehicles," "Stock," "Billing," "Cashier," and "Reports" via the main navigation to manage your workshop operations.
-4.  **Configuration:**
-    *   Access the "Settings" panel to customize application behavior, user roles, and workshop-specific parameters.
-
-## 🤝 Contributing
-
-We welcome contributions from the community to make `atelier2026` even better. Whether it's reporting a bug, suggesting an enhancement, or submitting a pull request, your input is highly valued.
-
-Please refer to our [CONTRIBUTING.md](CONTRIBUTING.md) guide for detailed information on how to get started and follow our contribution guidelines.
-
-## 📄 License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+This codebase is proprietary. See [`LICENSE`](LICENSE) for the applicable terms.
