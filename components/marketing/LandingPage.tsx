@@ -1805,16 +1805,20 @@ export function LandingPage() {
               </div>
 
               <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.brand, marginBottom: '0.5rem' }}>Atelier Maître Pro</p>
-              <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '2.25rem', fontWeight: 900, color: C.earth, lineHeight: 1 }}>Sur devis</p>
-              <p style={{ fontSize: '0.82rem', color: C.muted, marginTop: '0.25rem', marginBottom: '1.5rem' }}>Adapté à vos garages et techniciens</p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.45rem', flexWrap: 'wrap' }}>
+                <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '2.25rem', fontWeight: 900, color: C.earth, lineHeight: 1 }}>45 000 FCFA</p>
+                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: C.muted }}>/ mois</span>
+              </div>
+              <p style={{ fontSize: '0.82rem', color: C.muted, marginTop: '0.35rem' }}>1 garage inclus · équipe complète</p>
+              <p style={{ fontSize: '0.78rem', color: C.brand, fontWeight: 700, marginTop: '0.35rem', marginBottom: '1.5rem' }}>450 000 FCFA / an · 2 mois offerts</p>
 
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
-                {['OT, devis, factures PDF illimités', 'Stock + alertes seuil', 'Planning & rendez-vous', 'SMS Orange / MTN intégrés', 'Tableau de bord temps réel', 'Multi-garages inclus', 'Support dédié en français'].map((item) => (
+                {['OT, devis, factures PDF illimités', 'Stock + alertes seuil', 'Planning & rendez-vous', 'SMS Orange / MTN intégrés', 'Tableau de bord temps réel', '1 garage inclus', '+20 000 FCFA / mois par garage supplémentaire', 'Support dédié en français'].map((item) => (
                   <CheckItem key={item} color={C.brand}>{item}</CheckItem>
                 ))}
               </ul>
               <Link href="/demo" style={{ ...btnPrimary, marginTop: '1.75rem', justifyContent: 'center' }}>
-                Demander un tarif <ArrowRight size={16} />
+                Démarrer gratuitement <ArrowRight size={16} />
               </Link>
             </motion.div>
 
@@ -1843,9 +1847,9 @@ export function LandingPage() {
               <span style={{ display: 'inline-block', background: C.green, color: '#FFF', fontSize: '0.68rem', fontWeight: 700, padding: '0.25rem 0.75rem', borderRadius: 6, marginBottom: '1rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                 Pilote gratuit
               </span>
-              <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.green, marginBottom: '0.5rem' }}>Essai pilote</p>
-              <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '2.25rem', fontWeight: 900, color: C.earth, lineHeight: 1 }}>Gratuit</p>
-              <p style={{ fontSize: '0.82rem', color: C.muted, marginTop: '0.25rem', marginBottom: '1.5rem' }}>Pendant toute la période de test</p>
+              <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.green, marginBottom: '0.5rem' }}>Pilote 30 jours</p>
+              <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '2.25rem', fontWeight: 900, color: C.earth, lineHeight: 1 }}>0 FCFA</p>
+              <p style={{ fontSize: '0.82rem', color: C.muted, marginTop: '0.25rem', marginBottom: '1.5rem' }}>Testez Atelier Maître dans votre vrai atelier</p>
 
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
                 {['Accès complet à la plateforme', '1 garage, équipe complète', 'Accompagnement au démarrage', 'Données conservées après le pilote', 'Aucune carte bancaire requise'].map((item) => (
