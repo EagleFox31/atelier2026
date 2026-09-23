@@ -47,10 +47,21 @@ export function Combobox({
   const [noResults, setNoResults]   = useState(false);
   const ref                         = useRef<HTMLDivElement>(null);
 
-  // Sync selected depuis value externe
+  // Sync selected depuis value externe. Important pour les créations inline :
+  // le parent peut fournir une nouvelle option sans recharger la page.
   useEffect(() => {
-    if (!value) { setSelected(null); setSearch(''); }
-  }, [value]);
+    if (!value) {
+      setSelected(null);
+      setSearch('');
+      return;
+    }
+    if (initialOption?.id === value) {
+      setSelected(initialOption);
+      setSearch('');
+      setOpen(false);
+      setNoResults(false);
+    }
+  }, [value, initialOption]);
 
   // Fermer si clic à l'extérieur
   useEffect(() => {
