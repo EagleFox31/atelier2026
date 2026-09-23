@@ -5,8 +5,7 @@ import { SettingsController } from './settings.controller';
 import { SettingsService } from './settings.service';
 
 @Module({
-  imports: [SubscriptionModule],
-  imports: [SharedModule],
+  imports: [SharedModule, SubscriptionModule],
   controllers: [SettingsController],
   providers: [SettingsService],
   exports: [SettingsService],
