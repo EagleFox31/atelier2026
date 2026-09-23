@@ -1,11 +1,15 @@
-import { Body, Controller, Get, Patch, Post, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { SettingsService } from './settings.service';
 import { UpdateWorkshopSettingsDto } from './dto/workshop-settings.dto';
 import { CurrentUser, RequireRole } from '../../decorators/auth.decorator';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Controller('settings')
 export class SettingsController {
-  constructor(private readonly settingsService: SettingsService) {}
+  constructor(
+    private readonly settingsService: SettingsService,
+    private readonly subscriptions: SubscriptionService,
+  ) {}
 
   @Get('workshop')
   getWorkshopSettings(@CurrentUser() user: any) {
@@ -24,10 +28,20 @@ export class SettingsController {
   /** Mise à jour du logo (base64 data URL). Envoyer null pour supprimer. */
   @Post('workshop/logo')
   @RequireRole('ADMIN', 'SUPER_ADMIN')
-  updateLogo(
+  async updateLogo(
     @Body() body: { logoUrl: string | null },
     @CurrentUser() user: any,
   ) {
+    if (user?.tenantId) {
+      const subscription = await this.subscriptions.getSummary(user.tenantId);
+      if (subscription.status !== 'ACTIVE') {
+        throw new ForbiddenException({
+          message: 'Le logo personnalisé est disponible après activation d’un forfait payant.',
+          errorCode: 'PAID_FEATURE_REQUIRED',
+        });
+      }
+    }
+
     const { logoUrl } = body;
     if (logoUrl !== null) {
       if (!logoUrl.startsWith('data:image/')) {
