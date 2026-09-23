@@ -22,9 +22,11 @@ import { EventsModule } from './modules/events/events.module';
 import { MarketingModule } from './modules/marketing/marketing.module';
 import { SignupModule } from './modules/signup/signup.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { SubscriptionModule } from './modules/subscription/subscription.module';
 import { SchedulerService } from './workers/scheduler.service';
 import { SmsProcessor } from './workers/sms.processor';
 import { JwtAuthGuard, PermissionsGuard } from './guards/auth.guard';
+import { SubscriptionGuard } from './guards/subscription.guard';
 import { AppController } from './app.controller';
 
 @Module({
@@ -66,6 +68,7 @@ import { AppController } from './app.controller';
     MarketingModule,
     SignupModule,
     AdminModule,
+    SubscriptionModule,
 
     // 4. Background Jobs (Workers & Schedulers)
     BullModule.registerQueue(
@@ -80,6 +83,10 @@ import { AppController } from './app.controller';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: SubscriptionGuard,
     },
     {
       provide: APP_GUARD,
