@@ -18,6 +18,9 @@ import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 import { Loader } from '@/components/ui/loader';
+import { useTrialStatus } from '@/hooks/use-trial-status';
+import { TrialStatusBanner } from '@/components/subscription/TrialStatusBanner';
+import { SubscriptionBlockedScreen } from '@/components/subscription/SubscriptionBlockedScreen';
 
 const PUBLIC_PATHS = ['/', '/login', '/forgot-password', '/demo', '/inscription'];
 
@@ -28,7 +31,14 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const pathname  = usePathname();
   const router    = useRouter();
-  const { isAuthenticated, isLoading, user, logout, updateUser } = useAuth();
+  const { isAuthenticated, isLoading, user, logout, updateUser, hasRole } = useAuth();
+  const shouldLoadSubscription =
+    isAuthenticated && Boolean(user?.tenantId) && !hasRole('SUPER_ADMIN');
+  const {
+    data: subscription,
+    isLoading: subscriptionLoading,
+  } = useTrialStatus(shouldLoadSubscription);
+
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -81,6 +91,26 @@ export function AppLayout({ children }: AppLayoutProps) {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader size="md" />
       </div>
+    );
+  }
+
+  if (shouldLoadSubscription && subscriptionLoading && !subscription) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader size="sm" />
+      </div>
+    );
+  }
+
+  if (subscription?.blocked) {
+    return (
+      <SubscriptionBlockedScreen
+        subscription={subscription}
+        onLogout={async () => {
+          await logout();
+          router.replace('/');
+        }}
+      />
     );
   }
 
@@ -152,6 +182,8 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
           </div>
         </header>
+
+        {subscription && <TrialStatusBanner subscription={subscription} />}
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
