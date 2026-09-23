@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class DemoBookingDto {
   @IsString()
@@ -29,4 +29,12 @@ export class DemoBookingDto {
   @IsString()
   @MaxLength(2000)
   message?: string;
+
+  @IsOptional()
+  @IsIn(['essential', 'pro', 'business'])
+  requestedPlan?: 'essential' | 'pro' | 'business';
+
+  @IsOptional()
+  @IsIn(['monthly', 'annual'])
+  billingCycle?: 'monthly' | 'annual';
 }
