@@ -49,8 +49,18 @@ export function Combobox({
 
   // Sync selected depuis value externe
   useEffect(() => {
-    if (!value) { setSelected(null); setSearch(''); }
-  }, [value]);
+    if (!value) {
+      setSelected(null);
+      setSearch('');
+      return;
+    }
+    if (initialOption?.id === value) {
+      setSelected(initialOption);
+      setSearch('');
+      setOptions([]);
+      setNoResults(false);
+    }
+  }, [value, initialOption]);
 
   // Fermer si clic à l'extérieur
   useEffect(() => {
