@@ -38,6 +38,7 @@ import {
   MapPin,
   Building2,
   User,
+  CreditCard,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -54,6 +55,18 @@ const STATUS_META: Record<
 };
 
 const STATUS_OPTIONS = Object.entries(STATUS_META) as [DemoRequestStatus, { label: string }][];
+
+const PLAN_LABELS: Record<string, string> = {
+  essential: 'Essentiel',
+  pro: 'Pro',
+  business: 'Business',
+};
+
+function formatPlan(plan: string | null, billing: string | null) {
+  if (!plan) return '—';
+  const label = PLAN_LABELS[plan] ?? plan;
+  return `${label} · ${billing === 'annual' ? 'Annuel' : 'Mensuel'}`;
+}
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString('fr-FR', {
@@ -236,6 +249,11 @@ export default function DemoRequestsPage() {
                       {STATUS_META[row.status].label}
                     </Badge>
                   </div>
+                  {row.requestedPlan && (
+                    <p className="text-xs font-medium text-brand">
+                      {formatPlan(row.requestedPlan, row.billingCycle)}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground">{formatDate(row.createdAt)}</p>
                 </CardContent>
               </Card>
@@ -249,6 +267,7 @@ export default function DemoRequestsPage() {
                   <th className="text-left p-3 font-medium">Atelier</th>
                   <th className="text-left p-3 font-medium">Contact</th>
                   <th className="text-left p-3 font-medium">Ville</th>
+                  <th className="text-left p-3 font-medium">Forfait</th>
                   <th className="text-left p-3 font-medium">Statut</th>
                   <th className="text-left p-3 font-medium">Reçue le</th>
                 </tr>
@@ -266,6 +285,13 @@ export default function DemoRequestsPage() {
                       <div className="text-muted-foreground text-xs">{row.email}</div>
                     </td>
                     <td className="p-3 text-muted-foreground">{row.city ?? '—'}</td>
+                    <td className="p-3">
+                      {row.requestedPlan ? (
+                        <span className="font-medium text-brand">
+                          {formatPlan(row.requestedPlan, row.billingCycle)}
+                        </span>
+                      ) : '—'}
+                    </td>
                     <td className="p-3">
                       <Badge variant="outline" className={STATUS_META[row.status].className}>
                         {STATUS_META[row.status].label}
@@ -324,6 +350,18 @@ export default function DemoRequestsPage() {
                     {selected.phone}
                   </a>
                 </div>
+
+                {selected.requestedPlan && (
+                  <div className="rounded-xl border border-brand/15 bg-brand/5 p-4">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-brand">
+                      <CreditCard className="h-4 w-4" />
+                      Forfait demandé
+                    </div>
+                    <p className="mt-2 text-base font-bold text-foreground">
+                      {formatPlan(selected.requestedPlan, selected.billingCycle)}
+                    </p>
+                  </div>
+                )}
 
                 {selected.message && (
                   <div className="rounded-lg bg-muted/50 p-3 text-sm">
