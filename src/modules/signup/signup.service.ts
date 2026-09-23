@@ -75,6 +75,12 @@ export class SignupService {
     const tenantSlug = await this.generateSlug(dto.workshop.shopName, 'tenant');
     const garageSlug = 'principal';
 
+    // Le pilote démarre uniquement quand la création réelle de l'espace commence.
+    const trialStartedAt = new Date();
+    const trialEndsAt = new Date(trialStartedAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const graceEndsAt = new Date(trialEndsAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const dataRetentionEndsAt = new Date(trialEndsAt.getTime() + 90 * 24 * 60 * 60 * 1000);
+
     const teamCreated: SignupTeamResult[] = [];
 
     const admin = await this.prisma.$transaction(async (tx) => {
@@ -84,6 +90,12 @@ export class SignupService {
           slug: tenantSlug,
           name: dto.workshop.shopName.trim(),
           email: dto.admin.email.trim().toLowerCase(),
+          plan: 'pro',
+          subscriptionStatus: 'TRIAL',
+          trialStartedAt,
+          trialEndsAt,
+          graceEndsAt,
+          dataRetentionEndsAt,
         },
       });
 
