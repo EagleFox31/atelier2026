@@ -218,7 +218,7 @@ export function SignupWizard() {
         setTeamCreated(res.teamCreated);
         setStep(4);
       } else {
-        toast.success('Votre atelier est prêt !');
+        toast.success('Votre pilote Pro de 30 jours démarre maintenant !');
         router.replace('/dashboard');
       }
     } catch (err: unknown) {
