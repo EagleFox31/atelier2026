@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -34,7 +35,31 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+const PLAN_META = {
+  essential: { label: 'Essentiel', monthly: 20000, annual: 200000 },
+  pro: { label: 'Pro', monthly: 45000, annual: 450000 },
+  business: { label: 'Business', monthly: 65000, annual: 650000 },
+} as const;
+
+type DemoPlan = keyof typeof PLAN_META;
+type BillingCycle = 'monthly' | 'annual';
+
+function isDemoPlan(value: string | null): value is DemoPlan {
+  return value !== null && value in PLAN_META;
+}
+
+function formatXaf(value: number) {
+  return new Intl.NumberFormat('fr-FR').format(value) + ' FCFA';
+}
+
 export function DemoRequestForm() {
+  const searchParams = useSearchParams();
+  const rawPlan = searchParams.get('plan');
+  const selectedPlan: DemoPlan | undefined = isDemoPlan(rawPlan) ? rawPlan : undefined;
+  const selectedBilling: BillingCycle =
+    searchParams.get('billing') === 'annual' ? 'annual' : 'monthly';
+  const planMeta = selectedPlan ? PLAN_META[selectedPlan] : null;
+
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -62,6 +87,8 @@ export function DemoRequestForm() {
         garageName: values.garageName.trim(),
         city: values.city?.trim() || undefined,
         message: values.message?.trim() || undefined,
+        requestedPlan: selectedPlan,
+        billingCycle: selectedPlan ? selectedBilling : undefined,
       });
       setSubmitted(true);
     } catch (err: unknown) {
@@ -88,7 +115,8 @@ export function DemoRequestForm() {
           <p className="mt-3 text-pretty text-slate-600 leading-relaxed">
             Notre équipe vous contactera sous{' '}
             <strong className="font-medium text-[var(--afrique-forest)]">48 h ouvrées</strong> pour
-            une démo de <BrandCalligraphy className="text-[1.2em]">30 min</BrandCalligraphy>.
+            une démo de <BrandCalligraphy className="text-[1.2em]">30 min</BrandCalligraphy>
+            {planMeta ? <> autour de l&apos;offre <strong>{planMeta.label}</strong></> : null}.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
@@ -138,6 +166,32 @@ export function DemoRequestForm() {
           </h1>
         </div>
       </div>
+
+      {planMeta && (
+        <div className="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-[var(--afrique-brand-ring)] bg-[var(--afrique-brand-soft)]/55 px-4 py-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand">
+              Offre sélectionnée
+            </p>
+            <p className="mt-1 font-semibold text-[var(--afrique-earth)]">
+              {planMeta.label} · {formatXaf(
+                selectedBilling === 'annual' ? planMeta.annual : planMeta.monthly,
+              )} / {selectedBilling === 'annual' ? 'an' : 'mois'}
+            </p>
+            {selectedBilling === 'annual' && (
+              <p className="mt-0.5 text-xs text-[var(--afrique-earth-muted)]">
+                Facturation annuelle · 2 mois offerts
+              </p>
+            )}
+          </div>
+          <Link
+            href="/#tarifs"
+            className="shrink-0 text-xs font-semibold text-brand hover:underline"
+          >
+            Changer
+          </Link>
+        </div>
+      )}
 
       <Form {...form}>
         <form
