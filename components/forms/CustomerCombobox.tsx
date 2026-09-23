@@ -31,7 +31,7 @@ export function CustomerCombobox({ value, onChange, disabled, initialLabel, init
     }));
   }
 
-  const initialOption = createdOption?.id === value
+  const initialOption = createdOption && createdOption.id === value
     ? createdOption
     : value && initialLabel
       ? { id: value, label: initialLabel, sublabel: initialSublabel }
