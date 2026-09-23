@@ -43,12 +43,17 @@ async function mockAuthenticatedApp(
     auditLogs?: unknown[];
     trial?: boolean;
     customerCreate?: boolean;
+    onboardingPending?: boolean;
   } = {},
 ) {
+  const profile = options.onboardingPending
+    ? { ...PROFILE, onboardingCompletedAt: null }
+    : PROFILE;
+
   await page.addInitScript((profile) => {
     localStorage.setItem('atelier_token', 'ux-token');
     localStorage.setItem('atelier_user', JSON.stringify(profile));
-  }, PROFILE);
+  }, profile);
 
   await page.route('**/api/**', async (route) => {
     const request = route.request();
@@ -57,7 +62,14 @@ async function mockAuthenticatedApp(
     const method = request.method();
 
     if (path === '/api/auth/profile') {
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(PROFILE) });
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(profile) });
+    }
+    if (path === '/api/auth/onboarding' && method === 'PATCH') {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ onboardingCompletedAt: '2026-09-23T08:30:00.000Z' }),
+      });
     }
     if (path === '/api/subscription/status') {
       return route.fulfill({
@@ -264,6 +276,40 @@ test.describe('Atelier Maître — garde-fous UX/UI/CX', () => {
     await expect(buttons).toHaveCount(2);
     await expect(buttons.nth(0)).toBeDisabled();
     await expect(buttons.nth(1)).toBeDisabled();
+  });
+
+
+  test('le premier accès impose le tour interactif puis ne le marque terminé qu’à la fin', async ({ page }) => {
+    let onboardingWrites = 0;
+    await mockAuthenticatedApp(page, { trial: true, onboardingPending: true });
+
+    page.on('request', (request) => {
+      if (
+        request.method() === 'PATCH' &&
+        new URL(request.url()).pathname === '/api/auth/onboarding'
+      ) {
+        onboardingWrites += 1;
+      }
+    });
+
+    await page.goto('/dashboard');
+    await expect(page.getByText('Bienvenue — Administrateur', { exact: true })).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByText('Bienvenue — Administrateur', { exact: true })).toBeVisible();
+    expect(onboardingWrites).toBe(0);
+
+    for (let i = 0; i < 8; i += 1) {
+      const done = page.getByRole('button', { name: 'Terminer' });
+      if (await done.isVisible().catch(() => false)) {
+        await done.click();
+        break;
+      }
+      await page.getByRole('button', { name: 'Suivant' }).click();
+    }
+
+    await expect.poll(() => onboardingWrites).toBe(1);
+    await expect(page.getByText('Bienvenue — Administrateur', { exact: true })).toHaveCount(0);
   });
 
   test('le login parle d’identifiant employé et non de code employé', async ({ page }) => {
