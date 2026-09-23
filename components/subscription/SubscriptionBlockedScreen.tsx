@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { LockKeyhole, ShieldCheck } from 'lucide-react';
 import type { SubscriptionSummary } from '@/lib/api';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 function formatDate(value: string | null) {
   if (!value) return null;
@@ -57,9 +58,15 @@ export function SubscriptionBlockedScreen({
           )}
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Button asChild className="landing-auth-btn-primary h-11 rounded-xl px-6">
-              <Link href="/#tarifs">Voir les offres</Link>
-            </Button>
+            <Link
+              href="/#tarifs"
+              className={cn(
+                buttonVariants(),
+                'landing-auth-btn-primary h-11 rounded-xl px-6',
+              )}
+            >
+              Voir les offres
+            </Link>
             <Button variant="outline" className="h-11 rounded-xl px-6" onClick={() => void onLogout()}>
               Se déconnecter
             </Button>
