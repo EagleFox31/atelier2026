@@ -2142,65 +2142,6 @@ export function LandingPage() {
           </div>
 
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.15 }}
-            style={{
-              maxWidth: 1120,
-              margin: '1.5rem auto 0',
-              borderRadius: 20,
-              border: '1.5px solid rgba(29,106,74,0.20)',
-              background: 'linear-gradient(120deg, rgba(255,255,255,0.96), rgba(232,248,239,0.92))',
-              padding: '1.35rem 1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '1.25rem',
-              flexWrap: 'wrap',
-              textAlign: 'left',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: '1 1 440px' }}>
-              <div style={{
-                width: 46,
-                height: 46,
-                flexShrink: 0,
-                borderRadius: 14,
-                display: 'grid',
-                placeItems: 'center',
-                background: C.green + '14',
-                color: C.green,
-              }}>
-                <Zap size={22} />
-              </div>
-              <div>
-                <p style={{ fontSize: '0.72rem', fontWeight: 800, color: C.green, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                  Pilote gratuit
-                </p>
-                <p style={{ fontFamily: '"Playfair Display", serif', fontWeight: 900, fontSize: '1.25rem', color: C.earth, marginTop: '0.2rem' }}>
-                  30 jours pour tester les fonctionnalités Pro dans votre vrai atelier.
-                </p>
-                <p style={{ fontSize: '0.8rem', color: C.muted, marginTop: '0.25rem' }}>
-                  0 FCFA · aucune carte bancaire · données conservées 90 jours après le pilote
-                </p>
-              </div>
-            </div>
-
-            <Link
-              href="/inscription"
-              style={{
-                ...btnPrimary,
-                background: C.green,
-                flexShrink: 0,
-                justifyContent: 'center',
-              }}
-            >
-              <UserPlus size={16} /> Tester 30 jours gratuitement
-            </Link>
-          </motion.div>
-
-          <motion.div
             initial={{ opacity: 0, y: 8 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
