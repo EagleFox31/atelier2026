@@ -186,7 +186,7 @@ export const TOUR_STEPS_BY_ROLE: Record<GuideRole, TourStepDef[]> = {
     {
       title: 'Bienvenue — Réception',
       description:
-        'Ce tour vous montre les raccourcis essentiels. Vous pouvez le quitter à tout moment (Échap).',
+        'Ce tour vous montre les raccourcis essentiels pour démarrer sans vous perdre.',
     },
     {
       target: 'tour-header-guide',
