@@ -8,7 +8,10 @@ import { TOUR_STEPS_BY_ROLE } from '@/lib/getting-started';
 function resolveElement(target?: string): Element | undefined {
   if (!target) return undefined;
   const el = document.querySelector(`[data-tour="${target}"]`);
-  return el ?? undefined;
+  if (!el) return undefined;
+  const rect = el.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return undefined;
+  return el;
 }
 
 export function runProductTour(
