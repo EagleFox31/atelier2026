@@ -115,6 +115,7 @@ async function main() {
   await migrateUserNewFields();
   await migrateDemoRequests();
   await migrateMultiTenant();
+  await migrateSubscriptionLifecycle();
   await migrateGarageIdColumns();
   await migrateMonthlyTargets();
   await migrateDefaultGarageForSeededData();
@@ -149,30 +150,48 @@ async function migrateDemoRequests() {
     SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='demo_requests'
   `);
 
-  if (tableRows.length > 0) {
+  if (tableRows.length === 0) {
+    await q(`
+      CREATE TABLE public.demo_requests (
+        id             UUID                  NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
+        full_name      TEXT                  NOT NULL,
+        email          TEXT                  NOT NULL,
+        phone          TEXT                  NOT NULL,
+        garage_name    TEXT                  NOT NULL,
+        city           TEXT,
+        message        TEXT,
+        requested_plan TEXT,
+        billing_cycle  TEXT,
+        status         demo_request_status_t NOT NULL DEFAULT 'NEW',
+        admin_notes    TEXT,
+        handled_by_id  UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at     TIMESTAMPTZ           NOT NULL DEFAULT now(),
+        updated_at     TIMESTAMPTZ           NOT NULL DEFAULT now()
+      )
+    `);
+    await q(`CREATE INDEX idx_demo_requests_status ON public.demo_requests(status)`);
+    await q(`CREATE INDEX idx_demo_requests_created_at ON public.demo_requests(created_at)`);
+    console.log('   ✅ Table demo_requests créée');
+  } else {
     console.log('   ⏭️  Table demo_requests existe déjà');
-    return;
   }
 
-  await q(`
-    CREATE TABLE public.demo_requests (
-      id             UUID                  NOT NULL DEFAULT uuid_generate_v4() PRIMARY KEY,
-      full_name      TEXT                  NOT NULL,
-      email          TEXT                  NOT NULL,
-      phone          TEXT                  NOT NULL,
-      garage_name    TEXT                  NOT NULL,
-      city           TEXT,
-      message        TEXT,
-      status         demo_request_status_t NOT NULL DEFAULT 'NEW',
-      admin_notes    TEXT,
-      handled_by_id  UUID REFERENCES users(id) ON DELETE SET NULL,
-      created_at     TIMESTAMPTZ           NOT NULL DEFAULT now(),
-      updated_at     TIMESTAMPTZ           NOT NULL DEFAULT now()
-    )
-  `);
-  await q(`CREATE INDEX idx_demo_requests_status ON public.demo_requests(status)`);
-  await q(`CREATE INDEX idx_demo_requests_created_at ON public.demo_requests(created_at)`);
-  console.log('   ✅ Table demo_requests créée');
+  const extraColumns = [
+    { col: 'requested_plan', sql: 'ALTER TABLE public.demo_requests ADD COLUMN requested_plan TEXT' },
+    { col: 'billing_cycle', sql: 'ALTER TABLE public.demo_requests ADD COLUMN billing_cycle TEXT' },
+  ];
+  for (const { col, sql } of extraColumns) {
+    const { rows } = await q(`
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='demo_requests' AND column_name='${col}'
+    `);
+    if (rows.length === 0) {
+      await q(sql);
+      console.log(`   ✅ demo_requests.${col} ajouté`);
+    } else {
+      console.log(`   ⏭️  demo_requests.${col} existe déjà`);
+    }
+  }
 }
 
 async function migrateUserOnboarding() {
@@ -267,6 +286,73 @@ async function migrateMultiTenant() {
   }
 }
 
+async function migrateSubscriptionLifecycle() {
+  const { rows: enumRows } = await q(`
+    SELECT 1 FROM pg_type WHERE typname = 'subscription_status_t'
+  `);
+  if (enumRows.length === 0) {
+    await q(`
+      CREATE TYPE subscription_status_t AS ENUM (
+        'TRIAL', 'GRACE_PERIOD', 'ACTIVE', 'EXPIRED', 'SUSPENDED'
+      )
+    `);
+    console.log('   ✅ Enum subscription_status_t créé');
+  } else {
+    console.log('   ⏭️  Enum subscription_status_t existe déjà');
+  }
+
+  const columns = [
+    {
+      col: 'subscription_status',
+      sql: "ALTER TABLE public.tenants ADD COLUMN subscription_status subscription_status_t NOT NULL DEFAULT 'ACTIVE'",
+    },
+    { col: 'trial_started_at', sql: 'ALTER TABLE public.tenants ADD COLUMN trial_started_at TIMESTAMPTZ' },
+    { col: 'trial_ends_at', sql: 'ALTER TABLE public.tenants ADD COLUMN trial_ends_at TIMESTAMPTZ' },
+    { col: 'grace_ends_at', sql: 'ALTER TABLE public.tenants ADD COLUMN grace_ends_at TIMESTAMPTZ' },
+    { col: 'subscription_started_at', sql: 'ALTER TABLE public.tenants ADD COLUMN subscription_started_at TIMESTAMPTZ' },
+    { col: 'subscription_ends_at', sql: 'ALTER TABLE public.tenants ADD COLUMN subscription_ends_at TIMESTAMPTZ' },
+    { col: 'data_retention_ends_at', sql: 'ALTER TABLE public.tenants ADD COLUMN data_retention_ends_at TIMESTAMPTZ' },
+  ];
+
+  for (const { col, sql } of columns) {
+    const { rows } = await q(`
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='tenants' AND column_name='${col}'
+    `);
+    if (rows.length === 0) {
+      await q(sql);
+      console.log(`   ✅ tenants.${col} ajouté`);
+    } else {
+      console.log(`   ⏭️  tenants.${col} existe déjà`);
+    }
+  }
+
+  // Les tenants déjà présents ne doivent pas être coupés par la migration.
+  // Les nouvelles inscriptions définissent explicitement leur pilote de 30 jours.
+  await q(`
+    UPDATE public.tenants
+    SET subscription_status = 'ACTIVE'
+    WHERE trial_started_at IS NULL
+      AND trial_ends_at IS NULL
+      AND subscription_status <> 'SUSPENDED'
+  `);
+  await q(`
+    ALTER TABLE public.tenants
+    ALTER COLUMN subscription_status SET DEFAULT 'TRIAL'
+  `);
+
+  await q(`
+    CREATE INDEX IF NOT EXISTS idx_tenants_subscription_status
+    ON public.tenants(subscription_status)
+  `);
+  await q(`
+    CREATE INDEX IF NOT EXISTS idx_tenants_trial_ends_at
+    ON public.tenants(trial_ends_at)
+  `);
+
+  console.log('   ✅ Cycle pilote / abonnement prêt');
+}
+
 async function migrateWorkshopLogoUrl() {
   const { rows } = await q(`
     SELECT 1 FROM information_schema.columns
@@ -290,8 +376,8 @@ const SEED_USER_EMAILS = [
 async function migrateDefaultGarageForSeededData() {
   // Tenant + garage démo dédiés aux comptes seed (@atelier.cm) — jamais un garage client.
   const { rows: tenantRows } = await q(`
-    INSERT INTO tenants (slug, name, email, plan, status)
-    VALUES ('default', 'Atelier Maître (démo)', 'admin@atelier.cm', 'starter', 'active')
+    INSERT INTO tenants (slug, name, email, plan, status, subscription_status)
+    VALUES ('default', 'Atelier Maître (démo)', 'admin@atelier.cm', 'starter', 'active', 'ACTIVE')
     ON CONFLICT (slug) DO UPDATE SET
       name = EXCLUDED.name,
       email = EXCLUDED.email
