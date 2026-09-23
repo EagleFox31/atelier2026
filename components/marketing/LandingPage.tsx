@@ -159,6 +159,67 @@ const FAQ = [
   },
 ];
 
+
+const PRICING_PLANS = [
+  {
+    id: 'essential',
+    name: 'Essentiel',
+    monthly: 20000,
+    annual: 200000,
+    annualEquivalent: 16667,
+    description: 'Pour structurer un atelier indépendant.',
+    accent: C.gold,
+    badge: null,
+    features: [
+      '1 garage',
+      'Jusqu’à 5 utilisateurs',
+      'OT, devis & factures PDF',
+      'Stock + alertes seuil',
+      'Planning & rendez-vous',
+      'Tableau de bord essentiel',
+      'Support en français',
+    ],
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    monthly: 45000,
+    annual: 450000,
+    annualEquivalent: 37500,
+    description: 'Pour les ateliers qui pilotent une équipe complète.',
+    accent: C.brand,
+    badge: 'Recommandé',
+    features: [
+      '1 garage',
+      'Utilisateurs illimités',
+      'Tout Essentiel',
+      'SMS Orange / MTN intégrés',
+      'Reporting avancé',
+      'Accompagnement au démarrage',
+      'Support prioritaire',
+    ],
+  },
+  {
+    id: 'business',
+    name: 'Business',
+    monthly: 65000,
+    annual: 650000,
+    annualEquivalent: 54167,
+    description: 'Pour les structures multi-sites et les équipes plus larges.',
+    accent: C.green,
+    badge: 'Multi-sites',
+    features: [
+      '2 garages inclus',
+      'Utilisateurs illimités',
+      'Tout Pro',
+      'Vue consolidée multi-garages',
+      'Rôles & permissions avancés',
+      '+20 000 FCFA / mois par garage supplémentaire',
+      'Support prioritaire',
+    ],
+  },
+] as const;
+
 /* ─── SOUS-COMPOSANTS ───────────────────────────────────────────────────── */
 
 function Eyebrow({ children, light = false }: { children: React.ReactNode; light?: boolean }) {
@@ -370,6 +431,7 @@ export function LandingPage() {
   const DEFAULT_ROLE_PHOTO = '/landing/gérant_garage.jpg';
   const [hoveredRolePhoto, setHoveredRolePhoto] = useState<string>(DEFAULT_ROLE_PHOTO);
   const [isMobile, setIsMobile] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -1762,116 +1824,276 @@ export function LandingPage() {
         </div>
       </section>
 
+
       {/* ── PRICING ── */}
       <section id="tarifs" className={sectionClass} style={{ background: C.sand }}>
         <div className="landing-inner text-center">
           <Eyebrow>Tarifs</Eyebrow>
-          <SectionHeading>Simple. Transparent. Engagé.</SectionHeading>
-          <Lead style={{ maxWidth: 500, margin: '0.875rem auto 0' }}>
-            Un seul plan avec tout inclus dès le premier jour. Testez gratuitement, engagez-vous ensuite.
+          <SectionHeading>Un plan pour chaque étape de votre atelier.</SectionHeading>
+          <Lead style={{ maxWidth: 620, margin: '0.875rem auto 0' }}>
+            Commencez simplement, puis évoluez quand votre équipe ou votre réseau grandit.
+            Tous les prix sont affichés en FCFA, sans surprise.
           </Lead>
 
-          <div className="landing-grid-pricing">
-            {/* Pro */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              whileHover={{ y: -8, boxShadow: `0 24px 56px ${C.brand}30` }}
-              transition={{ duration: 0.35 }}
-              style={{
-                background: 'linear-gradient(135deg, #FFF8F4 0%, #FFF3EC 100%)',
-                border: `2px solid ${C.brand}`,
-                borderRadius: 20, padding: '2rem',
-                display: 'flex', flexDirection: 'column', textAlign: 'left',
-                position: 'relative', overflow: 'hidden', cursor: 'default',
-              }}
-            >
-              {/* Shimmer décoratif */}
-              <div style={{
-                position: 'absolute', top: -40, right: -40,
-                width: 160, height: 160, borderRadius: '50%',
-                background: `radial-gradient(circle, ${C.brand}18 0%, transparent 70%)`,
-                pointerEvents: 'none',
-              }} />
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                <span style={{ background: C.brand, color: '#FFF', fontSize: '0.68rem', fontWeight: 700, padding: '0.25rem 0.75rem', borderRadius: 6, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                  Recommandé
-                </span>
-                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: C.brand, background: `${C.brand}12`, padding: '0.2rem 0.6rem', borderRadius: 99 }}>
-                  Réponse sous 48h
-                </span>
-              </div>
-
-              <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.brand, marginBottom: '0.5rem' }}>Atelier Maître Pro</p>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.45rem', flexWrap: 'wrap' }}>
-                <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '2.25rem', fontWeight: 900, color: C.earth, lineHeight: 1 }}>45 000 FCFA</p>
-                <span style={{ fontSize: '0.9rem', fontWeight: 600, color: C.muted }}>/ mois</span>
-              </div>
-              <p style={{ fontSize: '0.82rem', color: C.muted, marginTop: '0.35rem' }}>1 garage inclus · équipe complète</p>
-              <p style={{ fontSize: '0.78rem', color: C.brand, fontWeight: 700, marginTop: '0.35rem', marginBottom: '1.5rem' }}>450 000 FCFA / an · 2 mois offerts</p>
-
-              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
-                {['OT, devis, factures PDF illimités', 'Stock + alertes seuil', 'Planning & rendez-vous', 'SMS Orange / MTN intégrés', 'Tableau de bord temps réel', '+20 000 FCFA / mois par garage supplémentaire', 'Support dédié en français'].map((item) => (
-                  <CheckItem key={item} color={C.brand}>{item}</CheckItem>
-                ))}
-              </ul>
-              <Link href="/demo" style={{ ...btnPrimary, marginTop: '1.75rem', justifyContent: 'center' }}>
-                Réserver une démo <ArrowRight size={16} />
-              </Link>
-            </motion.div>
-
-            {/* Pilote */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.08 }}
-              whileHover={{ y: -8, boxShadow: '0 24px 56px rgba(29,106,74,0.18)' }}
-              style={{
-                background: C.white,
-                border: '1.5px solid rgba(29,106,74,0.2)',
-                borderRadius: 20, padding: '2rem',
-                display: 'flex', flexDirection: 'column', textAlign: 'left',
-                cursor: 'default', position: 'relative', overflow: 'hidden',
-              }}
-            >
-              <div style={{
-                position: 'absolute', top: -40, right: -40,
-                width: 140, height: 140, borderRadius: '50%',
-                background: 'radial-gradient(circle, rgba(29,106,74,0.08) 0%, transparent 70%)',
-                pointerEvents: 'none',
-              }} />
-
-              <span style={{ display: 'inline-block', background: C.green, color: '#FFF', fontSize: '0.68rem', fontWeight: 700, padding: '0.25rem 0.75rem', borderRadius: 6, marginBottom: '1rem', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                Pilote gratuit
-              </span>
-              <p style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.green, marginBottom: '0.5rem' }}>Pilote 30 jours</p>
-              <p style={{ fontFamily: '"Playfair Display", serif', fontSize: '2.25rem', fontWeight: 900, color: C.earth, lineHeight: 1 }}>0 FCFA</p>
-              <p style={{ fontSize: '0.82rem', color: C.muted, marginTop: '0.25rem', marginBottom: '1.5rem' }}>Testez Atelier Maître dans votre vrai atelier</p>
-
-              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
-                {['Accès complet à la plateforme', '1 garage, équipe complète', 'Accompagnement au démarrage', 'Données conservées après le pilote', 'Aucune carte bancaire requise'].map((item) => (
-                  <CheckItem key={item} color={C.green}>{item}</CheckItem>
-                ))}
-              </ul>
-              <Link href="/inscription" style={{ ...btnPrimary, background: 'transparent', color: C.green, border: `1.5px solid ${C.green}`, marginTop: '1.75rem', justifyContent: 'center' }}>
-                <UserPlus size={16} /> Tester 30 jours gratuitement
-              </Link>
-            </motion.div>
+          <div
+            role="group"
+            aria-label="Période de facturation"
+            style={{
+              margin: '1.75rem auto 0',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              padding: '0.35rem',
+              borderRadius: 999,
+              background: 'rgba(255,255,255,0.82)',
+              border: '1px solid rgba(60,40,20,0.10)',
+              boxShadow: '0 8px 24px rgba(60,40,20,0.06)',
+            }}
+          >
+            {([
+              { value: 'monthly', label: 'Mensuel' },
+              { value: 'annual', label: 'Annuel', note: '2 mois offerts' },
+            ] as const).map((option) => {
+              const active = billingCycle === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setBillingCycle(option.value)}
+                  aria-pressed={active}
+                  style={{
+                    border: 'none',
+                    borderRadius: 999,
+                    padding: '0.65rem 1rem',
+                    background: active ? C.earth : 'transparent',
+                    color: active ? '#FFFFFF' : C.muted,
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    transition: 'background 0.2s, color 0.2s, transform 0.2s',
+                  }}
+                >
+                  {option.label}
+                  {'note' in option && (
+                    <span style={{
+                      fontSize: '0.65rem',
+                      lineHeight: 1,
+                      padding: '0.3rem 0.45rem',
+                      borderRadius: 999,
+                      background: active ? C.gold : C.green + '16',
+                      color: active ? '#1A1209' : C.green,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {option.note}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Proof bar */}
+          <div className="landing-grid-pricing">
+            {PRICING_PLANS.map((plan, index) => {
+              const isAnnual = billingCycle === 'annual';
+              const price = isAnnual ? plan.annual : plan.monthly;
+
+              return (
+                <motion.div
+                  key={plan.id}
+                  initial={{ opacity: 0, y: 14 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.35, delay: index * 0.06 }}
+                  whileHover={{ y: -8, boxShadow: '0 24px 56px ' + plan.accent + '24' }}
+                  style={{
+                    background: plan.id === 'pro'
+                      ? 'linear-gradient(145deg, #FFF8F4 0%, #FFF1E8 100%)'
+                      : C.white,
+                    border: plan.id === 'pro'
+                      ? '2px solid ' + plan.accent
+                      : '1.5px solid rgba(60,40,20,0.10)',
+                    borderRadius: 22,
+                    padding: '1.75rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    textAlign: 'left',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    minHeight: 520,
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    top: -55,
+                    right: -55,
+                    width: 170,
+                    height: 170,
+                    borderRadius: '50%',
+                    background: 'radial-gradient(circle, ' + plan.accent + '18 0%, transparent 68%)',
+                    pointerEvents: 'none',
+                  }} />
+
+                  <div style={{ minHeight: 30, marginBottom: '0.8rem' }}>
+                    {plan.badge && (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        background: plan.id === 'pro' ? C.brand : plan.accent + '14',
+                        color: plan.id === 'pro' ? '#FFFFFF' : plan.accent,
+                        fontSize: '0.66rem',
+                        fontWeight: 800,
+                        padding: '0.3rem 0.65rem',
+                        borderRadius: 999,
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                      }}>
+                        {plan.id === 'pro' && <Star size={11} fill="currentColor" />}
+                        {plan.badge}
+                      </span>
+                    )}
+                  </div>
+
+                  <p style={{
+                    fontSize: '0.74rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.11em',
+                    textTransform: 'uppercase',
+                    color: plan.accent,
+                    marginBottom: '0.45rem',
+                  }}>
+                    Atelier Maître {plan.name}
+                  </p>
+
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    <p style={{
+                      fontFamily: '"Playfair Display", serif',
+                      fontSize: 'clamp(1.8rem, 3vw, 2.35rem)',
+                      fontWeight: 900,
+                      color: C.earth,
+                      lineHeight: 1,
+                    }}>
+                      {price.toLocaleString('fr-FR')} FCFA
+                    </p>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: C.muted }}>
+                      / {isAnnual ? 'an' : 'mois'}
+                    </span>
+                  </div>
+
+                  {isAnnual && (
+                    <p style={{ fontSize: '0.76rem', color: plan.accent, fontWeight: 700, marginTop: '0.45rem' }}>
+                      soit {plan.annualEquivalent.toLocaleString('fr-FR')} FCFA / mois
+                    </p>
+                  )}
+
+                  <p style={{
+                    fontSize: '0.82rem',
+                    lineHeight: 1.55,
+                    color: C.muted,
+                    marginTop: isAnnual ? '0.55rem' : '0.8rem',
+                    marginBottom: '1.35rem',
+                    minHeight: 40,
+                  }}>
+                    {plan.description}
+                  </p>
+
+                  <div style={{ height: 1, background: 'rgba(60,40,20,0.08)', marginBottom: '1.25rem' }} />
+
+                  <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.72rem', flex: 1 }}>
+                    {plan.features.map((item) => (
+                      <CheckItem key={item} color={plan.accent}>{item}</CheckItem>
+                    ))}
+                  </ul>
+
+                  <Link
+                    href="/demo"
+                    style={{
+                      ...btnPrimary,
+                      marginTop: '1.65rem',
+                      justifyContent: 'center',
+                      background: plan.id === 'pro' ? C.brand : 'transparent',
+                      color: plan.id === 'pro' ? '#FFFFFF' : plan.accent,
+                      border: '1.5px solid ' + plan.accent,
+                    }}
+                  >
+                    Réserver une démo <ArrowRight size={16} />
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.15 }}
+            style={{
+              maxWidth: 1120,
+              margin: '1.5rem auto 0',
+              borderRadius: 20,
+              border: '1.5px solid rgba(29,106,74,0.20)',
+              background: 'linear-gradient(120deg, rgba(255,255,255,0.96), rgba(232,248,239,0.92))',
+              padding: '1.35rem 1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1.25rem',
+              flexWrap: 'wrap',
+              textAlign: 'left',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: '1 1 440px' }}>
+              <div style={{
+                width: 46,
+                height: 46,
+                flexShrink: 0,
+                borderRadius: 14,
+                display: 'grid',
+                placeItems: 'center',
+                background: C.green + '14',
+                color: C.green,
+              }}>
+                <Zap size={22} />
+              </div>
+              <div>
+                <p style={{ fontSize: '0.72rem', fontWeight: 800, color: C.green, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  Pilote gratuit
+                </p>
+                <p style={{ fontFamily: '"Playfair Display", serif', fontWeight: 900, fontSize: '1.25rem', color: C.earth, marginTop: '0.2rem' }}>
+                  30 jours pour tester les fonctionnalités Pro dans votre vrai atelier.
+                </p>
+                <p style={{ fontSize: '0.8rem', color: C.muted, marginTop: '0.25rem' }}>
+                  0 FCFA · aucune carte bancaire · vos données sont conservées après le pilote
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/inscription"
+              style={{
+                ...btnPrimary,
+                background: C.green,
+                flexShrink: 0,
+                justifyContent: 'center',
+              }}
+            >
+              <UserPlus size={16} /> Tester 30 jours gratuitement
+            </Link>
+          </motion.div>
+
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', flexWrap: 'wrap' }}
+            style={{ marginTop: '1.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', flexWrap: 'wrap' }}
           >
             {[
-              { Icon: ShieldCheck, text: 'Aucune carte bancaire' },
+              { Icon: ShieldCheck, text: 'Aucune carte bancaire pour le pilote' },
               { Icon: Wifi,        text: 'Fonctionne sur 3G et hors-ligne' },
               { Icon: Mail,        text: 'Support en français' },
             ].map(({ Icon, text }) => (
