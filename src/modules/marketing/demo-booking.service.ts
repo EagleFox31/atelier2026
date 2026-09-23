@@ -34,6 +34,8 @@ export class DemoBookingService {
         garageName: dto.garageName.trim(),
         city: dto.city?.trim() || null,
         message: dto.message?.trim() || null,
+        requestedPlan: dto.requestedPlan ?? null,
+        billingCycle: dto.billingCycle ?? null,
       },
     });
 
@@ -43,6 +45,9 @@ export class DemoBookingService {
       `Email : ${request.email}`,
       `Tél. : ${request.phone}`,
       request.city ? `Ville : ${request.city}` : null,
+      request.requestedPlan
+        ? `Forfait : ${request.requestedPlan.toUpperCase()} · ${request.billingCycle === 'annual' ? 'Annuel' : 'Mensuel'}`
+        : null,
       request.message ? `Message : ${request.message}` : null,
     ].filter(Boolean);
 
