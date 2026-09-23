@@ -27,7 +27,13 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getPasswordSimilarityPercent } from '@/lib/password-strength';
 import { cn } from '@/lib/utils';
-import { signupApi, type SignupTeamCreated, handleApiError } from '@/lib/api';
+import {
+  ApiError,
+  authApi,
+  signupApi,
+  type SignupTeamCreated,
+  handleApiError,
+} from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import { SIGNUP_TEAM_ROLES, type SignupTeamRoleCode } from '@/components/signup/signup-roles';
 import { toast } from 'sonner';
@@ -286,6 +292,22 @@ export function SignupWizard() {
         router.replace('/dashboard');
       }
     } catch (err: unknown) {
+      // Cas important : la connexion peut tomber après que le serveur a réellement
+      // créé l'atelier. Une nouvelle soumission renvoie alors "email déjà utilisé".
+      // On tente de reprendre la session avec les identifiants saisis au lieu de
+      // demander à l'utilisateur de recommencer.
+      if (err instanceof ApiError && err.status === 409) {
+        try {
+          const login = await authApi.login(adminData.email, adminData.password);
+          await setSessionFromToken(login.access_token);
+          sessionStorage.removeItem(SIGNUP_DRAFT_KEY);
+          toast.success('Votre atelier avait déjà été créé. Reprise de votre session.');
+          router.replace('/team');
+          return;
+        } catch {
+          // Ce n'était pas une reprise de notre inscription : afficher l'erreur initiale.
+        }
+      }
       handleApiError(err, 'Inscription impossible');
     } finally {
       setSubmitting(false);
