@@ -128,7 +128,7 @@ export class SignupService {
             dto.admin.lastName,
             tx,
           ),
-          onboardingCompletedAt: new Date(),
+          onboardingCompletedAt: null,
           lastLoginAt: new Date(),
         },
       });
