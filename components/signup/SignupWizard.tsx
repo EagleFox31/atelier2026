@@ -15,10 +15,12 @@ import {
   Eye,
   EyeOff,
   Loader2,
+  MailCheck,
   User,
   Users,
 } from 'lucide-react';
 import { PasswordStrengthIndicator } from '@/components/signup/PasswordStrengthIndicator';
+import { CityCombobox } from '@/components/signup/CityCombobox';
 import { Loader } from '@/components/ui/loader';
 import { LandingKenteBar } from '@/components/marketing/LandingKenteBar';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -78,6 +80,38 @@ const STEPS = [
   { id: 3, label: 'Équipe', icon: Users },
 ] as const;
 
+const SIGNUP_DRAFT_KEY = 'atelier_signup_draft_v1';
+
+type SignupDraft = {
+  step: number;
+  adminData: AdminForm | null;
+  workshopData: WorkshopForm | null;
+  selectedRoles: SignupTeamRoleCode[];
+  teamDrafts: Partial<Record<SignupTeamRoleCode, TeamDraft>>;
+};
+
+function readSignupDraft(): SignupDraft | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(SIGNUP_DRAFT_KEY);
+    return raw ? JSON.parse(raw) as SignupDraft : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSignupDraft(patch: Partial<SignupDraft>) {
+  if (typeof window === 'undefined') return;
+  const current = readSignupDraft() ?? {
+    step: 1,
+    adminData: null,
+    workshopData: null,
+    selectedRoles: [],
+    teamDrafts: {},
+  };
+  sessionStorage.setItem(SIGNUP_DRAFT_KEY, JSON.stringify({ ...current, ...patch }));
+}
+
 export function SignupWizard() {
   const router = useRouter();
   const { setSessionFromToken } = useAuth();
@@ -86,6 +120,7 @@ export function SignupWizard() {
   const [unavailable, setUnavailable] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [teamCreated, setTeamCreated] = useState<SignupTeamCreated[] | null>(null);
+  const [credentialsEmailSent, setCredentialsEmailSent] = useState<boolean | null>(null);
 
   const [adminData, setAdminData] = useState<AdminForm | null>(null);
   const [workshopData, setWorkshopData] = useState<WorkshopForm | null>(null);
@@ -125,6 +160,25 @@ export function SignupWizard() {
   });
 
   useEffect(() => {
+    const draft = readSignupDraft();
+    if (!draft) return;
+
+    if (draft.adminData) {
+      setAdminData(draft.adminData);
+      adminForm.reset(draft.adminData);
+    }
+    if (draft.workshopData) {
+      setWorkshopData(draft.workshopData);
+      workshopForm.reset(draft.workshopData);
+    }
+    setSelectedRoles(draft.selectedRoles ?? []);
+    setTeamDrafts(draft.teamDrafts ?? {});
+    setStep(Math.min(Math.max(draft.step ?? 1, 1), 3));
+  // Restaurer une seule fois au montage.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     signupApi
       .status()
       .then((s) => {
@@ -147,27 +201,35 @@ export function SignupWizard() {
     setSelectedRoles((prev) => {
       if (prev.includes(code)) {
         const next = prev.filter((c) => c !== code);
+        writeSignupDraft({ selectedRoles: next, teamDrafts, step: 3 });
         return next;
       }
-      setTeamDrafts((d) => ({
-        ...d,
-        [code]: d[code] ?? {
+      const nextDrafts = {
+        ...teamDrafts,
+        [code]: teamDrafts[code] ?? {
           roleCode: code,
           firstName: '',
           lastName: '',
           email: '',
           phone: '',
         },
-      }));
-      return [...prev, code];
+      };
+      setTeamDrafts(nextDrafts);
+      const nextRoles = [...prev, code];
+      writeSignupDraft({ selectedRoles: nextRoles, teamDrafts: nextDrafts, step: 3 });
+      return nextRoles;
     });
   }
 
   function updateTeamDraft(code: SignupTeamRoleCode, patch: Partial<TeamDraft>) {
-    setTeamDrafts((d) => ({
-      ...d,
-      [code]: { ...(d[code] as TeamDraft), ...patch, roleCode: code },
-    }));
+    setTeamDrafts((d) => {
+      const next = {
+        ...d,
+        [code]: { ...(d[code] as TeamDraft), ...patch, roleCode: code },
+      };
+      writeSignupDraft({ teamDrafts: next, selectedRoles, step: 3 });
+      return next;
+    });
   }
 
   async function finishSignup(skipTeam: boolean) {
@@ -213,6 +275,8 @@ export function SignupWizard() {
       });
 
       await setSessionFromToken(res.access_token);
+      sessionStorage.removeItem(SIGNUP_DRAFT_KEY);
+      setCredentialsEmailSent(res.credentialsEmailSent ?? false);
 
       if (res.teamCreated.length > 0) {
         setTeamCreated(res.teamCreated);
@@ -263,6 +327,12 @@ export function SignupWizard() {
           <p className="mt-2 text-sm text-slate-600">
             Communiquez ces identifiants à votre équipe (mot de passe temporaire).
           </p>
+          {credentialsEmailSent && (
+            <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-[var(--afrique-forest)]">
+              <MailCheck className="h-4 w-4" />
+              Une copie récapitulative a été envoyée à votre adresse email.
+            </p>
+          )}
         </div>
         <ul className="space-y-3">
           {teamCreated.map((m) => (
@@ -277,7 +347,7 @@ export function SignupWizard() {
                 </span>
               </p>
               <p className="mt-1 font-mono text-xs text-slate-600">
-                Code : {m.employeeCode} · MDP : {m.tempPassword}
+                Identifiant : {m.employeeCode} · MDP : {m.tempPassword}
               </p>
               <Button
                 type="button"
@@ -286,7 +356,7 @@ export function SignupWizard() {
                 className="mt-2 h-8 gap-1 text-brand"
                 onClick={() => {
                   void navigator.clipboard.writeText(
-                    `${m.firstName} ${m.lastName}\nCode: ${m.employeeCode}\nMot de passe: ${m.tempPassword}`,
+                    `${m.firstName} ${m.lastName}\nIdentifiant: ${m.employeeCode}\nMot de passe: ${m.tempPassword}`,
                   );
                   toast.success('Copié');
                 }}
@@ -362,6 +432,7 @@ export function SignupWizard() {
                 className="mt-6 space-y-4"
                 onSubmit={adminForm.handleSubmit((data) => {
                   setAdminData(data);
+                  writeSignupDraft({ adminData: data, step: 2 });
                   setStep(2);
                 })}
               >
@@ -461,6 +532,7 @@ export function SignupWizard() {
                 className="mt-6 space-y-4"
                 onSubmit={workshopForm.handleSubmit((data) => {
                   setWorkshopData(data);
+                  writeSignupDraft({ workshopData: data, step: 3 });
                   setStep(3);
                 })}
               >
@@ -468,7 +540,15 @@ export function SignupWizard() {
                   <Input {...workshopForm.register('shopName')} className="h-11" />
                 </Field>
                 <Field label="Ville" error={workshopForm.formState.errors.city?.message}>
-                  <Input {...workshopForm.register('city')} className="h-11" />
+                  <CityCombobox
+                    value={workshopForm.watch('city')}
+                    onChange={(city) =>
+                      workshopForm.setValue('city', city, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  />
                 </Field>
                 <Field label="Adresse" error={workshopForm.formState.errors.address?.message}>
                   <Input {...workshopForm.register('address')} className="h-11" />
@@ -514,7 +594,7 @@ export function SignupWizard() {
             <>
               <h2 className="text-xl font-bold text-slate-800">Votre équipe</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Créez des comptes liés à votre garage (optionnel). Super Admin réservé à la plateforme.
+                Cliquez sur une carte pour ajouter ce profil à votre équipe, puis renseignez son nom. Vous pouvez en sélectionner plusieurs.
               </p>
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 {SIGNUP_TEAM_ROLES.map((role) => {
