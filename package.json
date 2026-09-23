@@ -29,7 +29,10 @@
     "test:pw": "playwright test",
     "test:pw:ui": "playwright test --ui",
     "test:pw:headed": "playwright test --headed",
-    "test:pw:report": "playwright show-report reports/playwright"
+    "test:pw:report": "playwright show-report reports/playwright",
+    "test:qa": "playwright test -c playwright.qa.config.ts",
+    "test:qa:headed": "playwright test -c playwright.qa.config.ts --headed",
+    "test:qa:report": "playwright show-report reports/playwright-qa"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",

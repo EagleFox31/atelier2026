@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { signupApi, type SignupTeamCreated, handleApiError } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import { SIGNUP_TEAM_ROLES, type SignupTeamRoleCode } from '@/components/signup/signup-roles';
+import { CityCombobox } from '@/components/signup/CityCombobox';
 import { toast } from 'sonner';
 
 const adminSchema = z
@@ -78,6 +79,8 @@ const STEPS = [
   { id: 3, label: 'Équipe', icon: Users },
 ] as const;
 
+const SIGNUP_DRAFT_KEY = 'atelier_signup_draft_v1';
+
 export function SignupWizard() {
   const router = useRouter();
   const { setSessionFromToken } = useAuth();
@@ -93,6 +96,8 @@ export function SignupWizard() {
   const [teamDrafts, setTeamDrafts] = useState<Partial<Record<SignupTeamRoleCode, TeamDraft>>>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resumeStep, setResumeStep] = useState<number | null>(null);
+  const draftRestored = useRef(false);
 
   const adminForm = useForm<AdminForm>({
     resolver: zodResolver(adminSchema),
@@ -109,6 +114,7 @@ export function SignupWizard() {
   const passwordValue = adminForm.watch('password');
   const confirmPasswordValue = adminForm.watch('confirmPassword');
   const similarityPercent = getPasswordSimilarityPercent(passwordValue ?? '', confirmPasswordValue ?? '');
+  const adminDraftValues = adminForm.watch();
 
   const workshopForm = useForm<WorkshopForm>({
     resolver: zodResolver(workshopSchema),
@@ -123,6 +129,96 @@ export function SignupWizard() {
       defaultLaborRateXaf: '15000',
     },
   });
+
+  const workshopDraftValues = workshopForm.watch();
+
+  useEffect(() => {
+    if (draftRestored.current) return;
+    draftRestored.current = true;
+
+    const raw = sessionStorage.getItem(SIGNUP_DRAFT_KEY);
+    if (!raw) return;
+
+    try {
+      const draft = JSON.parse(raw) as {
+        step?: number;
+        admin?: Partial<AdminForm>;
+        workshop?: Partial<WorkshopForm>;
+        selectedRoles?: SignupTeamRoleCode[];
+        teamDrafts?: Partial<Record<SignupTeamRoleCode, TeamDraft>>;
+      };
+
+      if (draft.admin) {
+        adminForm.reset({
+          firstName: draft.admin.firstName ?? '',
+          lastName: draft.admin.lastName ?? '',
+          email: draft.admin.email ?? '',
+          phone: draft.admin.phone ?? '',
+          password: '',
+          confirmPassword: '',
+        });
+      }
+
+      if (draft.workshop) {
+        workshopForm.reset({
+          shopName: draft.workshop.shopName ?? '',
+          tagline: draft.workshop.tagline ?? '',
+          niu: draft.workshop.niu ?? '',
+          email: draft.workshop.email ?? '',
+          phone: draft.workshop.phone ?? '',
+          address: draft.workshop.address ?? '',
+          city: draft.workshop.city ?? 'Douala',
+          defaultLaborRateXaf: draft.workshop.defaultLaborRateXaf ?? '15000',
+        });
+        setWorkshopData(draft.workshop as WorkshopForm);
+      }
+
+      setSelectedRoles(draft.selectedRoles ?? []);
+      setTeamDrafts(draft.teamDrafts ?? {});
+
+      const targetStep = Math.min(3, Math.max(1, draft.step ?? 1));
+      if (targetStep > 1 && draft.admin?.email) {
+        setResumeStep(targetStep);
+        setStep(1);
+        toast.info(
+          'Votre saisie a été restaurée. Pour votre sécurité, ressaisissez seulement votre mot de passe pour continuer.',
+          { duration: 6000 },
+        );
+      } else {
+        setStep(targetStep);
+      }
+    } catch {
+      sessionStorage.removeItem(SIGNUP_DRAFT_KEY);
+    }
+  }, [adminForm, workshopForm]);
+
+  useEffect(() => {
+    if (!draftRestored.current || teamCreated) return;
+
+    const {
+      password: _password,
+      confirmPassword: _confirmPassword,
+      ...safeAdmin
+    } = adminDraftValues;
+
+    sessionStorage.setItem(
+      SIGNUP_DRAFT_KEY,
+      JSON.stringify({
+        step,
+        admin: safeAdmin,
+        workshop: workshopDraftValues,
+        selectedRoles,
+        teamDrafts,
+      }),
+    );
+  }, [
+    step,
+    adminDraftValues,
+    workshopDraftValues,
+    selectedRoles,
+    teamDrafts,
+    teamCreated,
+  ]);
 
   useEffect(() => {
     signupApi
@@ -212,6 +308,7 @@ export function SignupWizard() {
         team: team.length > 0 ? team : undefined,
       });
 
+      sessionStorage.removeItem(SIGNUP_DRAFT_KEY);
       await setSessionFromToken(res.access_token);
 
       if (res.teamCreated.length > 0) {
@@ -277,7 +374,7 @@ export function SignupWizard() {
                 </span>
               </p>
               <p className="mt-1 font-mono text-xs text-slate-600">
-                Code : {m.employeeCode} · MDP : {m.tempPassword}
+                Identifiant : {m.employeeCode} · Mot de passe temporaire : {m.tempPassword}
               </p>
               <Button
                 type="button"
@@ -286,7 +383,7 @@ export function SignupWizard() {
                 className="mt-2 h-8 gap-1 text-brand"
                 onClick={() => {
                   void navigator.clipboard.writeText(
-                    `${m.firstName} ${m.lastName}\nCode: ${m.employeeCode}\nMot de passe: ${m.tempPassword}`,
+                    `${m.firstName} ${m.lastName}\nIdentifiant: ${m.employeeCode}\nMot de passe temporaire: ${m.tempPassword}`,
                   );
                   toast.success('Copié');
                 }}
@@ -362,7 +459,12 @@ export function SignupWizard() {
                 className="mt-6 space-y-4"
                 onSubmit={adminForm.handleSubmit((data) => {
                   setAdminData(data);
-                  setStep(2);
+                  if (resumeStep && resumeStep > 1) {
+                    setStep(resumeStep);
+                    setResumeStep(null);
+                  } else {
+                    setStep(2);
+                  }
                 })}
               >
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -467,8 +569,17 @@ export function SignupWizard() {
                 <Field label="Nom de l'atelier / garage" error={workshopForm.formState.errors.shopName?.message}>
                   <Input {...workshopForm.register('shopName')} className="h-11" />
                 </Field>
-                <Field label="Ville" error={workshopForm.formState.errors.city?.message}>
-                  <Input {...workshopForm.register('city')} className="h-11" />
+                <Field label="Ville">
+                  <CityCombobox
+                    value={workshopForm.watch('city')}
+                    onChange={(city) =>
+                      workshopForm.setValue('city', city, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                    error={workshopForm.formState.errors.city?.message}
+                  />
                 </Field>
                 <Field label="Adresse" error={workshopForm.formState.errors.address?.message}>
                   <Input {...workshopForm.register('address')} className="h-11" />
@@ -514,7 +625,7 @@ export function SignupWizard() {
             <>
               <h2 className="text-xl font-bold text-slate-800">Votre équipe</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Créez des comptes liés à votre garage (optionnel). Super Admin réservé à la plateforme.
+                Créez les comptes de votre équipe si vous le souhaitez. Cliquez sur une carte de rôle pour ajouter la personne correspondante.
               </p>
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 {SIGNUP_TEAM_ROLES.map((role) => {
@@ -537,6 +648,9 @@ export function SignupWizard() {
                         </div>
                         <p className="font-semibold text-slate-800">{role.label}</p>
                         <p className="mt-0.5 text-xs text-slate-600">{role.description}</p>
+                        <p className="mt-2 text-[11px] font-medium text-slate-500">
+                          {selected ? 'Cliquez à nouveau pour retirer ce compte' : 'Cliquez pour créer ce compte'}
+                        </p>
                         {selected && (
                           <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-[var(--afrique-forest)]">
                             <CheckCircle2 className="h-3.5 w-3.5" /> Sélectionné

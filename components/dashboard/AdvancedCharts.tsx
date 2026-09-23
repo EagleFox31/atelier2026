@@ -67,7 +67,7 @@ export function RevenueChart() {
 
   return (
     <div className="h-[240px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
@@ -167,7 +167,7 @@ export function StatusDistributionChart() {
 
   return (
     <div className="h-[200px] w-full flex items-center justify-center relative">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <PieChart>
           <Pie
             data={data}
@@ -263,7 +263,7 @@ export function TechEfficiencyChart() {
 
   return (
     <div className="h-[200px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <BarChart data={data} layout="vertical" margin={{ left: -20, right: 20 }}>
           <XAxis type="number" hide />
           <YAxis 

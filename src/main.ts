@@ -8,6 +8,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import compression from 'compression';
+import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 
@@ -19,7 +20,12 @@ async function bootstrap() {
 
 
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
+
+  // Les logos sont envoyés en data URL (<= 500 KB fichier). On remplace
+  // explicitement le parser Nest/Express par une limite cohérente avec cette règle.
+  app.use(json({ limit: '1mb' }));
+  app.use(urlencoded({ limit: '1mb', extended: true }));
 
   // Sécurité et Performance (Point 2)
   app.use(helmet({

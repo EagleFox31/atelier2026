@@ -10,6 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { History, Search, Clock, RefreshCw, AlertCircle } from "lucide-react";
 import { auditApi, handleApiError } from "@/lib/api";
 
+const ACTION_LABELS: Record<string, string> = {
+  STATUS_CHANGE: 'Changement de statut',
+  CREATE: 'Création',
+  UPDATE: 'Modification',
+  DELETE: 'Suppression',
+  INSERT: 'Ajout',
+};
+
 const ACTION_COLORS: Record<string, string> = {
   STATUS_CHANGE:   'bg-brand-light text-brand-hover border-brand/20',
   CREATE:          'bg-green-50 text-green-700 border-green-200',
@@ -86,12 +94,17 @@ export default function AuditPage() {
         <CardHeader className="pb-4">
           <div className="relative w-full md:w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-            <Input
-              placeholder="Filtrer par action (STATUS_CHANGE, CREATE…)"
-              className="pl-10 bg-muted border-border"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
+            <Select value={search || 'all'} onValueChange={(value) => setSearch(value === 'all' ? '' : (value ?? ''))}>
+              <SelectTrigger className="w-full bg-muted border-border pl-10">
+                <SelectValue placeholder="Toutes les actions" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les actions</SelectItem>
+                {Object.entries(ACTION_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
@@ -131,7 +144,9 @@ export default function AuditPage() {
                       <div className="flex-1 ml-12 bg-muted/30 p-4 rounded-xl border border-border hover:border-brand/30 transition-all">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Badge className={`text-[10px] font-bold border ${actionColor}`}>{log.action}</Badge>
+                            <Badge className={`text-[10px] font-bold border ${actionColor}`}>
+                              {ACTION_LABELS[log.action] ?? log.action.replaceAll('_', ' ').toLowerCase()}
+                            </Badge>
                             <Badge variant="outline" className="text-[10px] border-border">{entityLabel}</Badge>
                             <span className="text-xs font-mono text-muted-foreground truncate max-w-[160px]">
                               {String(log.entityId).slice(0, 8)}…

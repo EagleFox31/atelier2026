@@ -40,11 +40,23 @@ self.addEventListener('fetch', (event) => {
       const network = fetch(request)
         .then((response) => {
           if (response.ok && url.origin === self.location.origin) {
-            caches.open(CACHE).then((cache) => cache.put(request, response.clone()));
+            // Cloner immédiatement : après retour de `response`, le navigateur
+            // peut consommer le body avant l'écriture asynchrone dans le cache.
+            const responseForCache = response.clone();
+            void caches
+              .open(CACHE)
+              .then((cache) => cache.put(request, responseForCache))
+              .catch(() => undefined);
           }
           return response;
         })
-        .catch(() => cached);
+        .catch(() =>
+          cached ??
+          new Response('Ressource indisponible hors ligne.', {
+            status: 503,
+            headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+          }),
+        );
       return cached ?? network;
     }),
   );
