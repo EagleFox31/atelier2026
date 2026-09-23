@@ -253,6 +253,33 @@ export const auditApi = {
     get(`/audit${toQuery(params)}`),
 };
 
+
+// ─── Abonnement / pilote ───────────────────────────────────────────────────
+export type SubscriptionStatus =
+  | 'TRIAL'
+  | 'GRACE_PERIOD'
+  | 'ACTIVE'
+  | 'EXPIRED'
+  | 'SUSPENDED';
+
+export interface SubscriptionSummary {
+  status: SubscriptionStatus;
+  plan: string;
+  trialStartedAt: string | null;
+  trialEndsAt: string | null;
+  graceEndsAt: string | null;
+  subscriptionStartedAt: string | null;
+  subscriptionEndsAt: string | null;
+  dataRetentionEndsAt: string | null;
+  daysRemaining: number | null;
+  readOnly: boolean;
+  blocked: boolean;
+}
+
+export const subscriptionApi = {
+  status: () => get<SubscriptionSummary>('/subscription/status'),
+};
+
 // ─── Types ─────────────────────────────────────────────────────────────────
 export interface ApiUser {
   id: string;
@@ -288,6 +315,9 @@ function toQuery(params?: Record<string, unknown>): string {
  * @param fallback  - Message par défaut si err ne contient pas de message
  */
 // ─── Marketing (public) ─────────────────────────────────────────────────────
+export type DemoRequestedPlan = 'essential' | 'pro' | 'business';
+export type DemoBillingCycle = 'monthly' | 'annual';
+
 export interface DemoBookingPayload {
   fullName: string;
   email: string;
@@ -295,6 +325,8 @@ export interface DemoBookingPayload {
   garageName: string;
   city?: string;
   message?: string;
+  requestedPlan?: DemoRequestedPlan;
+  billingCycle?: DemoBillingCycle;
 }
 
 export const marketingApi = {
@@ -364,6 +396,8 @@ export interface DemoRequest {
   garageName: string;
   city: string | null;
   message: string | null;
+  requestedPlan: DemoRequestedPlan | null;
+  billingCycle: DemoBillingCycle | null;
   status: DemoRequestStatus;
   adminNotes: string | null;
   handledById: string | null;
