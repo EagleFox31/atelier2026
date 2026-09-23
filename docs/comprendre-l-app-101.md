@@ -320,7 +320,7 @@ De plus, `ALLOWED_ORIGINS` doit être l'URL **vue par le browser** (IP ou domain
 
 ### Solution retenue
 
-Stack documentée dans **`deploy/README.md`** :
+Stack documentée dans **`infra/aws/README.md`** (prod actuelle AWS). Le principe ci-dessous vaut toujours ; les commandes Oracle d'origine sont archivées dans `deploy/legacy/oracle/`.
 
 1. **Caddy** devant tout (`:80` / `:443`) :
    - `/api/*` → conteneur `api:3001` (NestJS)
@@ -330,10 +330,11 @@ Stack documentée dans **`deploy/README.md`** :
 4. Seed des comptes test **depuis la machine locale** : `npx prisma db seed` (pas dans l'image prod).
 
 ```bash
-cd deploy/oci/terraform && terraform apply
-cp deploy/.env.prod.example deploy/.env.prod   # ALLOWED_ORIGINS=http://IP
+# Historique Oracle (legacy) — en prod AWS, le déploiement passe par GitHub Actions + SSM
+cd deploy/legacy/oracle/oci/terraform && terraform apply
+cp deploy/legacy/oracle/.env.prod.example deploy/legacy/oracle/.env.prod   # ALLOWED_ORIGINS=http://IP
 npx prisma db seed                             # une fois, avant le 1er login
-./deploy/scripts/remote-deploy.sh ubuntu@IP
+./deploy/legacy/oracle/scripts/remote-deploy.sh ubuntu@IP
 ```
 
 ### À ne pas faire
