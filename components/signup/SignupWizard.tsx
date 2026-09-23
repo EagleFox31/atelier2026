@@ -160,7 +160,7 @@ export function SignupWizard() {
       email: '',
       phone: '',
       address: '',
-      city: 'Douala',
+      city: '',
       defaultLaborRateXaf: '15000',
     },
   });
