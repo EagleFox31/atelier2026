@@ -11,7 +11,10 @@ function resolveElement(target?: string): Element | undefined {
   return el ?? undefined;
 }
 
-export function runProductTour(role: GuideRole): boolean {
+export function runProductTour(
+  role: GuideRole,
+  options: { mandatory?: boolean; onDone?: () => void } = {},
+): boolean {
   const defs = TOUR_STEPS_BY_ROLE[role];
   if (!defs?.length) return false;
 
@@ -43,6 +46,9 @@ export function runProductTour(role: GuideRole): boolean {
     stageRadius: 12,
     overlayOpacity: 0.55,
     smoothScroll: true,
+    allowClose: !options.mandatory,
+    disableActiveInteraction: Boolean(options.mandatory),
+    onDestroyed: options.onDone,
     steps,
   };
 
