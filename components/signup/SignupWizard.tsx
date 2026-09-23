@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -79,6 +79,8 @@ const STEPS = [
   { id: 3, label: 'Équipe', icon: Users },
 ] as const;
 
+const SIGNUP_DRAFT_KEY = 'atelier_signup_draft_v1';
+
 export function SignupWizard() {
   const router = useRouter();
   const { setSessionFromToken } = useAuth();
@@ -94,6 +96,8 @@ export function SignupWizard() {
   const [teamDrafts, setTeamDrafts] = useState<Partial<Record<SignupTeamRoleCode, TeamDraft>>>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resumeStep, setResumeStep] = useState<number | null>(null);
+  const draftRestored = useRef(false);
 
   const adminForm = useForm<AdminForm>({
     resolver: zodResolver(adminSchema),
@@ -110,6 +114,7 @@ export function SignupWizard() {
   const passwordValue = adminForm.watch('password');
   const confirmPasswordValue = adminForm.watch('confirmPassword');
   const similarityPercent = getPasswordSimilarityPercent(passwordValue ?? '', confirmPasswordValue ?? '');
+  const adminDraftValues = adminForm.watch();
 
   const workshopForm = useForm<WorkshopForm>({
     resolver: zodResolver(workshopSchema),
@@ -124,6 +129,96 @@ export function SignupWizard() {
       defaultLaborRateXaf: '15000',
     },
   });
+
+  const workshopDraftValues = workshopForm.watch();
+
+  useEffect(() => {
+    if (draftRestored.current) return;
+    draftRestored.current = true;
+
+    const raw = sessionStorage.getItem(SIGNUP_DRAFT_KEY);
+    if (!raw) return;
+
+    try {
+      const draft = JSON.parse(raw) as {
+        step?: number;
+        admin?: Partial<AdminForm>;
+        workshop?: Partial<WorkshopForm>;
+        selectedRoles?: SignupTeamRoleCode[];
+        teamDrafts?: Partial<Record<SignupTeamRoleCode, TeamDraft>>;
+      };
+
+      if (draft.admin) {
+        adminForm.reset({
+          firstName: draft.admin.firstName ?? '',
+          lastName: draft.admin.lastName ?? '',
+          email: draft.admin.email ?? '',
+          phone: draft.admin.phone ?? '',
+          password: '',
+          confirmPassword: '',
+        });
+      }
+
+      if (draft.workshop) {
+        workshopForm.reset({
+          shopName: draft.workshop.shopName ?? '',
+          tagline: draft.workshop.tagline ?? '',
+          niu: draft.workshop.niu ?? '',
+          email: draft.workshop.email ?? '',
+          phone: draft.workshop.phone ?? '',
+          address: draft.workshop.address ?? '',
+          city: draft.workshop.city ?? 'Douala',
+          defaultLaborRateXaf: draft.workshop.defaultLaborRateXaf ?? '15000',
+        });
+        setWorkshopData(draft.workshop as WorkshopForm);
+      }
+
+      setSelectedRoles(draft.selectedRoles ?? []);
+      setTeamDrafts(draft.teamDrafts ?? {});
+
+      const targetStep = Math.min(3, Math.max(1, draft.step ?? 1));
+      if (targetStep > 1 && draft.admin?.email) {
+        setResumeStep(targetStep);
+        setStep(1);
+        toast.info(
+          'Votre saisie a été restaurée. Pour votre sécurité, ressaisissez seulement votre mot de passe pour continuer.',
+          { duration: 6000 },
+        );
+      } else {
+        setStep(targetStep);
+      }
+    } catch {
+      sessionStorage.removeItem(SIGNUP_DRAFT_KEY);
+    }
+  }, [adminForm, workshopForm]);
+
+  useEffect(() => {
+    if (!draftRestored.current || teamCreated) return;
+
+    const {
+      password: _password,
+      confirmPassword: _confirmPassword,
+      ...safeAdmin
+    } = adminDraftValues;
+
+    sessionStorage.setItem(
+      SIGNUP_DRAFT_KEY,
+      JSON.stringify({
+        step,
+        admin: safeAdmin,
+        workshop: workshopDraftValues,
+        selectedRoles,
+        teamDrafts,
+      }),
+    );
+  }, [
+    step,
+    adminDraftValues,
+    workshopDraftValues,
+    selectedRoles,
+    teamDrafts,
+    teamCreated,
+  ]);
 
   useEffect(() => {
     signupApi
@@ -213,6 +308,7 @@ export function SignupWizard() {
         team: team.length > 0 ? team : undefined,
       });
 
+      sessionStorage.removeItem(SIGNUP_DRAFT_KEY);
       await setSessionFromToken(res.access_token);
 
       if (res.teamCreated.length > 0) {
@@ -363,7 +459,12 @@ export function SignupWizard() {
                 className="mt-6 space-y-4"
                 onSubmit={adminForm.handleSubmit((data) => {
                   setAdminData(data);
-                  setStep(2);
+                  if (resumeStep && resumeStep > 1) {
+                    setStep(resumeStep);
+                    setResumeStep(null);
+                  } else {
+                    setStep(2);
+                  }
                 })}
               >
                 <div className="grid gap-4 sm:grid-cols-2">
