@@ -25,6 +25,33 @@ const ACTION_LABELS: Record<string, string> = {
   DELETE: 'Suppression',
 };
 
+const VALUE_LABELS: Record<string, string> = {
+  DRAFT: 'Brouillon',
+  RECEIVED: 'Reçu',
+  DIAGNOSING: 'Diagnostic',
+  QUOTE_PENDING: 'Devis à préparer',
+  QUOTE_APPROVED: 'Devis approuvé',
+  IN_PROGRESS: 'Travaux en cours',
+  QC_PENDING: 'Contrôle qualité',
+  QC_REJECTED: 'Contrôle à reprendre',
+  QC_DONE: 'Contrôle terminé',
+  READY: 'Prêt',
+  INVOICED: 'Facturé',
+  CLOSED: 'Clôturé',
+  CANCELLED: 'Annulé',
+};
+
+function humanizeValue(value: unknown) {
+  if (value === null || value === undefined || value === '') return '—';
+  const raw = String(value);
+  if (VALUE_LABELS[raw]) return VALUE_LABELS[raw];
+  if (/^[A-Z0-9_]+$/.test(raw)) {
+    const spaced = raw.toLocaleLowerCase('fr').replace(/_/g, ' ');
+    return spaced.charAt(0).toLocaleUpperCase('fr') + spaced.slice(1);
+  }
+  return raw;
+}
+
 function humanizeField(field: string) {
   const known: Record<string, string> = {
     status: 'Statut',
@@ -138,14 +165,14 @@ export default function AuditPage() {
             : <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
                 {logs.map(log => {
                   const actionColor = ACTION_COLORS[log.action] ?? 'bg-slate-50 text-slate-600 border-slate-200';
-                  const entityLabel = ENTITY_LABELS[log.entityType] ?? log.entityType;
+                  const entityLabel = ENTITY_LABELS[log.entityType] ?? humanizeField(log.entityType);
                   const performer = log.performer
                     ? `${log.performer.firstName} ${log.performer.lastName}`
                     : 'Système';
                   const changes = log.fieldChanges
                     ? Object.entries(log.fieldChanges as Record<string, { from: unknown; to: unknown }>)
                         .slice(0, 3)
-                        .map(([k, v]) => `${humanizeField(k)} : ${String(v.from ?? '—')} → ${String(v.to ?? '—')}`)
+                        .map(([k, v]) => `${humanizeField(k)} : ${humanizeValue(v.from)} → ${humanizeValue(v.to)}`)
                         .join(' · ')
                     : null;
 
