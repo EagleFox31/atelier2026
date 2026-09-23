@@ -5,11 +5,11 @@
 Atelier Maître brings the main day-to-day workflows of a mechanical workshop into one system: customers and vehicles, work orders, planning, inventory, billing, cash operations and activity monitoring.
 
 <p align="center">
-  <a href="https://atelier-maitre.duckdns.org/"><strong>Open the live application</strong></a>
+  <a href="https://atelier.trigenys.com/"><strong>Open the live application</strong></a>
 </p>
 
 <p align="center">
-  <a href="https://atelier-maitre.duckdns.org/">
+  <a href="https://atelier.trigenys.com/">
     <img src="public/features/dashboard-desktop.png" alt="Atelier Maître dashboard" width="900" />
   </a>
 </p>
