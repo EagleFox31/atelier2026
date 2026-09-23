@@ -3,11 +3,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { History, Search, Clock, RefreshCw, AlertCircle } from "lucide-react";
+import { History, Clock, RefreshCw, AlertCircle } from "lucide-react";
 import { auditApi, handleApiError } from "@/lib/api";
 
 const ACTION_COLORS: Record<string, string> = {
@@ -17,6 +16,28 @@ const ACTION_COLORS: Record<string, string> = {
   DELETE:          'bg-red-50 text-red-700 border-red-200',
   INSERT:          'bg-green-50 text-green-700 border-green-200',
 };
+
+const ACTION_LABELS: Record<string, string> = {
+  STATUS_CHANGE: 'Changement de statut',
+  CREATE: 'Création',
+  INSERT: 'Création',
+  UPDATE: 'Modification',
+  DELETE: 'Suppression',
+};
+
+function humanizeField(field: string) {
+  const known: Record<string, string> = {
+    status: 'Statut',
+    phone_primary: 'Téléphone principal',
+    first_name: 'Prénom',
+    last_name: 'Nom',
+    total_xaf: 'Montant total',
+    amount_paid_xaf: 'Montant payé',
+  };
+  if (known[field]) return known[field];
+  const spaced = field.replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2');
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
 
 const ENTITY_LABELS: Record<string, string> = {
   service_orders:   'OT',
@@ -31,7 +52,7 @@ const ENTITY_LABELS: Record<string, string> = {
 export default function AuditPage() {
   const [logs, setLogs]           = useState<any[]>([]);
   const [loading, setLoading]     = useState(true);
-  const [search, setSearch]       = useState('');
+  const [actionFilter, setActionFilter] = useState('all');
   const [entityType, setEntityType] = useState('all');
   const [offset, setOffset]       = useState(0);
   const LIMIT = 30;
@@ -42,7 +63,7 @@ export default function AuditPage() {
       const newOffset = reset ? 0 : offset;
       const data = await auditApi.logs({
         entityType: entityType !== 'all' ? entityType : undefined,
-        action:     search || undefined,
+        action:     actionFilter !== 'all' ? actionFilter : undefined,
         limit:      LIMIT,
         offset:     newOffset,
       }) as any[];
@@ -53,9 +74,9 @@ export default function AuditPage() {
     } finally {
       setLoading(false);
     }
-  }, [entityType, search, offset]);
+  }, [entityType, actionFilter, offset]);
 
-  useEffect(() => { load(true); }, [entityType, search]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(true); }, [entityType, actionFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="space-y-6">
@@ -84,14 +105,19 @@ export default function AuditPage() {
 
       <Card className="border-border shadow-sm">
         <CardHeader className="pb-4">
-          <div className="relative w-full md:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-            <Input
-              placeholder="Filtrer par action (STATUS_CHANGE, CREATE…)"
-              className="pl-10 bg-muted border-border"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
+          <div className="w-full md:w-72">
+            <Select value={actionFilter} onValueChange={v => setActionFilter(v ?? 'all')}>
+              <SelectTrigger className="bg-muted border-border">
+                <SelectValue placeholder="Toutes les actions" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les actions</SelectItem>
+                <SelectItem value="CREATE">Création</SelectItem>
+                <SelectItem value="UPDATE">Modification</SelectItem>
+                <SelectItem value="STATUS_CHANGE">Changement de statut</SelectItem>
+                <SelectItem value="DELETE">Suppression</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
@@ -119,7 +145,7 @@ export default function AuditPage() {
                   const changes = log.fieldChanges
                     ? Object.entries(log.fieldChanges as Record<string, { from: unknown; to: unknown }>)
                         .slice(0, 3)
-                        .map(([k, v]) => `${k}: ${String(v.from ?? '—')} → ${String(v.to ?? '—')}`)
+                        .map(([k, v]) => `${humanizeField(k)} : ${String(v.from ?? '—')} → ${String(v.to ?? '—')}`)
                         .join(' · ')
                     : null;
 
@@ -131,7 +157,7 @@ export default function AuditPage() {
                       <div className="flex-1 ml-12 bg-muted/30 p-4 rounded-xl border border-border hover:border-brand/30 transition-all">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <Badge className={`text-[10px] font-bold border ${actionColor}`}>{log.action}</Badge>
+                            <Badge className={`text-[10px] font-bold border ${actionColor}`}>{ACTION_LABELS[log.action] ?? humanizeField(log.action)}</Badge>
                             <Badge variant="outline" className="text-[10px] border-border">{entityLabel}</Badge>
                             <span className="text-xs font-mono text-muted-foreground truncate max-w-[160px]">
                               {String(log.entityId).slice(0, 8)}…
@@ -151,9 +177,9 @@ export default function AuditPage() {
                           <span className="text-xs text-muted-foreground">
                             Par <span className="font-bold text-foreground">{performer}</span>
                           </span>
-                          {log.metadata && (
-                            <span className="text-xs text-muted-foreground ml-auto">
-                              {JSON.stringify(log.metadata).slice(0, 60)}
+                          {log.metadata?.reason && (
+                            <span className="text-xs text-muted-foreground ml-auto truncate max-w-[260px]">
+                              Motif : {String(log.metadata.reason)}
                             </span>
                           )}
                         </div>
