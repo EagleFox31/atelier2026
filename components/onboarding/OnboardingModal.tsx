@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import {
   Users, Car, Wrench, Package, FileText,
   Calendar, ClipboardList, CheckCircle2,
-  BarChart2, ShieldCheck, ArrowRight, X,
+  BarChart2, ShieldCheck, ArrowRight ,
   Search, Banknote, Settings
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -382,7 +382,6 @@ export function OnboardingModal({ onDone }: OnboardingModalProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onDone}
       />
 
       {/* Modal */}
@@ -402,12 +401,6 @@ export function OnboardingModal({ onDone }: OnboardingModalProps) {
               </div>
               <span className="text-sm font-bold text-foreground">Atelier<span className="text-brand"> Maître</span></span>
             </div>
-            <button
-              onClick={onDone}
-              className="text-muted-foreground hover:text-foreground transition-colors rounded-full p-1 hover:bg-muted"
-            >
-              <X size={18} />
-            </button>
           </div>
 
           {/* Step content */}
@@ -483,11 +476,6 @@ export function OnboardingModal({ onDone }: OnboardingModalProps) {
               {step > 0 && (
                 <Button variant="ghost" size="sm" onClick={prev} className="text-muted-foreground">
                   Retour
-                </Button>
-              )}
-              {step === 0 && (
-                <Button variant="ghost" size="sm" onClick={onDone} className="text-muted-foreground">
-                  Passer
                 </Button>
               )}
               <Button
