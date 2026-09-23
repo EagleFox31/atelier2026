@@ -1813,12 +1813,12 @@ export function LandingPage() {
               <p style={{ fontSize: '0.78rem', color: C.brand, fontWeight: 700, marginTop: '0.35rem', marginBottom: '1.5rem' }}>450 000 FCFA / an · 2 mois offerts</p>
 
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
-                {['OT, devis, factures PDF illimités', 'Stock + alertes seuil', 'Planning & rendez-vous', 'SMS Orange / MTN intégrés', 'Tableau de bord temps réel', '1 garage inclus', '+20 000 FCFA / mois par garage supplémentaire', 'Support dédié en français'].map((item) => (
+                {['OT, devis, factures PDF illimités', 'Stock + alertes seuil', 'Planning & rendez-vous', 'SMS Orange / MTN intégrés', 'Tableau de bord temps réel', '+20 000 FCFA / mois par garage supplémentaire', 'Support dédié en français'].map((item) => (
                   <CheckItem key={item} color={C.brand}>{item}</CheckItem>
                 ))}
               </ul>
               <Link href="/demo" style={{ ...btnPrimary, marginTop: '1.75rem', justifyContent: 'center' }}>
-                Démarrer gratuitement <ArrowRight size={16} />
+                Réserver une démo <ArrowRight size={16} />
               </Link>
             </motion.div>
 
@@ -1857,7 +1857,7 @@ export function LandingPage() {
                 ))}
               </ul>
               <Link href="/inscription" style={{ ...btnPrimary, background: 'transparent', color: C.green, border: `1.5px solid ${C.green}`, marginTop: '1.75rem', justifyContent: 'center' }}>
-                <UserPlus size={16} /> Démarrer le pilote
+                <UserPlus size={16} /> Tester 30 jours gratuitement
               </Link>
             </motion.div>
           </div>
