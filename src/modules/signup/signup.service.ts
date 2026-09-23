@@ -10,6 +10,7 @@ import { PrismaService } from '../../shared/prisma/prisma.service';
 import { JwtSecretsService } from '../auth/jwt-secrets.service';
 import { DEFAULT_WORKSHOP_SETTINGS } from '../settings/settings.service';
 import { SignupDto } from './dto/signup.dto';
+import { SignupEmailService } from './signup-email.service';
 
 const ALLOWED_TEAM_ROLES = new Set([
   'CHEF_ATELIER',
@@ -35,6 +36,7 @@ export class SignupService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly jwtSecrets: JwtSecretsService,
+    private readonly signupEmail: SignupEmailService,
   ) {}
 
   isPublicSignupEnabled(): boolean {
@@ -128,7 +130,7 @@ export class SignupService {
             dto.admin.lastName,
             tx,
           ),
-          onboardingCompletedAt: new Date(),
+          onboardingCompletedAt: null,
           lastLoginAt: new Date(),
         },
       });
@@ -216,6 +218,14 @@ export class SignupService {
       expiresIn: this.jwtSecrets.getExpiresIn(),
     });
 
+    const credentialsEmailSent = await this.signupEmail.sendTeamCredentials({
+      to: dto.admin.email.trim().toLowerCase(),
+      adminName: `${dto.admin.firstName.trim()} ${dto.admin.lastName.trim()}`,
+      workshopName: dto.workshop.shopName.trim(),
+      trialEndsAt,
+      team: teamCreated,
+    });
+
     this.logger.log(
       `Inscription « ${dto.workshop.shopName} » (tenant: ${tenantSlug}) — admin ${admin.email} + ${teamCreated.length} membre(s)`,
     );
@@ -230,6 +240,7 @@ export class SignupService {
         employeeCode: admin.employeeCode,
       },
       teamCreated,
+      credentialsEmailSent,
     };
   }
 
