@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { ClockService } from './clock.service';
@@ -81,6 +81,21 @@ export class SubscriptionService {
         dataRetentionEndsAt: true,
       },
     });
+  }
+
+  async assertSmsEntitled(tenantId: string): Promise<void> {
+    const summary = await this.getSummary(tenantId);
+    const paidPlan = ['pro', 'business'].includes(summary.plan.toLowerCase());
+
+    if (summary.status !== SubscriptionStatus.ACTIVE || !paidPlan) {
+      throw new ForbiddenException({
+        message:
+          'Les SMS sont disponibles avec un abonnement Pro ou Business actif.',
+        errorCode: 'SMS_SUBSCRIPTION_REQUIRED',
+        subscriptionStatus: summary.status,
+        plan: summary.plan,
+      });
+    }
   }
 
   async reconcileAllTrials(): Promise<number> {
