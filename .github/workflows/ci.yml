@@ -47,8 +47,33 @@ jobs:
 
       # Versioning automatique — uniquement sur push main (pas les PRs)
       # feat: → minor bump  |  fix: → patch  |  feat!: → major
-      - name: Semantic release
+      #
+      # Certains anciens tags v* appartiennent à un historique Git divergent.
+      # Dans ce cas semantic-release croit qu'il n'existe aucune release sur main
+      # puis tente de recréer v1.0.0, ce qui fait échouer toute la CI et bloque
+      # le workflow de déploiement AWS. On ne laisse donc pas le versioning
+      # secondaire bloquer une CI dont les tests sont verts.
+      - name: Check release tag history
+        id: release-history
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        shell: bash
+        run: |
+          git fetch --tags --force
+          LATEST_TAG="$(git tag --sort=-version:refname | grep -E '^v[0-9]+\\.[0-9]+\\.[0-9]+ | head -n1 || true)"
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "run_release=true" >> "$GITHUB_OUTPUT"
+            echo "No existing semantic version tag; semantic-release can bootstrap."
+          elif git merge-base --is-ancestor "$LATEST_TAG" HEAD; then
+            echo "run_release=true" >> "$GITHUB_OUTPUT"
+            echo "$LATEST_TAG is reachable from main; semantic-release can run."
+          else
+            echo "run_release=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Skipping semantic-release because latest tag $LATEST_TAG is on divergent history. Tests remain authoritative for CI/deploy."
+          fi
+
+      - name: Semantic release
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && steps.release-history.outputs.run_release == 'true'
         run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
