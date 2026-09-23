@@ -516,7 +516,7 @@ export default function SettingsPage() {
                           <p className="text-xs text-slate-500">Envoyé quand le statut passe à &quot;PRÊT&quot;.</p>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm">Configurer le template</Button>
+                      <Button variant="outline" size="sm" disabled={smsLocked} title={smsLocked ? 'Disponible avec un abonnement Pro ou Business actif' : undefined}>Configurer le template</Button>
                     </div>
                   </div>
                 </CardContent>
