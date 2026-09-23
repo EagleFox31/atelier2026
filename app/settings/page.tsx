@@ -31,6 +31,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { handleApiError, settingsApi, reportsApi, type MonthlyTargetRow } from '@/lib/api';
 import type { WorkshopSettings } from '@/lib/workshop-settings';
 import { toast } from 'sonner';
+import { useTrialStatus } from '@/hooks/use-trial-status';
 
 type GeneralForm = Pick<
   WorkshopSettings,
@@ -42,6 +43,8 @@ type BusinessForm = Pick<WorkshopSettings, 'defaultLaborRateXaf' | 'taxRatePct'>
 export default function SettingsPage() {
   const { hasRole } = useAuth();
   const canEdit = hasRole('ADMIN') || hasRole('SUPER_ADMIN');
+  const { data: subscription } = useTrialStatus(!hasRole('SUPER_ADMIN'));
+  const isFreePilot = subscription?.status === 'TRIAL' || subscription?.status === 'GRACE_PERIOD';
 
   const [loading, setLoading] = useState(true);
   const [savingGeneral, setSavingGeneral] = useState(false);
@@ -125,6 +128,11 @@ export default function SettingsPage() {
 
   // ── Logo ─────────────────────────────────────────────────────────────────
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    if (isFreePilot) {
+      toast.info('Le logo personnalisé est disponible après activation d’un forfait payant.');
+      e.target.value = '';
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 500_000) { toast.error('Logo trop volumineux — maximum 500 KB'); return; }
@@ -266,9 +274,15 @@ export default function SettingsPage() {
                       <div>
                         <CardTitle className="text-base flex items-center gap-2">
                           Logo de l&apos;atelier
-                          <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Prochainement payant</span>
+                          <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                            {isFreePilot ? 'Disponible après activation' : 'Personnalisation'}
+                          </span>
                         </CardTitle>
-                        <CardDescription className="text-xs mt-0.5">Affiché sur vos devis et factures · PNG, JPG ou SVG · max 500 KB</CardDescription>
+                        <CardDescription className="text-xs mt-0.5">
+                          {isFreePilot
+                            ? 'Le pilote gratuit utilise l’identité Atelier Maître. Votre logo sera disponible après activation.'
+                            : 'Affiché sur vos devis et factures · PNG, JPG ou SVG · max 500 KB'}
+                        </CardDescription>
                       </div>
                     </div>
                   </CardHeader>
@@ -285,10 +299,10 @@ export default function SettingsPage() {
                       <div className="flex flex-col gap-2">
                         <label className={`cursor-pointer inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors ${savingLogo ? 'opacity-50 pointer-events-none' : ''}`}>
                           {savingLogo ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                          {logoUrl ? 'Changer le logo' : 'Importer un logo'}
-                          <input type="file" accept="image/*" className="sr-only" onChange={handleLogoUpload} disabled={savingLogo} />
+                          {isFreePilot ? 'Logo verrouillé pendant le pilote' : logoUrl ? 'Changer le logo' : 'Importer un logo'}
+                          <input type="file" accept="image/*" className="sr-only" onChange={handleLogoUpload} disabled={savingLogo || isFreePilot} />
                         </label>
-                        {logoUrl && (
+                        {logoUrl && !isFreePilot && (
                           <button onClick={removeLogo} disabled={savingLogo} className="text-xs text-red-500 hover:text-red-700 text-left disabled:opacity-50">
                             Supprimer le logo
                           </button>
@@ -453,7 +467,11 @@ export default function SettingsPage() {
               <Card className="border-none shadow-sm">
                 <CardHeader>
                   <CardTitle>Configuration SMS & Alertes</CardTitle>
-                  <CardDescription>Gérez l&apos;envoi automatique de SMS à vos clients.</CardDescription>
+                  <CardDescription>
+                    {isFreePilot
+                      ? 'La configuration des SMS est disponible après activation d’un forfait Pro ou Business.'
+                      : 'Gérez l’envoi automatique de SMS à vos clients.'}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-4">
@@ -467,7 +485,14 @@ export default function SettingsPage() {
                           <p className="text-xs text-slate-500">Envoyé dès qu&apos;un OT est créé.</p>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm">Configurer le template</Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isFreePilot}
+                        title={isFreePilot ? 'Disponible après activation' : undefined}
+                      >
+                        {isFreePilot ? 'Disponible après activation' : 'Configurer le template'}
+                      </Button>
                     </div>
                     <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100">
                       <div className="flex items-center gap-3">
@@ -479,7 +504,14 @@ export default function SettingsPage() {
                           <p className="text-xs text-slate-500">Envoyé quand le statut passe à &quot;PRÊT&quot;.</p>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm">Configurer le template</Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isFreePilot}
+                        title={isFreePilot ? 'Disponible après activation' : undefined}
+                      >
+                        {isFreePilot ? 'Disponible après activation' : 'Configurer le template'}
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
