@@ -1,0 +1,59 @@
+name: UX UI CX QA
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: URL à tester
+        required: false
+        default: https://atelier.trigenys.com
+      allow_mutations:
+        description: Autoriser les scénarios qui créent des données dans le compte QA
+        required: false
+        type: boolean
+        default: false
+  schedule:
+    - cron: '0 5 * * 1-5'
+
+jobs:
+  playwright-qa:
+    name: Playwright UX/UI/CX
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    env:
+      PLAYWRIGHT_BASE_URL: ${{ inputs.base_url || 'https://atelier.trigenys.com' }}
+      QA_EMAIL: ${{ secrets.QA_EMAIL }}
+      QA_PASSWORD: ${{ secrets.QA_PASSWORD }}
+      QA_ALLOW_MUTATIONS: ${{ inputs.allow_mutations && '1' || '0' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run UX/UI/CX smoke tests
+        run: npm run test:qa
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-qa-report
+          path: |
+            reports/playwright-qa
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14
