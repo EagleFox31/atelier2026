@@ -91,7 +91,7 @@ export default function LoginPage() {
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-[var(--afrique-earth)]">
-                    Email ou code employé
+                    Email ou identifiant employé
                   </label>
                   <Input
                     type="text"

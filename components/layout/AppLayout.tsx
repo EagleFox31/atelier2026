@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Sidebar, MobileSidebar, BottomNav } from './Sidebar';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -11,9 +11,10 @@ import { Button } from '@/components/ui/button';
 import { CommandPalette } from './CommandPalette';
 import { useAuth } from '@/contexts/auth-context';
 import { authApi } from '@/lib/api';
-import { OnboardingModal } from '@/components/onboarding/OnboardingModal';
 import { GuideMenu } from '@/components/onboarding/GuideMenu';
 import { GettingStartedNav } from '@/components/onboarding/GettingStartedNav';
+import { runProductTour } from '@/components/onboarding/ProductTour';
+import { resolveGuideRole } from '@/lib/guide-roles';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
@@ -39,7 +40,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     isLoading: subscriptionLoading,
   } = useTrialStatus(shouldLoadSubscription);
 
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const onboardingStartedRef = useRef(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Pages d'impression / PDF : pas de chrome applicatif
@@ -52,21 +53,32 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
   }, [isLoading, isAuthenticated, pathname, router]);
 
-  // Onboarding : une fois par compte (persisté en BDD sur le profil utilisateur)
+  // Premier accès : le tour interactif est obligatoire une seule fois par compte.
+  // Le flag est persisté côté API uniquement lorsque le tour se termine.
   useEffect(() => {
-    if (!user) return;
-    setShowOnboarding(!user.onboardingCompletedAt);
-  }, [user]);
+    if (!user || user.onboardingCompletedAt || onboardingStartedRef.current) return;
+    if (PUBLIC_PATHS.includes(pathname)) return;
 
-  async function closeOnboarding() {
-    setShowOnboarding(false);
-    try {
-      const { onboardingCompletedAt } = await authApi.completeOnboarding();
-      updateUser({ onboardingCompletedAt });
-    } catch {
-      toast.error('Impossible d\'enregistrer la fin de l\'introduction');
-    }
-  }
+    const timer = window.setTimeout(() => {
+      if (onboardingStartedRef.current) return;
+      const role = resolveGuideRole(user.roles ?? []);
+      const started = runProductTour(role, {
+        mandatory: true,
+        onDone: () => {
+          void authApi.completeOnboarding()
+            .then(({ onboardingCompletedAt }) => updateUser({ onboardingCompletedAt }))
+            .catch(() => {
+              onboardingStartedRef.current = false;
+              toast.error('Le tour devra être terminé à votre prochaine connexion.');
+            });
+        },
+      });
+
+      if (started) onboardingStartedRef.current = true;
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [user, pathname, updateUser]);
 
   // Page publique (login) : pas de layout
   if (PUBLIC_PATHS.includes(pathname)) {
@@ -126,7 +138,6 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      {showOnboarding && <OnboardingModal onDone={closeOnboarding} />}
       <Sidebar />
       <CommandPalette />
       

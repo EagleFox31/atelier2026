@@ -24,6 +24,7 @@ import {
   Trash2,
   Check,
   X,
+  LockKeyhole,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,6 +32,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { handleApiError, settingsApi, reportsApi, type MonthlyTargetRow } from '@/lib/api';
 import type { WorkshopSettings } from '@/lib/workshop-settings';
 import { toast } from 'sonner';
+import { useTrialStatus } from '@/hooks/use-trial-status';
 
 type GeneralForm = Pick<
   WorkshopSettings,
@@ -40,8 +42,13 @@ type GeneralForm = Pick<
 type BusinessForm = Pick<WorkshopSettings, 'defaultLaborRateXaf' | 'taxRatePct'>;
 
 export default function SettingsPage() {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const canEdit = hasRole('ADMIN') || hasRole('SUPER_ADMIN');
+  const { data: subscription } = useTrialStatus(Boolean(user?.tenantId));
+  const smsLocked =
+    Boolean(user?.tenantId) &&
+    (subscription?.status !== 'ACTIVE' ||
+      !['pro', 'business'].includes(subscription?.plan ?? ''));
 
   const [loading, setLoading] = useState(true);
   const [savingGeneral, setSavingGeneral] = useState(false);
@@ -125,22 +132,37 @@ export default function SettingsPage() {
 
   // ── Logo ─────────────────────────────────────────────────────────────────
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const input = e.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
-    if (file.size > 500_000) { toast.error('Logo trop volumineux — maximum 500 KB'); return; }
-    if (!file.type.startsWith('image/')) { toast.error('Format invalide — image uniquement'); return; }
+    if (file.size > 500_000) {
+      toast.error('Logo trop volumineux — maximum 500 KB');
+      input.value = '';
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error('Format invalide — image uniquement');
+      input.value = '';
+      return;
+    }
+
     setSavingLogo(true);
     try {
-      const reader = new FileReader();
-      reader.onload = async (ev) => {
-        const dataUrl = ev.target?.result as string;
-        const updated = await settingsApi.updateLogo(dataUrl);
-        setLogoUrl(updated.logoUrl ?? null);
-        toast.success('Logo enregistré');
-        setSavingLogo(false);
-      };
-      reader.readAsDataURL(file);
-    } catch { toast.error('Erreur lors de l\'upload'); setSavingLogo(false); }
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(reader.error ?? new Error('Lecture du fichier impossible'));
+        reader.onload = () => resolve(String(reader.result ?? ''));
+        reader.readAsDataURL(file);
+      });
+      const updated = await settingsApi.updateLogo(dataUrl);
+      setLogoUrl(updated.logoUrl ?? null);
+      toast.success('Logo enregistré');
+    } catch (err) {
+      handleApiError(err, 'Erreur lors de l\'import du logo');
+    } finally {
+      setSavingLogo(false);
+      input.value = '';
+    }
   }
 
   async function removeLogo() {
@@ -266,7 +288,6 @@ export default function SettingsPage() {
                       <div>
                         <CardTitle className="text-base flex items-center gap-2">
                           Logo de l&apos;atelier
-                          <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Prochainement payant</span>
                         </CardTitle>
                         <CardDescription className="text-xs mt-0.5">Affiché sur vos devis et factures · PNG, JPG ou SVG · max 500 KB</CardDescription>
                       </div>
@@ -452,10 +473,26 @@ export default function SettingsPage() {
             <TabsContent value="notifications">
               <Card className="border-none shadow-sm">
                 <CardHeader>
-                  <CardTitle>Configuration SMS & Alertes</CardTitle>
-                  <CardDescription>Gérez l&apos;envoi automatique de SMS à vos clients.</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    Configuration SMS & Alertes
+                    {smsLocked && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                        <LockKeyhole size={11} />
+                        Abonnement actif requis
+                      </span>
+                    )}
+                  </CardTitle>
+                  <CardDescription>
+                    Gérez l&apos;envoi automatique de SMS à vos clients.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  {smsLocked && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                      Les SMS sont désactivés pendant le pilote gratuit afin d&apos;éviter des frais opérateur.
+                      Ils deviennent disponibles avec un abonnement Pro ou Business actif.
+                    </div>
+                  )}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100">
                       <div className="flex items-center gap-3">
@@ -467,7 +504,7 @@ export default function SettingsPage() {
                           <p className="text-xs text-slate-500">Envoyé dès qu&apos;un OT est créé.</p>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm">Configurer le template</Button>
+                      <Button variant="outline" size="sm" disabled={smsLocked} title={smsLocked ? 'Disponible avec un abonnement Pro ou Business actif' : undefined}>Configurer le template</Button>
                     </div>
                     <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100">
                       <div className="flex items-center gap-3">
@@ -479,7 +516,7 @@ export default function SettingsPage() {
                           <p className="text-xs text-slate-500">Envoyé quand le statut passe à &quot;PRÊT&quot;.</p>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm">Configurer le template</Button>
+                      <Button variant="outline" size="sm" disabled={smsLocked} title={smsLocked ? 'Disponible avec un abonnement Pro ou Business actif' : undefined}>Configurer le template</Button>
                     </div>
                   </div>
                 </CardContent>

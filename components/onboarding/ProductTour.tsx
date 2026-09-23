@@ -8,10 +8,16 @@ import { TOUR_STEPS_BY_ROLE } from '@/lib/getting-started';
 function resolveElement(target?: string): Element | undefined {
   if (!target) return undefined;
   const el = document.querySelector(`[data-tour="${target}"]`);
-  return el ?? undefined;
+  if (!el) return undefined;
+  const rect = el.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return undefined;
+  return el;
 }
 
-export function runProductTour(role: GuideRole): boolean {
+export function runProductTour(
+  role: GuideRole,
+  options: { mandatory?: boolean; onDone?: () => void } = {},
+): boolean {
   const defs = TOUR_STEPS_BY_ROLE[role];
   if (!defs?.length) return false;
 
@@ -43,6 +49,9 @@ export function runProductTour(role: GuideRole): boolean {
     stageRadius: 12,
     overlayOpacity: 0.55,
     smoothScroll: true,
+    allowClose: !options.mandatory,
+    disableActiveInteraction: Boolean(options.mandatory),
+    onDestroyed: options.onDone,
     steps,
   };
 

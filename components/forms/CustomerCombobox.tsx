@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Combobox } from '@/components/ui/combobox';
 import { InlineCustomerCreate } from '@/components/reception/InlineCustomerCreate';
 import { customersApi } from '@/lib/api';
@@ -18,6 +19,8 @@ function customerLabel(c: any): string {
 }
 
 export function CustomerCombobox({ value, onChange, disabled, initialLabel, initialSublabel }: CustomerComboboxProps) {
+  const [createdOption, setCreatedOption] = useState<{ id: string; label: string; sublabel?: string } | null>(null);
+
   async function fetchOptions(search: string) {
     const data = await customersApi.list({ search }) as any[];
     return data.map(c => ({
@@ -28,9 +31,11 @@ export function CustomerCombobox({ value, onChange, disabled, initialLabel, init
     }));
   }
 
-  const initialOption = value && initialLabel
-    ? { id: value, label: initialLabel, sublabel: initialSublabel }
-    : undefined;
+  const initialOption = createdOption && createdOption.id === value
+    ? createdOption
+    : value && initialLabel
+      ? { id: value, label: initialLabel, sublabel: initialSublabel }
+      : undefined;
 
   return (
     <Combobox
@@ -44,7 +49,10 @@ export function CustomerCombobox({ value, onChange, disabled, initialLabel, init
       renderNoResults={(search) => (
         <InlineCustomerCreate
           searchHint={search}
-          onCreated={(c) => onChange?.(c.id, c.raw)}
+          onCreated={(c) => {
+            setCreatedOption({ id: c.id, label: c.label, sublabel: c.sublabel });
+            onChange?.(c.id, c.raw);
+          }}
         />
       )}
     />

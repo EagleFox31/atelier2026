@@ -378,6 +378,7 @@ export const signupApi = {
       access_token: string;
       user: { id: string; firstName: string; lastName: string; email: string | null; employeeCode: string | null };
       teamCreated: SignupTeamCreated[];
+      credentialsEmailSent: boolean;
     }>('/public/signup', body),
 };
 

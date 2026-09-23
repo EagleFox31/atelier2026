@@ -36,16 +36,44 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((response) => {
-          if (response.ok && url.origin === self.location.origin) {
-            caches.open(CACHE).then((cache) => cache.put(request, response.clone()));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached ?? network;
+    caches.match(request).then(async (cached) => {
+      if (cached) {
+        // Stale-while-revalidate : servir le cache immédiatement et mettre à jour
+        // sans jamais consommer deux fois le même body de Response.
+        void fetch(request)
+          .then(async (response) => {
+            if (
+              response.ok &&
+              !response.bodyUsed &&
+              url.origin === self.location.origin
+            ) {
+              const copy = response.clone();
+              const cache = await caches.open(CACHE);
+              await cache.put(request, copy);
+            }
+          })
+          .catch(() => undefined);
+        return cached;
+      }
+
+      try {
+        const response = await fetch(request);
+        if (
+          response.ok &&
+          !response.bodyUsed &&
+          url.origin === self.location.origin
+        ) {
+          const copy = response.clone();
+          const cache = await caches.open(CACHE);
+          await cache.put(request, copy);
+        }
+        return response;
+      } catch {
+        return new Response('Ressource indisponible hors ligne.', {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        });
+      }
     }),
   );
 });

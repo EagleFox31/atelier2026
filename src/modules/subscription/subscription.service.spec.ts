@@ -97,6 +97,27 @@ describe('SubscriptionService', () => {
     expect(prisma.tenant.update).not.toHaveBeenCalled();
   });
 
+  it('blocks SMS during a trial', async () => {
+    const { service } = setup(new Date('2026-09-10T08:00:00.000Z'), baseRow);
+
+    await expect(service.assertSmsEntitled('tenant-1')).rejects.toMatchObject({
+      response: expect.objectContaining({
+        errorCode: 'SMS_SUBSCRIPTION_REQUIRED',
+      }),
+    });
+  });
+
+  it('allows SMS only for an active Pro or Business subscription', async () => {
+    const row = {
+      ...baseRow,
+      plan: 'pro',
+      subscriptionStatus: SubscriptionStatus.ACTIVE,
+    };
+    const { service } = setup(new Date('2026-10-01T08:00:00.000Z'), row);
+
+    await expect(service.assertSmsEntitled('tenant-1')).resolves.toBeUndefined();
+  });
+
   it('keeps legacy tenants without trial dates ACTIVE', async () => {
     const row = {
       ...baseRow,
