@@ -21,6 +21,11 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
 
+  // Les logos sont envoyés en data URL (<= 500 KB fichier). La limite JSON
+  // par défaut d'Express est trop basse pour ce flux.
+  app.useBodyParser('json', { limit: '1mb' });
+  app.useBodyParser('urlencoded', { limit: '1mb', extended: true });
+
   // Sécurité et Performance (Point 2)
   app.use(helmet({
     crossOriginEmbedderPolicy: false,
