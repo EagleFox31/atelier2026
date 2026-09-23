@@ -26,14 +26,14 @@ export default function InscriptionPage() {
       <main className="px-4 py-8 sm:px-6 sm:py-12">
         <div className="mx-auto mb-8 max-w-2xl text-center">
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-brand">
-            Ouverture d&apos;atelier
+            Pilote gratuit · 30 jours
           </p>
           <h1 className="mt-2 text-balance text-3xl font-bold tracking-tight text-[var(--afrique-earth)] sm:text-4xl">
-            Créez votre espace en{' '}
+            Démarrez votre pilote en{' '}
             <span className="landing-gradient-text">3 étapes</span>
           </h1>
           <p className="mx-auto mt-3 max-w-lg text-pretty text-[var(--afrique-earth-muted)]">
-            Administrateur, paramètres du garage et comptes équipe — prêt pour le terrain camerounais.
+            Testez les fonctionnalités Pro pendant 30 jours, sans carte bancaire. Le pilote démarre une fois votre espace créé.
           </p>
         </div>
         <SignupWizard />

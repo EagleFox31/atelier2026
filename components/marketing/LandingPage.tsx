@@ -2009,7 +2009,7 @@ export function LandingPage() {
                   </ul>
 
                   <Link
-                    href="/demo"
+                    href={`/demo?plan=${plan.id}&billing=${billingCycle}`}
                     style={{
                       ...btnPrimary,
                       marginTop: '1.65rem',
@@ -2067,7 +2067,7 @@ export function LandingPage() {
                   30 jours pour tester les fonctionnalités Pro dans votre vrai atelier.
                 </p>
                 <p style={{ fontSize: '0.8rem', color: C.muted, marginTop: '0.25rem' }}>
-                  0 FCFA · aucune carte bancaire · vos données sont conservées après le pilote
+                  0 FCFA · aucune carte bancaire · données conservées 90 jours après le pilote
                 </p>
               </div>
             </div>

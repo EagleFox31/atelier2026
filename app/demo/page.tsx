@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { Wrench } from 'lucide-react';
 import { DemoRequestForm } from '@/components/marketing/DemoRequestForm';
 import { LandingKenteBar } from '@/components/marketing/LandingKenteBar';
@@ -27,7 +28,13 @@ export default function DemoPage() {
       </header>
 
       <main className="px-4 py-10 sm:px-6 sm:py-14">
-        <DemoRequestForm />
+        <Suspense
+          fallback={
+            <div className="mx-auto h-80 w-full max-w-lg animate-pulse rounded-2xl bg-white/70" />
+          }
+        >
+          <DemoRequestForm />
+        </Suspense>
       </main>
     </div>
   );

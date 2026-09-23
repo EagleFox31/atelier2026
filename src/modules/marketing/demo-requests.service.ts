@@ -11,6 +11,8 @@ const demoRequestSelect = {
   garageName: true,
   city: true,
   message: true,
+  requestedPlan: true,
+  billingCycle: true,
   status: true,
   adminNotes: true,
   handledById: true,
