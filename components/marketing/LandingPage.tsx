@@ -160,6 +160,22 @@ const FAQ = [
 ];
 
 
+const TRIAL_PLAN = {
+  id: 'trial',
+  name: 'Pilote',
+  accent: C.green,
+  badge: '30 jours gratuits',
+  description: 'Testez les fonctionnalités Pro dans votre vrai atelier, sans carte bancaire.',
+  features: [
+    'Fonctionnalités Pro pendant 30 jours',
+    '1 garage',
+    'Utilisateurs illimités',
+    'Aucune carte bancaire',
+    'Données conservées 90 jours après le pilote',
+    'Support en français',
+  ],
+} as const;
+
 const PRICING_PLANS = [
   {
     id: 'essential',
@@ -1896,6 +1912,105 @@ export function LandingPage() {
           </div>
 
           <div className="landing-grid-pricing">
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.35 }}
+              whileHover={{ y: -8, boxShadow: '0 24px 56px ' + TRIAL_PLAN.accent + '24' }}
+              style={{
+                background: 'linear-gradient(145deg, #F8FFFB 0%, #EEF9F2 100%)',
+                border: '1.5px solid ' + TRIAL_PLAN.accent,
+                borderRadius: 22,
+                padding: '1.75rem',
+                display: 'flex',
+                flexDirection: 'column',
+                textAlign: 'left',
+                position: 'relative',
+                overflow: 'hidden',
+                minHeight: 520,
+              }}
+            >
+              <div style={{
+                position: 'absolute',
+                top: -55,
+                right: -55,
+                width: 170,
+                height: 170,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, ' + TRIAL_PLAN.accent + '18 0%, transparent 68%)',
+                pointerEvents: 'none',
+              }} />
+              <div style={{ minHeight: 30, marginBottom: '0.8rem' }}>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  background: TRIAL_PLAN.accent,
+                  color: '#FFFFFF',
+                  fontSize: '0.66rem',
+                  fontWeight: 800,
+                  padding: '0.3rem 0.65rem',
+                  borderRadius: 999,
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                }}>
+                  <Zap size={11} /> {TRIAL_PLAN.badge}
+                </span>
+              </div>
+              <p style={{
+                fontSize: '0.74rem',
+                fontWeight: 800,
+                letterSpacing: '0.11em',
+                textTransform: 'uppercase',
+                color: TRIAL_PLAN.accent,
+                marginBottom: '0.45rem',
+              }}>
+                Atelier Maître {TRIAL_PLAN.name}
+              </p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem', flexWrap: 'wrap' }}>
+                <p style={{
+                  fontFamily: '"Playfair Display", serif',
+                  fontSize: 'clamp(1.8rem, 3vw, 2.35rem)',
+                  fontWeight: 900,
+                  color: C.earth,
+                  lineHeight: 1,
+                }}>
+                  0 FCFA
+                </p>
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: C.muted }}>
+                  / 30 jours
+                </span>
+              </div>
+              <p style={{
+                fontSize: '0.82rem',
+                lineHeight: 1.55,
+                color: C.muted,
+                marginTop: '0.8rem',
+                marginBottom: '1.35rem',
+                minHeight: 40,
+              }}>
+                {TRIAL_PLAN.description}
+              </p>
+              <div style={{ height: 1, background: 'rgba(60,40,20,0.08)', marginBottom: '1.25rem' }} />
+              <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.72rem', flex: 1 }}>
+                {TRIAL_PLAN.features.map((item) => (
+                  <CheckItem key={item} color={TRIAL_PLAN.accent}>{item}</CheckItem>
+                ))}
+              </ul>
+              <Link
+                href="/inscription"
+                style={{
+                  ...btnPrimary,
+                  marginTop: '1.65rem',
+                  justifyContent: 'center',
+                  background: TRIAL_PLAN.accent,
+                }}
+              >
+                Tester 30 jours gratuitement <ArrowRight size={16} />
+              </Link>
+            </motion.div>
+
             {PRICING_PLANS.map((plan, index) => {
               const isAnnual = billingCycle === 'annual';
               const price = isAnnual ? plan.annual : plan.monthly;
