@@ -13,7 +13,7 @@ test-results
 .env
 .env.*
 !.env.example
-!deploy/.env.prod.example
+!deploy/legacy/oracle/.env.prod.example
 agent-transcripts
 assets
 postman
