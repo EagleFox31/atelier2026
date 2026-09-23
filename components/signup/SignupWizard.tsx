@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { signupApi, type SignupTeamCreated, handleApiError } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import { SIGNUP_TEAM_ROLES, type SignupTeamRoleCode } from '@/components/signup/signup-roles';
+import { CityCombobox } from '@/components/signup/CityCombobox';
 import { toast } from 'sonner';
 
 const adminSchema = z
@@ -277,7 +278,7 @@ export function SignupWizard() {
                 </span>
               </p>
               <p className="mt-1 font-mono text-xs text-slate-600">
-                Code : {m.employeeCode} · MDP : {m.tempPassword}
+                Identifiant : {m.employeeCode} · Mot de passe temporaire : {m.tempPassword}
               </p>
               <Button
                 type="button"
@@ -286,7 +287,7 @@ export function SignupWizard() {
                 className="mt-2 h-8 gap-1 text-brand"
                 onClick={() => {
                   void navigator.clipboard.writeText(
-                    `${m.firstName} ${m.lastName}\nCode: ${m.employeeCode}\nMot de passe: ${m.tempPassword}`,
+                    `${m.firstName} ${m.lastName}\nIdentifiant: ${m.employeeCode}\nMot de passe temporaire: ${m.tempPassword}`,
                   );
                   toast.success('Copié');
                 }}
@@ -467,8 +468,17 @@ export function SignupWizard() {
                 <Field label="Nom de l'atelier / garage" error={workshopForm.formState.errors.shopName?.message}>
                   <Input {...workshopForm.register('shopName')} className="h-11" />
                 </Field>
-                <Field label="Ville" error={workshopForm.formState.errors.city?.message}>
-                  <Input {...workshopForm.register('city')} className="h-11" />
+                <Field label="Ville">
+                  <CityCombobox
+                    value={workshopForm.watch('city')}
+                    onChange={(city) =>
+                      workshopForm.setValue('city', city, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                    error={workshopForm.formState.errors.city?.message}
+                  />
                 </Field>
                 <Field label="Adresse" error={workshopForm.formState.errors.address?.message}>
                   <Input {...workshopForm.register('address')} className="h-11" />
@@ -514,7 +524,7 @@ export function SignupWizard() {
             <>
               <h2 className="text-xl font-bold text-slate-800">Votre équipe</h2>
               <p className="mt-1 text-sm text-slate-600">
-                Créez des comptes liés à votre garage (optionnel). Super Admin réservé à la plateforme.
+                Créez les comptes de votre équipe si vous le souhaitez. Cliquez sur une carte de rôle pour ajouter la personne correspondante.
               </p>
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 {SIGNUP_TEAM_ROLES.map((role) => {
@@ -537,6 +547,9 @@ export function SignupWizard() {
                         </div>
                         <p className="font-semibold text-slate-800">{role.label}</p>
                         <p className="mt-0.5 text-xs text-slate-600">{role.description}</p>
+                        <p className="mt-2 text-[11px] font-medium text-slate-500">
+                          {selected ? 'Cliquez à nouveau pour retirer ce compte' : 'Cliquez pour créer ce compte'}
+                        </p>
                         {selected && (
                           <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-[var(--afrique-forest)]">
                             <CheckCircle2 className="h-3.5 w-3.5" /> Sélectionné
