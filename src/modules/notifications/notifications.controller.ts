@@ -2,10 +2,14 @@ import { Controller, Get, Post, Patch, Body, Query, Param, HttpCode } from '@nes
 import { RequireRole, CurrentUser } from '../../decorators/auth.decorator';
 import { NotificationsService } from './notifications.service';
 import { SendSmsDto } from './dto/notifications.dto';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Controller('notifications')
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly subscriptions: SubscriptionService,
+  ) {}
 
   // ─── SMS ────────────────────────────────────────────────────────────────────
 
@@ -21,10 +25,13 @@ export class NotificationsController {
   @Post('sms/send')
   @RequireRole('ADMIN')
   @HttpCode(201)
-  sendSms(
+  async sendSms(
     @Body() body: SendSmsDto,
-    @CurrentUser() user: { garageId?: string | null },
+    @CurrentUser() user: { garageId?: string | null; tenantId?: string | null },
   ) {
+    if (user?.tenantId) {
+      await this.subscriptions.assertSmsEntitled(user.tenantId);
+    }
     return this.notificationsService.sendSms(body, user?.garageId);
   }
 
