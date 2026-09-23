@@ -45,6 +45,12 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
 
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: UX/UI/CX guardrails
+        run: npm run test:ux
+
       # Versioning automatique — uniquement sur push main (pas les PRs)
       # feat: → minor bump  |  fix: → patch  |  feat!: → major
       #
