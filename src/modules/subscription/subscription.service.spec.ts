@@ -32,7 +32,7 @@ describe('SubscriptionService', () => {
     subscriptionStatus: SubscriptionStatus.TRIAL,
     trialStartedAt: started,
     trialEndsAt: ends,
-    graceEndsAt,
+    graceEndsAt: graceEnds,
     subscriptionStartedAt: null,
     subscriptionEndsAt: null,
     dataRetentionEndsAt: retentionEnds,
