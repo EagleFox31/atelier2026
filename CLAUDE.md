@@ -80,6 +80,7 @@ Règles prod :
 - En prod AWS, `DATABASE_URL` utilise le **Session pooler Supabase (port 5432)**, pas pgbouncer 6543
 - Migrations au boot API : **`migrate-missing.mjs`** + `DIRECT_URL`
 - Seed : voir règle 20 (`docker exec … npx --yes tsx prisma/seed.ts`)
+- **Coupure au déploiement** (30 à 60 s, un seul serveur) : Caddy sert `deploy/docker/maintenance/index.html` (pages) et un JSON 503 `MAINTENANCE` (`/api/*`). `lib/api.ts` réessaie les GET, jamais les écritures, et affiche `ServiceStatusBanner`. La page de maintenance doit rester **autonome** (aucune ressource externe)
 
 > Legacy : anciennes cibles (Oracle, Fly, Railway) archivées dans **`deploy/legacy/`** — ne plus s'en servir comme référence. Ne rien y ajouter.
 

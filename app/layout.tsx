@@ -6,6 +6,7 @@ import { APP_ICON } from "@/lib/app-icon";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ServiceStatusBanner } from "@/components/layout/ServiceStatusBanner";
 import { AuthProvider } from "@/contexts/auth-context";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { PwaInstallProvider } from "@/components/pwa/pwa-install-context";
@@ -43,6 +44,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
               <AppLayout>
                 {children}
               </AppLayout>
+              <ServiceStatusBanner />
               <Toaster position="top-right" richColors />
               <PwaRegister />
             </TooltipProvider>

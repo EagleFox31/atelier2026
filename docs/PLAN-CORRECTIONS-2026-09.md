@@ -11,6 +11,7 @@ Chaque lot correspond à une PR, dans l'ordre d'exécution.
 | 2 | Droits par forfait (logo, SMS) centralisés + guard sans requête supplémentaire | Haute | 1 j | Règles validées |
 | 3 | Redis : worker `stock-alerts` manquant + SSE multi-instance | Moyenne / différé | ½ j + ½ j | À faire |
 | 4 | Nettoyage : dépendances, code mort, `.env.example` | Basse | 1 h | Anciens déploiements ✅ |
+| 5 | Déploiements sans gêne pour les ateliers | Moyenne | ½ j | Points 1-2 ✅ |
 
 ## Règles produit
 
@@ -161,3 +162,17 @@ Redis **n'est pas** nécessaire pour le lot 2 : le guard y lit l'abonnement dans
 | `scripts/` | Scripts `db-*` ponctuels (audit de juin) → `scripts/archive/` ; retirer du suivi git les sorties `*.json`/`*.txt` | À faire |
 
 Critère de sortie : `npm run type:check`, `npm test` et `npm run build` passent.
+
+---
+
+## Lot 5 — Déploiements sans gêne pour les ateliers
+
+**Constat.** Un seul serveur, donc chaque déploiement coupe l'API et le site pendant 30 à 60 s. Un utilisateur voyait « Erreur 502 », pouvait perdre sa saisie en rechargeant la page, et risquait un doublon si une écriture était coupée en plein vol.
+
+| Point | Contenu | État |
+|-------|---------|------|
+| 1. Application | `lib/api.ts` reconnaît une indisponibilité temporaire (502/504, 503 `MAINTENANCE` de Caddy, réseau coupé). Les consultations sont réessayées automatiquement pendant environ 1 min. Les écritures ne sont **jamais** réessayées (risque de doublon) : le formulaire reste rempli et un message clair s'affiche. Bandeau `ServiceStatusBanner` « Mise à jour en cours », puis « Connexion rétablie ». | ✅ |
+| 2. Serveur | Page de maintenance Atelier Maître servie par Caddy (`deploy/docker/maintenance/`), avec rechargement automatique au retour. `enableShutdownHooks` + `stop_grace_period: 30s` : l'API finit les requêtes en cours avant de s'arrêter. `caddy reload` à chaque déploiement. | ✅ |
+| 3. Organisation | Fenêtre de déploiement : un merge sur `main` déploie automatiquement le soir (après 19 h, heure de Douala) ou le dimanche, et un `workflow_dispatch` « déployer maintenant » reste disponible pour les correctifs urgents. | À faire |
+
+**Plus tard (si besoin).** Zéro coupure avec un déploiement blue-green : deux versions côte à côte derrière Caddy. Ça demande probablement une instance plus grosse que la `t3.micro` (1 Go de mémoire).

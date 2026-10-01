@@ -41,17 +41,81 @@ export function getApiErrorMessage(err: unknown, fallback = 'Une erreur inattend
   return fallback;
 }
 
+// ─── Indisponibilité temporaire (déploiement, redémarrage) ─────────────────
+// Caddy répond 503 { errorCode: 'MAINTENANCE' } quand l'API est arrêtée
+// (deploy/docker/Caddyfile). Les 503 émis par NestJS lui-même (DB_INIT_ERROR…)
+// restent des erreurs normales avec leur propre message.
+
+export const SERVICE_STATUS_EVENT = 'atelier:service-status';
+export type ServiceStatusDetail = { unavailable: boolean };
+
+const SERVICE_UNAVAILABLE_MESSAGE =
+  'Mise à jour en cours. Vos saisies sont conservées : réessayez dans un instant.';
+
+/** Lectures seules : réessai automatique (~1 min au total). Jamais pour les écritures (risque de doublon). */
+const GET_RETRY_DELAYS_MS = [2_000, 4_000, 8_000, 15_000, 15_000, 15_000];
+
+let serviceUnavailable = false;
+
+function setServiceUnavailable(unavailable: boolean) {
+  if (typeof window === 'undefined' || unavailable === serviceUnavailable) return;
+  serviceUnavailable = unavailable;
+  window.dispatchEvent(
+    new CustomEvent<ServiceStatusDetail>(SERVICE_STATUS_EVENT, { detail: { unavailable } }),
+  );
+}
+
+type ErrorBody = { message?: string | string[]; errorCode?: string };
+
+/** `res === null` : réseau coupé (fetch rejeté). */
+function isTemporarilyUnavailable(res: Response | null, body: ErrorBody | null): boolean {
+  if (res === null) return true;
+  if (res.status === 502 || res.status === 504) return true;
+  if (res.status === 503) return !body?.errorCode || body.errorCode === 'MAINTENANCE';
+  return false;
+}
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
+  const method = (options.method ?? 'GET').toUpperCase();
 
-  const res = await fetch(`${BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
+  let res: Response | null = null;
+  let errorBody: ErrorBody | null = null;
+
+  for (let attempt = 0; ; attempt++) {
+    errorBody = null;
+    try {
+      res = await fetch(`${BASE}${path}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...options.headers,
+        },
+      });
+    } catch {
+      res = null;
+    }
+
+    if (res && !res.ok) {
+      errorBody = (await res.json().catch(() => ({}))) as ErrorBody;
+    }
+
+    if (!isTemporarilyUnavailable(res, errorBody)) break;
+
+    setServiceUnavailable(true);
+    if (method !== 'GET' || attempt >= GET_RETRY_DELAYS_MS.length) {
+      throw new ApiError(res?.status ?? 503, SERVICE_UNAVAILABLE_MESSAGE, 'SERVICE_UNAVAILABLE');
+    }
+    await sleep(GET_RETRY_DELAYS_MS[attempt]);
+  }
+
+  // Inatteignable (un réseau coupé n'interrompt jamais la boucle) — rétrécit le type pour TS.
+  if (!res) throw new ApiError(503, SERVICE_UNAVAILABLE_MESSAGE, 'SERVICE_UNAVAILABLE');
+  // Le serveur a répondu normalement : la mise à jour est terminée.
+  setServiceUnavailable(false);
 
   if (res.status === 401) {
     localStorage.removeItem('atelier_token');
@@ -67,10 +131,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as {
-      message?: string | string[];
-      errorCode?: string;
-    };
+    const body = errorBody ?? {};
     const rawMessage = Array.isArray(body.message)
       ? body.message.join(', ')
       : body.message;
