@@ -468,22 +468,23 @@ export function SignupWizard() {
                 })}
               >
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Prénom" error={adminForm.formState.errors.firstName?.message}>
-                    <Input {...adminForm.register('firstName')} className="h-11" />
+                  <Field label="Prénom" htmlFor="signup-first-name" error={adminForm.formState.errors.firstName?.message}>
+                    <Input id="signup-first-name" {...adminForm.register('firstName')} className="h-11" />
                   </Field>
-                  <Field label="Nom" error={adminForm.formState.errors.lastName?.message}>
-                    <Input {...adminForm.register('lastName')} className="h-11" />
+                  <Field label="Nom" htmlFor="signup-last-name" error={adminForm.formState.errors.lastName?.message}>
+                    <Input id="signup-last-name" {...adminForm.register('lastName')} className="h-11" />
                   </Field>
                 </div>
-                <Field label="Email" error={adminForm.formState.errors.email?.message}>
-                  <Input type="email" {...adminForm.register('email')} className="h-11" />
+                <Field label="Email" htmlFor="signup-email" error={adminForm.formState.errors.email?.message}>
+                  <Input id="signup-email" type="email" {...adminForm.register('email')} className="h-11" />
                 </Field>
-                <Field label="Téléphone (optionnel)" error={adminForm.formState.errors.phone?.message}>
-                  <Input {...adminForm.register('phone')} className="h-11" placeholder="+237 6…" />
+                <Field label="Téléphone (optionnel)" htmlFor="signup-phone" error={adminForm.formState.errors.phone?.message}>
+                  <Input id="signup-phone" {...adminForm.register('phone')} className="h-11" placeholder="+237 6…" />
                 </Field>
-                <Field label="Mot de passe" error={adminForm.formState.errors.password?.message}>
+                <Field label="Mot de passe" htmlFor="signup-password" error={adminForm.formState.errors.password?.message}>
                   <div className="relative">
                     <Input
+                      id="signup-password"
                       type={showPassword ? 'text' : 'password'}
                       autoComplete="new-password"
                       {...adminForm.register('password')}
@@ -500,9 +501,10 @@ export function SignupWizard() {
                   </div>
                   <PasswordStrengthIndicator password={passwordValue ?? ''} />
                 </Field>
-                <Field label="Confirmer le mot de passe" error={adminForm.formState.errors.confirmPassword?.message}>
+                <Field label="Confirmer le mot de passe" htmlFor="signup-confirm-password" error={adminForm.formState.errors.confirmPassword?.message}>
                   <div className="relative">
                     <Input
+                      id="signup-confirm-password"
                       type={showConfirmPassword ? 'text' : 'password'}
                       autoComplete="new-password"
                       {...adminForm.register('confirmPassword')}
@@ -566,11 +568,12 @@ export function SignupWizard() {
                   setStep(3);
                 })}
               >
-                <Field label="Nom de l'atelier / garage" error={workshopForm.formState.errors.shopName?.message}>
-                  <Input {...workshopForm.register('shopName')} className="h-11" />
+                <Field label="Nom de l'atelier / garage" htmlFor="signup-shop-name" error={workshopForm.formState.errors.shopName?.message}>
+                  <Input id="signup-shop-name" {...workshopForm.register('shopName')} className="h-11" />
                 </Field>
-                <Field label="Ville">
+                <Field label="Ville" htmlFor="signup-city">
                   <CityCombobox
+                    id="signup-city"
                     value={workshopForm.watch('city')}
                     onChange={(city) =>
                       workshopForm.setValue('city', city, {
@@ -581,26 +584,28 @@ export function SignupWizard() {
                     error={workshopForm.formState.errors.city?.message}
                   />
                 </Field>
-                <Field label="Adresse" error={workshopForm.formState.errors.address?.message}>
-                  <Input {...workshopForm.register('address')} className="h-11" />
+                <Field label="Adresse" htmlFor="signup-address" error={workshopForm.formState.errors.address?.message}>
+                  <Input id="signup-address" {...workshopForm.register('address')} className="h-11" />
                 </Field>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Email garage" error={workshopForm.formState.errors.email?.message}>
-                    <Input type="email" {...workshopForm.register('email')} className="h-11" />
+                  <Field label="Email garage" htmlFor="signup-garage-email" error={workshopForm.formState.errors.email?.message}>
+                    <Input id="signup-garage-email" type="email" {...workshopForm.register('email')} className="h-11" />
                   </Field>
-                  <Field label="Téléphone" error={workshopForm.formState.errors.phone?.message}>
-                    <Input {...workshopForm.register('phone')} className="h-11" />
+                  <Field label="Téléphone" htmlFor="signup-garage-phone" error={workshopForm.formState.errors.phone?.message}>
+                    <Input id="signup-garage-phone" {...workshopForm.register('phone')} className="h-11" />
                   </Field>
                 </div>
-                <Field label="NIU (optionnel)" error={workshopForm.formState.errors.niu?.message}>
-                  <Input {...workshopForm.register('niu')} className="h-11" placeholder="M012345678901X" />
+                <Field label="NIU (optionnel)" htmlFor="signup-niu" error={workshopForm.formState.errors.niu?.message}>
+                  <Input id="signup-niu" {...workshopForm.register('niu')} className="h-11" placeholder="M012345678901X" />
                 </Field>
                 <Field
                   label="Taux main-d'œuvre par défaut (XAF/h)"
+                  htmlFor="signup-labor-rate"
                   error={workshopForm.formState.errors.defaultLaborRateXaf?.message}
                 >
                   <Input
                     type="number"
+                    id="signup-labor-rate"
                     inputMode="numeric"
                     {...workshopForm.register('defaultLaborRateXaf')}
                     className="h-11"
@@ -728,16 +733,18 @@ export function SignupWizard() {
 
 function Field({
   label,
+  htmlFor,
   error,
   children,
 }: {
   label: string;
+  htmlFor: string;
   error?: string;
   children: React.ReactNode;
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-slate-700">{label}</label>
+      <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-slate-700">{label}</label>
       {children}
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </div>
