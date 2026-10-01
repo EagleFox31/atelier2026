@@ -191,16 +191,17 @@ Source de vérité : `ROLE_PERMISSIONS` dans `prisma/seed.ts` + `src/shared/rbac
 
 ---
 
-## CI/CD & Versioning (mis à jour 2026-09-23)
+## CI/CD & Versioning (mis à jour 2026-10-01)
 
 ### Pipeline GitHub Actions
 
 ```
-git push main → CI (type-check + Jest + semantic-release)
-             → Deploy AWS (CloudFormation → build GHCR → SSM pull + up → /api/health)
+git push main → CI (type-check + Jest) → Deploy AWS (CloudFormation → build GHCR → SSM pull + up → /api/health)
+             → Release (AppFactory / Release Please : met à jour la PR de release)
 ```
 
-- **CI** (`.github/workflows/ci.yml`) : type-check back + front, Jest, puis `semantic-release` sur main (sauté si le dernier tag n'est pas un ancêtre de `main`)
+- **CI** (`.github/workflows/ci.yml`) : type-check back + front, Jest (droits en lecture seule)
+- **Release** (`.github/workflows/release.yml`) : appelle le workflow partagé AppFactory `reusable-release.yml@v1` (voir Versioning)
 - **Deploy** (`.github/workflows/deploy.yml`) : déclenché par la réussite de la CI sur `main` (ou manuellement). Détecte les fichiers modifiés → met à jour la pile CloudFormation seulement si l'infra change → build/push seulement les images API/Web modifiées → déploiement via **SSM** (pas de SSH)
 - **QA UX** (`.github/workflows/qa-ux.yml`) : `npm run test:qa` contre la prod, du lundi au vendredi à 5 h UTC, ou lancé à la main (`base_url`, `allow_mutations`). Secrets `QA_EMAIL` / `QA_PASSWORD` (compte QA dédié)
 - **Cache Docker** (GitHub Actions Cache) : seules les layers modifiées sont reconstruites
@@ -216,18 +217,25 @@ Authentification AWS par **OIDC** : aucune clé AWS ni SSH stockée dans GitHub.
 
 Push GHCR avec `GITHUB_TOKEN`. Le token de pull GHCR et le `.env` de prod vivent dans SSM Parameter Store (voir Déploiement).
 
-### Versioning automatique (semantic-release)
+### Versioning (AppFactory Release Please)
 
-Config : `.releaserc.json` — déclenché sur push `main` uniquement.
+Workflow partagé : [EagleFox31/appfactory-project-automation](https://github.com/EagleFox31/appfactory-project-automation), `.github/workflows/reusable-release.yml@v1` — même mécanique que les autres produits AppFactory.
+
+1. Chaque push sur `main` met à jour une **PR de release** « chore(main): release X.Y.Z » (`version.txt` + `CHANGELOG.md`, calculés depuis les Conventional Commits).
+2. **Merger cette PR publie la version** : tag `vX.Y.Z` + GitHub Release. On publie donc quand on veut, pas à chaque merge.
+3. Le merge déclenche CI → Deploy ; `version.txt` faisant partie des fichiers « web », le site est reconstruit avec la nouvelle version.
 
 | Commit | Bump semver |
 |--------|-------------|
 | `fix:` | PATCH `1.2.3 → 1.2.4` |
 | `feat:` | MINOR `1.2.3 → 1.3.0` |
 | `feat!:` ou `BREAKING CHANGE:` | MAJOR `1.2.3 → 2.0.0` |
-| `docs:`, `chore:`, `refactor:` | aucun bump |
+| `docs:`, `chore:`, `refactor:`, `ci:` | aucun bump |
 
-La version est injectée dans Next.js via `NEXT_PUBLIC_APP_VERSION` (build arg Docker) et affichée en bas à droite de la page `/login`.
+- **Source de vérité de la version** : `version.txt` (lu par `deploy.yml` → `NEXT_PUBLIC_APP_VERSION`, build arg Docker, affichée en bas à droite de `/login`). Ne jamais l'éditer à la main : c'est la PR de release qui le fait.
+- **Version forcée** (rare) : Actions → Release → Run workflow → `release_as` (ex. `2.0.0`).
+- **Pas de token requis** : `GITHUB_TOKEN` suffit, avec le réglage dépôt *Settings → Actions → General → « Allow GitHub Actions to create and approve pull requests »*. Secret optionnel `APPFACTORY_RELEASE_TOKEN` : sans lui, la CI ne tourne pas sur la PR de release (elle ne contient que `version.txt` + `CHANGELOG.md`).
+- Les tags `v1.7.x`/`v1.8.0` d'avant septembre pointent vers un historique réécrit (branches `codex/*`) ; `v1.8.1` a été replacé sur son commit équivalent de `main` (`e02d3a9`) pour servir de point de départ.
 
 ---
 
