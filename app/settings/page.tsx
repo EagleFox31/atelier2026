@@ -24,6 +24,7 @@ import {
   Trash2,
   Check,
   X,
+  LockKeyhole,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -41,10 +42,14 @@ type GeneralForm = Pick<
 type BusinessForm = Pick<WorkshopSettings, 'defaultLaborRateXaf' | 'taxRatePct'>;
 
 export default function SettingsPage() {
-  const { hasRole } = useAuth();
+  const { hasRole, user } = useAuth();
   const canEdit = hasRole('ADMIN') || hasRole('SUPER_ADMIN');
-  const { data: subscription } = useTrialStatus(!hasRole('SUPER_ADMIN'));
+  const { data: subscription } = useTrialStatus(Boolean(user?.tenantId));
   const isFreePilot = subscription?.status === 'TRIAL' || subscription?.status === 'GRACE_PERIOD';
+  const smsLocked =
+    Boolean(user?.tenantId) &&
+    (subscription?.status !== 'ACTIVE' ||
+      !['pro', 'business'].includes(subscription?.plan.toLowerCase() ?? ''));
 
   const [loading, setLoading] = useState(true);
   const [savingGeneral, setSavingGeneral] = useState(false);
@@ -466,14 +471,26 @@ export default function SettingsPage() {
             <TabsContent value="notifications">
               <Card className="border-none shadow-sm">
                 <CardHeader>
-                  <CardTitle>Configuration SMS & Alertes</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    Configuration SMS & Alertes
+                    {smsLocked && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                        <LockKeyhole size={11} />
+                        Abonnement actif requis
+                      </span>
+                    )}
+                  </CardTitle>
                   <CardDescription>
-                    {isFreePilot
-                      ? 'La configuration des SMS est disponible après activation d’un forfait Pro ou Business.'
-                      : 'Gérez l’envoi automatique de SMS à vos clients.'}
+                    Gérez l&apos;envoi automatique de SMS à vos clients.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  {smsLocked && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                      Les SMS sont désactivés pendant le pilote gratuit afin d&apos;éviter des frais opérateur.
+                      Ils deviennent disponibles avec un abonnement Pro ou Business actif.
+                    </div>
+                  )}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100">
                       <div className="flex items-center gap-3">
@@ -488,10 +505,10 @@ export default function SettingsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={isFreePilot}
-                        title={isFreePilot ? 'Disponible après activation' : undefined}
+                        disabled={smsLocked}
+                        title={smsLocked ? 'Disponible avec un abonnement Pro ou Business actif' : undefined}
                       >
-                        {isFreePilot ? 'Disponible après activation' : 'Configurer le template'}
+                        Configurer le template
                       </Button>
                     </div>
                     <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100">
@@ -507,10 +524,10 @@ export default function SettingsPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        disabled={isFreePilot}
-                        title={isFreePilot ? 'Disponible après activation' : undefined}
+                        disabled={smsLocked}
+                        title={smsLocked ? 'Disponible avec un abonnement Pro ou Business actif' : undefined}
                       >
-                        {isFreePilot ? 'Disponible après activation' : 'Configurer le template'}
+                        Configurer le template
                       </Button>
                     </div>
                   </div>
