@@ -53,7 +53,7 @@ jobs:
           {
             echo "api=$(match '^(src/|server\.ts$|prisma/|scripts/|tsconfig\.server[^/]*\.json$|deploy/docker/Dockerfile\.api$|package(-lock)?\.json$)')"
             echo "web=$(match '^(app/|components/|lib/|contexts/|hooks/|public/|styles/|deploy/docker/Dockerfile\.web$|next\.config\.|tailwind\.config\.|package(-lock)?\.json$)')"
-            echo "runtime=$(match '^(deploy/docker/docker-compose\.aws\.yml|deploy/docker/Caddyfile|deploy/scripts/aws-ssm-deploy\.sh)$')"
+            echo "runtime=$(match '^(deploy/docker/docker-compose\.aws\.yml|deploy/docker/Caddyfile|deploy/docker/maintenance/.+|deploy/scripts/aws-ssm-deploy\.sh)$')"
             echo "infra=$(match '^infra/aws/atelier-maitre\.yml$')"
           } | tee -a "$GITHUB_OUTPUT"
 

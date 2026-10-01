@@ -22,6 +22,11 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule, { bodyParser: false });
 
+  // Déploiement : sur SIGTERM (docker compose up / stop), Nest ferme le serveur HTTP
+  // en laissant finir les requêtes en cours, puis les workers BullMQ et Prisma.
+  // Sans ça, une requête d'écriture coupée en plein vol peut être rejouée → doublon.
+  app.enableShutdownHooks();
+
   // Les logos sont envoyés en data URL (<= 500 KB fichier). On remplace
   // explicitement le parser Nest/Express par une limite cohérente avec cette règle.
   app.use(json({ limit: '1mb' }));

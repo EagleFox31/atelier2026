@@ -15,4 +15,25 @@
 	handle {
 		reverse_proxy web:3000
 	}
+
+	# API ou site Next indisponible (déploiement en cours, redémarrage) :
+	# - /api/* → JSON 503 MAINTENANCE, que lib/api.ts sait reconnaître ;
+	# - pages → page de maintenance Atelier Maître (deploy/docker/maintenance/).
+	handle_errors 502 503 504 {
+		header Retry-After 30
+		header Cache-Control no-store
+
+		handle /api/* {
+			header Content-Type "application/json; charset=utf-8"
+			respond `{"statusCode":503,"errorCode":"MAINTENANCE","message":"Mise à jour en cours. Réessayez dans un instant."}` 503
+		}
+
+		handle {
+			root * /srv/maintenance
+			rewrite * /index.html
+			file_server {
+				status 503
+			}
+		}
+	}
 }

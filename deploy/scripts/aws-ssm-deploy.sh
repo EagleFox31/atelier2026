@@ -35,6 +35,23 @@ unset ghcr_token
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" config --quiet
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" pull
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --remove-orphans
+# Le Caddyfile est monté en bind : un changement de contenu ne recrée pas le
+# conteneur. Rechargement à chaud, sans coupure, pour appliquer la config du commit.
+# Quelques essais : si Caddy vient d'être recréé, son API d'admin démarre à peine.
+caddy_reloaded=false
+for attempt in 1 2 3 4 5; do
+  if docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T caddy \
+    caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile; then
+    caddy_reloaded=true
+    break
+  fi
+  echo "Caddy reload failed ($attempt/5), retrying..."
+  sleep 2
+done
+if [ "$caddy_reloaded" != true ]; then
+  echo "Caddy reload failed: the previous Caddy config is still active." >&2
+  exit 1
+fi
 docker image prune -f
 
 healthy=false

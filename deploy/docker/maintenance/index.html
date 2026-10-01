@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#C8511A" />
+  <title>Mise à jour en cours · Atelier Maître</title>
+  <!--
+    Servie par Caddy quand l'API ou le site Next est indisponible (502/503/504),
+    typiquement pendant un déploiement. Page 100 % autonome : aucun asset externe,
+    car le conteneur web peut être arrêté au moment où elle s'affiche.
+  -->
+  <style>
+    :root {
+      --brand: #C8511A;
+      --brand-deep: #8B3210;
+      --gold: #D4A432;
+      --gold-light: #F2C95A;
+      --earth: #1A1209;
+      --sand: #F5EDD8;
+      --green: #1D6A4A;
+      --muted: #6B5B4E;
+      --surface: #FDFAF4;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      background:
+        radial-gradient(1200px 600px at 50% -10%, rgba(200, 81, 26, 0.10), transparent 60%),
+        var(--surface);
+      color: var(--earth);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    .card {
+      width: 100%;
+      max-width: 440px;
+      background: #FFFFFF;
+      border: 1px solid rgba(200, 81, 26, 0.18);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 18px 50px -20px rgba(26, 18, 9, 0.35);
+      text-align: center;
+    }
+    .kente {
+      height: 6px;
+      background: linear-gradient(90deg,
+        var(--brand) 0 20%, var(--gold) 20% 40%, var(--green) 40% 60%,
+        var(--brand-deep) 60% 80%, var(--gold-light) 80% 100%);
+    }
+    .body { padding: 32px 28px 28px; }
+    .logo {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 20px;
+      border-radius: 18px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(145deg, var(--earth) 0%, #2D1B09 42%, var(--brand) 100%);
+    }
+    .logo svg { width: 38px; height: 38px; animation: turn 2.4s ease-in-out infinite; }
+    .logo::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 8px;
+      background: linear-gradient(90deg,
+        var(--brand) 0 20%, var(--gold) 20% 40%, var(--green) 40% 60%,
+        var(--brand-deep) 60% 80%, var(--gold-light) 80% 100%);
+    }
+    @keyframes turn {
+      0%, 100% { transform: rotate(-14deg); }
+      50% { transform: rotate(14deg); }
+    }
+    .eyebrow {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--brand);
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-family: "Playfair Display", Georgia, "Times New Roman", serif;
+      font-size: 26px;
+      line-height: 1.2;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+    p { font-size: 15px; line-height: 1.6; color: var(--muted); }
+    .reassure {
+      margin: 20px 0;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      color: var(--green);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.5;
+    }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+    .dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 0 0 rgba(212, 164, 50, 0.6);
+      animation: pulse 1.6s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(212, 164, 50, 0.6); }
+      70% { box-shadow: 0 0 0 10px rgba(212, 164, 50, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(212, 164, 50, 0); }
+    }
+    button {
+      width: 100%;
+      min-height: 46px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--brand);
+      color: #FFFFFF;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background: var(--brand-deep); }
+    button:focus-visible { outline: 3px solid var(--gold-light); outline-offset: 2px; }
+    footer {
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--muted);
+      opacity: 0.8;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .logo svg, .dot { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="card" role="main">
+    <div class="kente" aria-hidden="true"></div>
+    <div class="body">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#F2C95A" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+        </svg>
+      </div>
+
+      <div class="eyebrow">Atelier Maître</div>
+      <h1>Mise à jour en cours</h1>
+      <p>Nous installons une nouvelle version de l’application. Cela prend en général moins d’une minute.</p>
+
+      <div class="reassure">Vos données enregistrées sont en sécurité.<br />Cette page se rechargera toute seule.</div>
+
+      <div class="status" role="status" aria-live="polite">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="status-text">Reconnexion automatique…</span>
+      </div>
+
+      <button type="button" id="retry">Réessayer maintenant</button>
+    </div>
+  </main>
+
+  <footer>Atelier Maître · Logiciel garage Cameroun</footer>
+
+  <script>
+    (function () {
+      var statusText = document.getElementById('status-text');
+      var startedAt = Date.now();
+
+      function backOnline() {
+        statusText.textContent = 'C’est prêt, rechargement…';
+        window.location.reload();
+      }
+
+      // L'API redémarre avant le site Next : on attend que les deux répondent.
+      function check() {
+        Promise.all([
+          fetch('/api/health', { cache: 'no-store' }),
+          fetch(window.location.href, { method: 'HEAD', cache: 'no-store' }),
+        ])
+          .then(function (res) { if (res[0].ok && res[1].ok) backOnline(); })
+          .catch(function () { /* encore indisponible */ });
+
+        if (Date.now() - startedAt > 3 * 60 * 1000) {
+          statusText.textContent = 'La mise à jour prend plus de temps que prévu. Réessayez dans quelques minutes.';
+        }
+      }
+
+      document.getElementById('retry').addEventListener('click', function () {
+        window.location.reload();
+      });
+
+      setInterval(check, 5000);
+    })();
+  </script>
+</body>
+</html>
