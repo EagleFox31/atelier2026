@@ -128,6 +128,7 @@ async function main() {
   await migratePartsCatalogGarageReference();
   await migrateWorkshopLogoUrl();
   await migratePasswordSecurity();
+  await migrateTeamInvitations();
 
   console.log('\n✅ Migration terminée.');
 }
@@ -667,6 +668,20 @@ async function migrateWorkshopSettings() {
   `);
 
   console.log('   ✅ Table workshop_settings créée');
+}
+
+/**
+ * Invitations sécurisées des employés (#15) — miroir de
+ * prisma/migrations/20261002_team_invitations/migration.sql.
+ * Idempotent (IF NOT EXISTS) ; comptes existants : colonnes NULL → statut « none ».
+ */
+async function migrateTeamInvitations() {
+  await q(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS invite_token_hash TEXT`);
+  await q(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS invite_expires_at TIMESTAMPTZ`);
+  await q(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS invite_sent_at TIMESTAMPTZ`);
+  await q(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS invite_accepted_at TIMESTAMPTZ`);
+  await q(`CREATE UNIQUE INDEX IF NOT EXISTS users_invite_token_hash_key ON public.users(invite_token_hash)`);
+  console.log('   ✅ Colonnes d’invitation équipe (users.invite_*) présentes');
 }
 
 main()

@@ -2,15 +2,38 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestj
 import { TeamService } from './team.service';
 import { RequirePermission, RequireRole, CurrentUser } from '../../decorators/auth.decorator';
 import { CreateTeamMemberDto, UpdateTeamMemberDto, AssignRoleDto, ResetPasswordDto } from './dto/team.dto';
+import { TeamInvitationService } from './team-invitation.service';
+
+type RequestUser = {
+    garageId?: string | null;
+    tenantId?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+};
 
 @Controller('team')
 export class TeamController {
-    constructor(private readonly teamService: TeamService) { }
+    constructor(
+        private readonly teamService: TeamService,
+        private readonly invitations: TeamInvitationService,
+    ) { }
 
     @Post()
     @RequireRole('ADMIN', 'CHEF_ATELIER')
-    create(@CurrentUser() user: { garageId?: string | null; tenantId?: string | null }, @Body() body: CreateTeamMemberDto) {
-        return this.teamService.create({ ...body, garageId: user?.garageId ?? undefined, tenantId: user?.tenantId ?? undefined });
+    create(@CurrentUser() user: RequestUser, @Body() body: CreateTeamMemberDto) {
+        return this.teamService.create({
+            ...body,
+            garageId: user?.garageId ?? undefined,
+            tenantId: user?.tenantId ?? undefined,
+            invitedBy: user ? { firstName: user.firstName, lastName: user.lastName } : undefined,
+        });
+    }
+
+    /** Renvoie l'invitation par e-mail : nouveau lien, l'ancien devient invalide. */
+    @Post(':id/invite')
+    @RequireRole('ADMIN')
+    resendInvitation(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+        return this.invitations.resend(id, user?.garageId, user);
     }
 
     @Get()

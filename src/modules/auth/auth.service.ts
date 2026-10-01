@@ -116,6 +116,26 @@ export class AuthService {
     return { access_token, mustChangePassword: false };
   }
 
+  /** Jeton d'accès d'une session (même payload que le login). */
+  async signAccessToken(user: {
+    id: string;
+    email: string | null;
+    tokenVersion: number;
+    tenantId: string | null;
+    garageId: string | null;
+  }): Promise<string> {
+    return this.jwtService.signAsync(
+      {
+        sub: user.id,
+        email: user.email,
+        version: user.tokenVersion,
+        tenantId: user.tenantId ?? null,
+        garageId: user.garageId ?? null,
+      },
+      { secret: this.jwtSecrets.getSigningSecret(), expiresIn: this.jwtSecrets.getExpiresIn() },
+    );
+  }
+
   /**
    * Logout (Point 6) : Incrément de tokenVersion pour invalider tous les tokens existants
    */
