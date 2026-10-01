@@ -29,7 +29,15 @@ async function bootstrap() {
 
   // Les logos sont envoyés en data URL (<= 500 KB fichier). On remplace
   // explicitement le parser Nest/Express par une limite cohérente avec cette règle.
-  app.use(json({ limit: '1mb' }));
+  app.use(json({
+    limit: '1mb',
+    verify: (request, _response, buffer) => {
+      const url = String(request.url ?? '');
+      if (url.startsWith('/api/subscription/webhooks/')) {
+        (request as typeof request & { rawBody?: Buffer }).rawBody = Buffer.from(buffer);
+      }
+    },
+  }));
   app.use(urlencoded({ limit: '1mb', extended: true }));
 
   // Sécurité et Performance (Point 2)

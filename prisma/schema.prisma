@@ -203,10 +203,54 @@ model Tenant {
   createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamptz
   garages               Garage[]
   users                 User[]
+  subscriptionPayments  SubscriptionPayment[]
 
   @@index([subscriptionStatus])
   @@index([trialEndsAt])
   @@map("tenants")
+}
+
+/// Paiement d'abonnement SaaS, distinct des paiements de factures clients.
+model SubscriptionPayment {
+  id                    String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  tenantId              String                     @map("tenant_id") @db.Uuid
+  provider              String
+  providerTransactionId String?                    @map("provider_transaction_id")
+  reference             String                     @unique
+  plan                  String
+  billingCycle          String                     @map("billing_cycle")
+  garageCount           Int                        @map("garage_count")
+  amountXaf             Int                        @map("amount_xaf")
+  currency              String                     @default("XAF")
+  status                String                     @default("PENDING")
+  providerStatus        String?                    @map("provider_status")
+  authorizationUrl      String?                    @map("authorization_url")
+  paidAt                DateTime?                  @map("paid_at") @db.Timestamptz
+  createdAt             DateTime                   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime                   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  tenant                Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  events                SubscriptionPaymentEvent[]
+
+  @@unique([provider, providerTransactionId])
+  @@index([tenantId, status])
+  @@index([createdAt])
+  @@map("subscription_payments")
+}
+
+/// Journal minimal des webhooks. L'empreinte unique rend leur traitement idempotent.
+model SubscriptionPaymentEvent {
+  id                    String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  subscriptionPaymentId String?              @map("subscription_payment_id") @db.Uuid
+  provider              String
+  fingerprint           String
+  eventType             String               @map("event_type")
+  processedAt           DateTime             @default(now()) @map("processed_at") @db.Timestamptz
+  createdAt             DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  subscriptionPayment   SubscriptionPayment? @relation(fields: [subscriptionPaymentId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, fingerprint])
+  @@index([subscriptionPaymentId])
+  @@map("subscription_payment_events")
 }
 
 model Garage {

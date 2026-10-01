@@ -116,6 +116,7 @@ async function main() {
   await migrateDemoRequests();
   await migrateMultiTenant();
   await migrateSubscriptionLifecycle();
+  await migrateSubscriptionPayments();
   await migrateGarageIdColumns();
   await migrateMonthlyTargets();
   await migrateDefaultGarageForSeededData();
@@ -147,6 +148,12 @@ async function migratePasswordSecurity() {
     WHERE temp_password IS NOT NULL
   `);
   console.log(`   ✅ Mots de passe en clair effacés : ${rowCount ?? 0} compte(s) devront changer leur mot de passe`);
+}
+
+async function migrateSubscriptionPayments() {
+  const sqlPath = join(__dirname, '../prisma/migrations/20261001_subscription_payments/migration.sql');
+  await q(readFileSync(sqlPath, 'utf8'));
+  console.log('   Subscription payment tables ready');
 }
 
 async function migrateDemoRequests() {
