@@ -10,6 +10,8 @@ import { PrismaService } from '../../shared/prisma/prisma.service';
 import { JwtSecretsService } from '../auth/jwt-secrets.service';
 import { DEFAULT_WORKSHOP_SETTINGS } from '../settings/settings.service';
 import { SignupDto } from './dto/signup.dto';
+import { SignupEmailService } from './signup-email.service';
+import type { WelcomeTeamMember } from './signup-welcome.email';
 
 const ALLOWED_TEAM_ROLES = new Set([
   'CHEF_ATELIER',
@@ -27,6 +29,19 @@ export type SignupTeamResult = {
   tempPassword: string;
 };
 
+/**
+ * Membres présentés dans l'e-mail de bienvenue : liste blanche explicite des champs.
+ * Le mot de passe temporaire (et tout champ ajouté plus tard) n'en fait jamais partie.
+ */
+export function toWelcomeTeam(team: SignupTeamResult[]): WelcomeTeamMember[] {
+  return team.map(({ roleCode, firstName, lastName, employeeCode }) => ({
+    roleCode,
+    firstName,
+    lastName,
+    employeeCode,
+  }));
+}
+
 @Injectable()
 export class SignupService {
   private readonly logger = new Logger(SignupService.name);
@@ -35,6 +50,7 @@ export class SignupService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly jwtSecrets: JwtSecretsService,
+    private readonly signupEmail: SignupEmailService,
   ) {}
 
   isPublicSignupEnabled(): boolean {
@@ -219,6 +235,19 @@ export class SignupService {
     this.logger.log(
       `Inscription « ${dto.workshop.shopName} » (tenant: ${tenantSlug}) — admin ${admin.email} + ${teamCreated.length} membre(s)`,
     );
+
+    // Après commit, sans bloquer la réponse : un e-mail en échec ne doit jamais
+    // faire échouer l'inscription (sendWelcome ne lève pas). Aucun mot de passe transmis.
+    if (admin.tenantId && admin.email) {
+      void this.signupEmail.sendWelcome(admin.tenantId, {
+        adminFirstName: admin.firstName,
+        adminEmail: admin.email,
+        adminEmployeeCode: admin.employeeCode,
+        workshopName: dto.workshop.shopName.trim(),
+        trialEndsAt,
+        team: toWelcomeTeam(teamCreated),
+      });
+    }
 
     return {
       access_token,

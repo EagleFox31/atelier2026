@@ -99,6 +99,9 @@ Règles prod :
 | `PUBLIC_SIGNUP_ENABLED` | Active `/inscription` (création de tenant en libre-service) |
 | `SIGNUP_ALLOW_IF_ADMIN_EXISTS` | `true` = autoriser l'inscription même si un ADMIN existe (tests locaux) |
 | `APP_DOMAIN` / `ACME_EMAIL` | Prod uniquement — domaine + email Let's Encrypt pour Caddy |
+| `RESEND_API_KEY` | Clé Resend « Sending access » (domaine `trigenys.com`) — e-mail de bienvenue ; absente = aucun envoi |
+| `SIGNUP_EMAIL_FROM` / `SIGNUP_EMAIL_REPLY_TO` | Expéditeur (`Atelier Maître <ateliermaitre@trigenys.com>`) / réponse facultative |
+| `APP_PUBLIC_URL` | URL publique pour les liens et le logo des e-mails (sinon `https://APP_DOMAIN`) |
 
 ---
 
