@@ -1,0 +1,40 @@
+name: Release
+
+# Versioning via le workflow partagé AppFactory (Release Please) :
+# - chaque push sur main met à jour une PR de release « chore(main): release X.Y.Z »
+#   (version.txt + CHANGELOG.md, calculés depuis les Conventional Commits) ;
+# - merger cette PR crée le tag vX.Y.Z et la GitHub Release ;
+# - le merge déclenche ensuite CI → Deploy AWS, qui reconstruit le site avec la
+#   nouvelle version (version.txt est surveillé par deploy.yml).
+# Pas de token requis : GITHUB_TOKEN suffit (réglage dépôt « Allow GitHub Actions
+# to create and approve pull requests »). Un secret APPFACTORY_RELEASE_TOKEN,
+# optionnel, permettrait en plus à la CI de tourner sur la PR de release.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      release_as:
+        description: Version forcée une seule fois (ex. 1.9.0). Laisser vide en temps normal.
+        required: false
+        type: string
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    uses: EagleFox31/appfactory-project-automation/.github/workflows/reusable-release.yml@v1
+    with:
+      release-type: simple
+      target-branch: main
+      release-as: ${{ inputs.release_as }}
+    secrets:
+      release_token: ${{ secrets.APPFACTORY_RELEASE_TOKEN }}

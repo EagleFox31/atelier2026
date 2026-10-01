@@ -52,7 +52,7 @@ jobs:
 
           {
             echo "api=$(match '^(src/|server\.ts$|prisma/|scripts/|tsconfig\.server[^/]*\.json$|deploy/docker/Dockerfile\.api$|package(-lock)?\.json$)')"
-            echo "web=$(match '^(app/|components/|lib/|contexts/|hooks/|public/|styles/|deploy/docker/Dockerfile\.web$|next\.config\.|tailwind\.config\.|package(-lock)?\.json$)')"
+            echo "web=$(match '^(app/|components/|lib/|contexts/|hooks/|public/|styles/|deploy/docker/Dockerfile\.web$|next\.config\.|tailwind\.config\.|package(-lock)?\.json$|version\.txt$)')"
             echo "runtime=$(match '^(deploy/docker/docker-compose\.aws\.yml|deploy/docker/Caddyfile|deploy/docker/maintenance/.+|deploy/scripts/aws-ssm-deploy\.sh)$')"
             echo "infra=$(match '^infra/aws/atelier-maitre\.yml$')"
           } | tee -a "$GITHUB_OUTPUT"
@@ -135,8 +135,12 @@ jobs:
       - name: Set image names and version
         run: |
           OWNER="${{ github.repository_owner }}"
-          git fetch --tags --force
-          VERSION=$(git tag --sort=-version:refname | grep -E '^v[0-9]' | head -n1)
+          # Version du commit déployé (version.txt, tenu à jour par la PR de release
+          # AppFactory) — pas « le dernier tag du dépôt », qui peut viser un autre commit.
+          VERSION=""
+          if [ -f version.txt ]; then
+            VERSION="v$(tr -d '[:space:]' < version.txt)"
+          fi
           echo "API_IMAGE=ghcr.io/${OWNER,,}/atelier2026-api" >> "$GITHUB_ENV"
           echo "WEB_IMAGE=ghcr.io/${OWNER,,}/atelier2026-web" >> "$GITHUB_ENV"
           echo "APP_VERSION=${VERSION:-dev}" >> "$GITHUB_ENV"
