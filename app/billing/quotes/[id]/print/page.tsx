@@ -6,6 +6,7 @@ import { Loader2, FileText, AlertCircle, Printer, RotateCcw } from 'lucide-react
 import { billingApi, handleApiError, settingsApi } from '@/lib/api';
 import { buildQuotePrintData } from '@/lib/billing-print-data';
 import { generateQuotePdfBlobUrl, openPdfBlobUrl } from '@/lib/generate-billing-pdf';
+import { loadBrandLogoDataUrl } from '@/lib/brand-logo';
 import type { WorkshopSettings } from '@/lib/workshop-settings';
 import { FALLBACK_WORKSHOP_SETTINGS } from '@/lib/workshop-settings';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -48,7 +49,8 @@ export default function QuotePrintPage() {
     try {
       if (pdfUrl) URL.revokeObjectURL(pdfUrl);
       const printData = buildQuotePrintData(quote, workshop);
-      const url = generateQuotePdfBlobUrl(printData);
+      const brandLogoDataUrl = printData.workshop.logoUrl ? null : await loadBrandLogoDataUrl();
+      const url = generateQuotePdfBlobUrl(printData, { brandLogoDataUrl });
       setPdfUrl(url);
       const rawName = (quote.customer?.companyName || quote.customer?.firstName || '');
       const clientSlug = rawName

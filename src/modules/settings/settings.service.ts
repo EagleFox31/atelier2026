@@ -41,6 +41,19 @@ function toResponse(row: {
   };
 }
 
+type WorkshopSettingsResponse = ReturnType<typeof toResponse>;
+
+/**
+ * Logo personnalisé masqué (pas supprimé) hors droit « branding » : le front
+ * affiche alors la marque Atelier Maître, et le logo réapparaît au renouvellement.
+ */
+export function applyBrandingEntitlement(
+  settings: WorkshopSettingsResponse,
+  brandingEnabled: boolean,
+): WorkshopSettingsResponse & { brandingEnabled: boolean } {
+  return { ...settings, logoUrl: brandingEnabled ? settings.logoUrl : null, brandingEnabled };
+}
+
 @Injectable()
 export class SettingsService {
   constructor(private readonly prisma: PrismaService) {}

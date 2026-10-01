@@ -4,6 +4,7 @@ import React from 'react';
 import { formatXAF } from '@/lib/utils';
 import { FiscalHintLabel } from '@/components/fiscal/FiscalHintLabel';
 import { TVA_RATE_LABEL } from '@/lib/fiscal-hints';
+import { BRAND_LOGO_URL, BRAND_NAME } from '@/lib/brand-logo';
 
 export interface BillingDocumentData {
   docType?: 'DEVIS' | 'FACTURE';
@@ -90,12 +91,13 @@ export function BillingDocument({ type, data }: BillingDocumentProps) {
                 className="h-14 max-w-[120px] object-contain shrink-0"
               />
             ) : (
-              <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center text-white text-lg font-black shrink-0"
-                style={{ backgroundColor: BRAND }}
-              >
-                {data.workshop.shopName.charAt(0).toUpperCase()}
-              </div>
+              // Pas de logo atelier (pilote / abonnement inactif) : marque Atelier Maître.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={BRAND_LOGO_URL}
+                alt={BRAND_NAME}
+                className="w-11 h-11 rounded-xl shrink-0"
+              />
             )}
             <div>
               <p className="text-xl font-black tracking-tight leading-none">{data.workshop.shopName}</p>

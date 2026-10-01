@@ -37,7 +37,24 @@ const DEFAULT_TERMS =
 /**
  * Genere un PDF A4 natif (sans html2canvas) — fiable avec Tailwind v4.
  */
-export function generateQuotePdfBlobUrl(data: BillingDocumentData): string {
+export type BillingPdfOptions = {
+  /** Data URL PNG de la marque Atelier Maître (loadBrandLogoDataUrl), utilisée sans logo atelier. */
+  brandLogoDataUrl?: string | null;
+};
+
+function drawWorkshopTextHeader(pdf: jsPDF, data: BillingDocumentData, x: number, y: number) {
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(14);
+  pdf.setTextColor(...BRAND);
+  pdf.text(pdfText(data.workshop.shopName), x, y + 4);
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(7);
+  pdf.setTextColor(...MUTED);
+  pdf.text(pdfText(data.workshop.tagline), x, y + 9);
+  pdf.text(pdfText(workshopContactLine(data.workshop)), x, y + 13);
+}
+
+export function generateQuotePdfBlobUrl(data: BillingDocumentData, options: BillingPdfOptions = {}): string {
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = pdf.internal.pageSize.getWidth();
   const margin = 14;
@@ -60,26 +77,18 @@ export function generateQuotePdfBlobUrl(data: BillingDocumentData): string {
       pdf.text(pdfText(workshopContactLine(data.workshop)), margin, y + 20);
     } catch {
       // Fallback texte si image invalide
-      pdf.setFont('helvetica', 'bold');
-      pdf.setFontSize(14);
-      pdf.setTextColor(...BRAND);
-      pdf.text(pdfText(data.workshop.shopName), margin, y + 4);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(7);
-      pdf.setTextColor(...MUTED);
-      pdf.text(pdfText(data.workshop.tagline), margin, y + 9);
-      pdf.text(pdfText(workshopContactLine(data.workshop)), margin, y + 13);
+      drawWorkshopTextHeader(pdf, data, margin, y);
+    }
+  } else if (options.brandLogoDataUrl) {
+    // Pas de logo atelier : marque Atelier Maître (carrée) + nom de l'atelier à côté.
+    try {
+      pdf.addImage(options.brandLogoDataUrl, 'PNG', margin, y - 1, 14, 14, undefined, 'FAST');
+      drawWorkshopTextHeader(pdf, data, margin + 17, y);
+    } catch {
+      drawWorkshopTextHeader(pdf, data, margin, y);
     }
   } else {
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(14);
-    pdf.setTextColor(...BRAND);
-    pdf.text(pdfText(data.workshop.shopName), margin, y + 4);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setFontSize(7);
-    pdf.setTextColor(...MUTED);
-    pdf.text(pdfText(data.workshop.tagline), margin, y + 9);
-    pdf.text(pdfText(workshopContactLine(data.workshop)), margin, y + 13);
+    drawWorkshopTextHeader(pdf, data, margin, y);
   }
 
   // En-tete droite — devis
