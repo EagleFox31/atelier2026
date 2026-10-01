@@ -50,6 +50,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # next build vérifie les types de tout le projet (dont lib/prisma.ts) :
+      # le client Prisma doit exister, comme dans ci.yml et Dockerfile.web.
+      - name: Generate Prisma client
+        run: npx prisma generate
+
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
