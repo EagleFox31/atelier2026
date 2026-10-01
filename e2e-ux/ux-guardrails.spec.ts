@@ -47,7 +47,8 @@ async function mockAuthenticatedApp(
     mustChangePassword?: boolean;
   } = {},
 ) {
-  let profile = options.onboardingPending
+  // Profil mutable (onboarding, changement de mot de passe) : type ouvert volontairement.
+  let profile: Record<string, unknown> = options.onboardingPending
     ? { ...PROFILE, onboardingCompletedAt: null }
     : { ...PROFILE };
   if (options.mustChangePassword) profile = { ...profile, mustChangePassword: true };
