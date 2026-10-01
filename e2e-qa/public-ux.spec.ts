@@ -9,15 +9,17 @@ test.describe('Parcours public UX', () => {
     await expect(page.getByText('Atelier Maître Business', { exact: false })).toBeVisible();
     await expect(page.getByText('Atelier Maître · 30 jours', { exact: false })).toBeVisible();
 
-    const pro = page.getByRole('link', { name: /Réserver une démo/i }).nth(1);
-    await expect(pro).toHaveAttribute('href', /plan=pro/);
+    // Cibler le CTA de la carte Pro par son href : l'ordre des liens « Réserver une démo » varie (hero, nav, cartes).
+    const pro = page.locator('a[href*="plan=pro"]');
+    await expect(pro).toBeVisible();
+    await expect(pro).toHaveText(/Réserver une démo/i);
   });
 
   test('ville recherche dès le premier caractère et tolère une faute', async ({ page }) => {
     await page.goto('/inscription');
 
     await page.getByLabel('Prénom').fill('Test');
-    await page.getByLabel('Nom').fill('QA');
+    await page.getByLabel('Nom', { exact: true }).fill('QA');
     await page.getByLabel('Email').fill('qa@example.com');
     await page.getByLabel('Mot de passe', { exact: true }).fill('QATest-2026!');
     await page.getByLabel('Confirmer le mot de passe').fill('QATest-2026!');

@@ -7,12 +7,13 @@ import { CAMEROON_CITIES, searchCameroonCities } from '@/lib/cameroon-cities';
 import { cn } from '@/lib/utils';
 
 interface CityComboboxProps {
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   error?: string;
 }
 
-export function CityCombobox({ value, onChange, error }: CityComboboxProps) {
+export function CityCombobox({ id, value, onChange, error }: CityComboboxProps) {
   const [query, setQuery] = useState(value);
   const [open, setOpen] = useState(false);
 
@@ -32,6 +33,7 @@ export function CityCombobox({ value, onChange, error }: CityComboboxProps) {
       <div className="relative">
         <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input
+          id={id}
           role="combobox"
           aria-expanded={open}
           aria-autocomplete="list"
