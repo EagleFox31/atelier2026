@@ -254,3 +254,31 @@ Un composant réutilisable doit être sûr dans tous ses contextes d'insertion :
 
 **Principe dérivé / changement de standard**
 Règle de travail CLAUDE.md n° 22 : jamais de `<form>` imbriqué ; les mini-formulaires utilisent `submitOnEnter`.
+
+### LESSON-2026-008 — Mots de passe stockés en clair, faibles et jamais renouvelés
+
+- **Date** : 2026-10-01
+- **Catégorie** : `security` · `data`
+- **Statut** : prevention-added
+- **Lié à** : branche `fix/password-security` ; issue #15 (invitations sécurisées)
+
+**Contexte**
+Découvert en codant l'e-mail de bienvenue (#37), qui devait initialement envoyer les mots de passe de l'équipe.
+
+**Échec / near miss**
+`User.tempPassword` contenait des mots de passe **en clair**, y compris le **vrai mot de passe choisi par l'admin à l'inscription** ; la page Équipe les renvoyait en clair à tout ADMIN. Les mots de passe temporaires étaient devinables (`Prénom` + 4 chiffres + `!`, 9 000 combinaisons, `Math.random`, aussi générés côté navigateur) et aucun changement n'était imposé.
+
+**Cause racine**
+Une commodité produit (« revoir le mot de passe d'un employé ») a été implémentée en conservant le secret au lieu de permettre d'en régénérer un ; aucune règle ne l'interdisait.
+
+**Résolution**
+Plus aucune écriture de `temp_password` ; migration qui l'efface et impose un changement aux comptes concernés ; générateur `crypto.randomInt` (`src/shared/security/temp-password.ts`, ≈ 69 bits) côté serveur uniquement ; affichage unique (`OneTimeCredentials`) ; `must_change_password` + `POST /auth/change-password` ; `JwtAuthGuard` renvoie 403 `PASSWORD_CHANGE_REQUIRED` hors routes `@AllowPendingPasswordChange()` ; garde d'abonnement ouverte au changement (sinon blocage en période de grâce).
+
+**Prévention**
+Tests : aucun `tempPassword` dans les écritures Prisma (création, réinitialisation), format et unicité du générateur, politique serveur du nouveau mot de passe, blocage par la garde, migration jouée deux fois sur PostgreSQL ; test e2e du changement imposé. Règle CLAUDE.md n° 23.
+
+**Leçon généralisée**
+Un secret ne se stocke jamais réversiblement « pour le revoir plus tard » : on le régénère. Toute génération de secret passe par un générateur cryptographique côté serveur.
+
+**Principe dérivé / changement de standard**
+Règle n° 23 (CLAUDE.md). Suite logique : invitations par lien à usage unique (issue #15), qui supprimeront aussi l'affichage du mot de passe temporaire.
