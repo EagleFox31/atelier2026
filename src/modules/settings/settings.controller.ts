@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Patch, Post, BadRequestException, ForbiddenException } from '@nestjs/common';
-import { SettingsService } from './settings.service';
+import { Body, Controller, Get, Patch, Post, BadRequestException } from '@nestjs/common';
+import { SettingsService, applyBrandingEntitlement } from './settings.service';
 import { UpdateWorkshopSettingsDto } from './dto/workshop-settings.dto';
 import { CurrentUser, RequireRole } from '../../decorators/auth.decorator';
 import { SubscriptionService } from '../subscription/subscription.service';
+import { featureRequiredError, hasFeature, type EntitlementContext } from '../subscription/entitlements';
 
 @Controller('settings')
 export class SettingsController {
@@ -11,18 +12,41 @@ export class SettingsController {
     private readonly subscriptions: SubscriptionService,
   ) {}
 
+  /**
+   * Contexte d'abonnement du tenant, ou null pour un compte sans tenant
+   * (plateforme / données historiques) qui garde un accès complet.
+   */
+  private async entitlementContext(user: any): Promise<EntitlementContext | null> {
+    if (!user?.tenantId) return null;
+    const { status, plan } = await this.subscriptions.getSummary(user.tenantId);
+    return { status, plan };
+  }
+
+  private async brandingEnabled(user: any): Promise<boolean> {
+    const ctx = await this.entitlementContext(user);
+    return ctx === null || hasFeature(ctx, 'branding');
+  }
+
   @Get('workshop')
-  getWorkshopSettings(@CurrentUser() user: any) {
-    return this.settingsService.getWorkshopSettings(user?.garageId);
+  async getWorkshopSettings(@CurrentUser() user: any) {
+    const [settings, branding] = await Promise.all([
+      this.settingsService.getWorkshopSettings(user?.garageId),
+      this.brandingEnabled(user),
+    ]);
+    return applyBrandingEntitlement(settings, branding);
   }
 
   @Patch('workshop')
   @RequireRole('ADMIN', 'SUPER_ADMIN')
-  updateWorkshopSettings(
+  async updateWorkshopSettings(
     @Body() body: UpdateWorkshopSettingsDto,
     @CurrentUser() user: any,
   ) {
-    return this.settingsService.updateWorkshopSettings(body, user.id, user?.garageId);
+    const [settings, branding] = await Promise.all([
+      this.settingsService.updateWorkshopSettings(body, user.id, user?.garageId),
+      this.brandingEnabled(user),
+    ]);
+    return applyBrandingEntitlement(settings, branding);
   }
 
   /** Mise à jour du logo (base64 data URL). Envoyer null pour supprimer. */
@@ -32,14 +56,9 @@ export class SettingsController {
     @Body() body: { logoUrl: string | null },
     @CurrentUser() user: any,
   ) {
-    if (user?.tenantId) {
-      const subscription = await this.subscriptions.getSummary(user.tenantId);
-      if (subscription.status !== 'ACTIVE') {
-        throw new ForbiddenException({
-          message: 'Le logo personnalisé est disponible après activation d’un forfait payant.',
-          errorCode: 'PAID_FEATURE_REQUIRED',
-        });
-      }
+    const ctx = await this.entitlementContext(user);
+    if (ctx && !hasFeature(ctx, 'branding')) {
+      throw featureRequiredError('branding', ctx);
     }
 
     const { logoUrl } = body;
@@ -52,6 +71,7 @@ export class SettingsController {
         throw new BadRequestException('Logo trop volumineux — maximum 500 KB');
       }
     }
-    return this.settingsService.updateLogo(logoUrl, user.id, user?.garageId);
+    const settings = await this.settingsService.updateLogo(logoUrl, user.id, user?.garageId);
+    return applyBrandingEntitlement(settings, true);
   }
 }

@@ -8,7 +8,7 @@ Chaque lot correspond à une PR, dans l'ordre d'exécution.
 |-----|-------|----------|--------|------|
 | 0 | Porter ce qui manque de `fix/ux-onboarding-and-qa` sur `main` | Bloquant | ½ j | À faire |
 | 1 | Suspension de tenant sans toucher au statut des utilisateurs | Haute (bug) | ½ j | ✅ Fait (`fix/tenant-suspension`) |
-| 2 | Droits par forfait (logo, SMS) centralisés + guard sans requête supplémentaire | Haute | 1 j | Règles validées |
+| 2 | Droits par forfait (logo, SMS) centralisés + guard sans requête supplémentaire | Haute | 1 j | 2A ✅ logo (`feat/branding-entitlement`) · 2B après lot 0 |
 | 3 | Redis : worker `stock-alerts` manquant + SSE multi-instance | Moyenne / différé | ½ j + ½ j | 3a ✅ (`fix/stock-alerts-worker`), 3b différé |
 | 4 | Nettoyage : dépendances, code mort, `.env.example` | Basse | 1 h | Anciens déploiements ✅ |
 | 5 | Déploiements sans gêne pour les ateliers | Moyenne | ½ j | Points 1-2 ✅ |
@@ -80,6 +80,10 @@ Chaque lot correspond à une PR, dans l'ordre d'exécution.
 ---
 
 ## Lot 2 — Droits par forfait + guard sans requête supplémentaire
+
+**Découpage (2026-10-01, travail parallèle sans fichier commun avec le lot 0 en cours) :**
+- **2A ✅** — `src/modules/subscription/entitlements.ts` (table unique, feature `branding`), `GET/PATCH /settings/workshop` masquent le logo hors droit (`brandingEnabled` exposé), envoi refusé (`PAID_FEATURE_REQUIRED` conservé), devis/factures/PDF affichent la marque Atelier Maître (source unique : `/icon` = `AppIconShell`, chargée via `lib/brand-logo.ts`).
+- **2B — après merge du lot 0** (qui apporte `normalizePlan` / `assertSmsEntitled`) : feature `sms` dans la même table, `normalizePlan` déplacé dans `entitlements.ts`, garde sans requête, `features` dans `/subscription/status`, suppression de `isFreePilot` côté front.
 
 **Constats.**
 - Chaque règle d'accès est codée en ligne : logo dans `settings.controller` (`status !== 'ACTIVE'`) ; SMS dans la branche du lot 0 (`ACTIVE` + `pro`/`business`).

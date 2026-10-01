@@ -6,7 +6,10 @@ export interface WorkshopSettings {
   email: string;
   phone: string;
   address: string;
+  /** null hors forfait payant actif (logo masqué) : afficher la marque Atelier Maître. */
   logoUrl?: string | null;
+  /** Droit « branding » du tenant (logo personnalisé autorisé). */
+  brandingEnabled?: boolean;
   defaultLaborRateXaf: number | null;
   taxRatePct: number;
   updatedAt: string;
