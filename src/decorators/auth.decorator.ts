@@ -5,6 +5,11 @@ import { SetMetadata, createParamDecorator, ExecutionContext } from '@nestjs/com
 export const IS_PUBLIC_KEY = 'isPublic';
 export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 
+// @AllowPendingPasswordChange() - Route accessible même si l'utilisateur doit
+// changer son mot de passe (User.mustChangePassword) : profil, déconnexion, changement.
+export const ALLOW_PENDING_PASSWORD_CHANGE_KEY = 'allowPendingPasswordChange';
+export const AllowPendingPasswordChange = () => SetMetadata(ALLOW_PENDING_PASSWORD_CHANGE_KEY, true);
+
 // @RequireRole() - Contrôle d'accès par rôle
 export const ROLES_KEY = 'roles';
 export const RequireRole = (...roles: string[]) => SetMetadata(ROLES_KEY, roles);

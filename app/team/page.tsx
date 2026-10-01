@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Users, Wrench, CheckCircle2, UserPlus, Activity, TrendingUp,
-  Search, RefreshCw, AlertCircle, Eye, EyeOff, KeyRound, Copy, Check,
+  Search, RefreshCw, AlertCircle, KeyRound,
   PowerOff, Power,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { TeamMemberForm } from "@/components/forms/TeamMemberForm";
 import { teamApi } from "@/lib/api";
+import { OneTimeCredentials } from "@/components/team/OneTimeCredentials";
 import { useAuth } from "@/contexts/auth-context";
 import { countTeamMembersOnlineNow } from "@/lib/team-presence";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,7 +32,6 @@ interface TeamMember {
   specialty?: string;
   employeeCode: string;
   status: string;
-  tempPassword?: string | null;
   passwordResetRequestedAt?: string | null;
   lastLoginAt?: string | null;
   roles: { role: { label: string; code: string } }[];
@@ -76,63 +76,75 @@ function StatusToggle({ member, onToggle }: { member: TeamMember; onToggle: () =
   );
 }
 
+/**
+ * Les mots de passe ne sont jamais stockés ni consultables : on ne peut qu'en
+ * générer un nouveau, affiché une seule fois (OneTimeCredentials).
+ */
 function PasswordCell({ member, onReset }: { member: TeamMember; onReset: () => void }) {
-  const [show, setShow] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [open, setOpen] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [issued, setIssued] = useState<{ employeeCode: string | null; tempPassword: string } | null>(null);
 
   async function handleReset() {
     setResetting(true);
     try {
-      const result = await teamApi.resetPassword(member.id) as any;
-      toast.success(`Nouveau mot de passe : ${result.tempPassword}`, { duration: 10000 });
-      onReset();
+      const result = await teamApi.resetPassword(member.id) as { employeeCode: string | null; tempPassword: string };
+      setIssued({ employeeCode: result.employeeCode, tempPassword: result.tempPassword });
     } catch {
-      toast.error("Erreur lors du reset");
+      toast.error("Erreur lors de la génération du mot de passe");
     } finally {
       setResetting(false);
     }
   }
 
-  function copy() {
-    if (!member.tempPassword) return;
-    navigator.clipboard.writeText(member.tempPassword);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  function close() {
+    setOpen(false);
+    if (issued) onReset();
+    setIssued(null);
   }
 
-  const hasStoredPassword = Boolean(member.tempPassword);
-
   return (
-    <div className="mt-2 space-y-1">
-    <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-lg border border-slate-100">
-      <span className="font-mono text-[11px] text-slate-600 flex-1 truncate">
-        {show
-          ? hasStoredPassword
-            ? member.tempPassword
-            : '—'
-          : '••••••••'}
-      </span>
-      <button onClick={() => setShow(v => !v)} className="text-slate-400 hover:text-slate-600 flex-shrink-0">
-        {show ? <EyeOff size={12} /> : <Eye size={12} />}
-      </button>
-      {member.tempPassword && (
-        <button onClick={copy} className="text-slate-400 hover:text-brand flex-shrink-0">
-          {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
-        </button>
-      )}
-      <button onClick={handleReset} disabled={resetting}
-        className="text-slate-400 hover:text-amber-500 flex-shrink-0" title="Générer nouveau mot de passe">
-        <KeyRound size={12} />
-      </button>
-    </div>
-    {show && !hasStoredPassword && (
-      <p className="text-[10px] leading-snug text-muted-foreground px-0.5">
-        Mot de passe non stocké (inscription ou compte existant). Utilisez la clé pour en générer un nouveau
-        affichable ici.
-      </p>
-    )}
-    </div>
+    <Dialog open={open} onOpenChange={(v) => (v ? setOpen(true) : close())}>
+      <DialogTrigger
+        render={
+          <button
+            type="button"
+            className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] font-medium text-slate-600 hover:border-amber-300 hover:text-amber-700"
+          >
+            <KeyRound size={12} aria-hidden /> Nouveau mot de passe
+          </button>
+        }
+      />
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {issued ? 'Mot de passe temporaire' : `Nouveau mot de passe pour ${member.firstName} ${member.lastName}`}
+          </DialogTitle>
+        </DialogHeader>
+        {issued ? (
+          <OneTimeCredentials
+            name={`${member.firstName} ${member.lastName}`}
+            employeeCode={issued.employeeCode}
+            tempPassword={issued.tempPassword}
+            onDone={close}
+          />
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Un nouveau mot de passe temporaire va être généré. L’ancien ne fonctionnera plus et les sessions
+              ouvertes de {member.firstName} seront déconnectées. Il devra choisir son propre mot de passe à la
+              prochaine connexion.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={close}>Annuler</Button>
+              <Button type="button" onClick={handleReset} disabled={resetting} className="bg-brand hover:bg-brand-hover">
+                {resetting ? 'Génération…' : 'Générer'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

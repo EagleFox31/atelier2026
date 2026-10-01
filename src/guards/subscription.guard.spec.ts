@@ -49,6 +49,13 @@ describe('SubscriptionGuard', () => {
     await expect(guard.canActivate(context('POST'))).resolves.toBe(true);
   });
 
+  it('lets a read-only (grace) tenant change an imposed password — otherwise the user is stuck', async () => {
+    subscriptions.getSummary.mockResolvedValue({ status: SubscriptionStatus.GRACE_PERIOD });
+
+    await expect(guard.canActivate(context('POST', '/api/auth/change-password'))).resolves.toBe(true);
+    await expect(guard.canActivate(context('POST', '/api/workshop/ot'))).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   it('blocks reads and writes of a tenant suspended by the platform', async () => {
     subscriptions.getSummary.mockResolvedValue({
       status: SubscriptionStatus.SUSPENDED,

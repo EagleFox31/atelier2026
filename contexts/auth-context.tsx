@@ -12,7 +12,8 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   login: (identifier: string, password: string) => Promise<void>;
-  setSessionFromToken: (accessToken: string) => Promise<void>;
+  /** Ouvre la session et renvoie le profil rechargé. */
+  setSessionFromToken: (accessToken: string) => Promise<ApiUser>;
   logout: () => Promise<void>;
   updateUser: (patch: Partial<ApiUser>) => void;
   isAuthenticated: boolean;
@@ -57,6 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const profile = await authApi.profile();
     localStorage.setItem(USER_KEY, JSON.stringify(profile));
     setState({ user: profile, token: accessToken, isLoading: false });
+    return profile;
   }, []);
 
   const login = useCallback(async (identifier: string, password: string) => {

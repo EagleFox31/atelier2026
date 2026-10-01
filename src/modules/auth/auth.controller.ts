@@ -1,6 +1,7 @@
 import { Controller, Post, Get, Patch, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { Public, CurrentUser } from '../../decorators/auth.decorator';
+import { AllowPendingPasswordChange, Public, CurrentUser } from '../../decorators/auth.decorator';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 type AuthUser = {
   id: string;
@@ -12,6 +13,7 @@ type AuthUser = {
   tenantId: string | null;
   garageId: string | null;
   onboardingCompletedAt: Date | null;
+  mustChangePassword: boolean;
   garage: { id: string; name: string; slug: string } | null;
   tenant: { id: string; name: string; slug: string } | null;
   roles: Array<{
@@ -38,6 +40,7 @@ function mapProfile(user: AuthUser) {
     roles: userRoles,
     permissions: userPermissions,
     onboardingCompletedAt: user.onboardingCompletedAt?.toISOString() ?? null,
+    mustChangePassword: user.mustChangePassword,
     tenantId: user.tenantId,
     garageId: user.garageId,
     garage: user.garage
@@ -63,14 +66,23 @@ export class AuthController {
   }
 
   @Post('logout')
+  @AllowPendingPasswordChange()
   @HttpCode(HttpStatus.OK)
   async logout(@CurrentUser() user: AuthUser) {
     return this.authService.logout(user.id);
   }
 
   @Get('profile')
+  @AllowPendingPasswordChange()
   getProfile(@CurrentUser() user: AuthUser) {
     return mapProfile(user);
+  }
+
+  @Post('change-password')
+  @AllowPendingPasswordChange()
+  @HttpCode(HttpStatus.OK)
+  async changePassword(@CurrentUser() user: AuthUser, @Body() body: ChangePasswordDto) {
+    return this.authService.changePassword(user.id, body.currentPassword, body.newPassword);
   }
 
   @Public()

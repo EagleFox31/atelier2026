@@ -42,7 +42,9 @@ export class SubscriptionGuard implements CanActivate {
     if (
       path.endsWith('/subscription/status') ||
       path.endsWith('/auth/profile') ||
-      path.endsWith('/auth/logout')
+      path.endsWith('/auth/logout') ||
+      // Un atelier en lecture seule (grâce) doit pouvoir changer un mot de passe imposé.
+      path.endsWith('/auth/change-password')
     ) {
       return true;
     }

@@ -11,6 +11,7 @@ import { JwtSecretsService } from '../auth/jwt-secrets.service';
 import { DEFAULT_WORKSHOP_SETTINGS } from '../settings/settings.service';
 import { SignupDto } from './dto/signup.dto';
 import { SignupEmailService } from './signup-email.service';
+import { generateTempPassword } from '../../shared/security/temp-password';
 import type { WelcomeTeamMember } from './signup-welcome.email';
 
 const ALLOWED_TEAM_ROLES = new Set([
@@ -138,7 +139,6 @@ export class SignupService {
           email: dto.admin.email.trim().toLowerCase(),
           phone: dto.admin.phone?.trim() || null,
           passwordHash: adminPasswordHash,
-          tempPassword: dto.admin.password,
           employeeCode: await this.generateEmployeeCode(
             dto.admin.firstName,
             dto.admin.lastName,
@@ -182,7 +182,7 @@ export class SignupService {
         const role = await tx.role.findUnique({ where: { code: member.roleCode } });
         if (!role) continue;
 
-        const plainPassword = this.generatePassword(member.firstName);
+        const plainPassword = generateTempPassword();
         const passwordHash = await bcrypt.hash(plainPassword, 10);
         const employeeCode = await this.generateEmployeeCode(
           member.firstName,
@@ -200,7 +200,7 @@ export class SignupService {
             email: member.email?.trim().toLowerCase() || null,
             phone: member.phone?.trim() || null,
             passwordHash,
-            tempPassword: plainPassword,
+            mustChangePassword: true,
           },
         });
 
@@ -260,12 +260,6 @@ export class SignupService {
       },
       teamCreated,
     };
-  }
-
-  private generatePassword(firstName: string): string {
-    const digits = Math.floor(1000 + Math.random() * 9000);
-    const base = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
-    return `${base}${digits}!`;
   }
 
   /** Génère un slug URL-safe depuis un nom, avec déduplication DB. */

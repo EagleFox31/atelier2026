@@ -137,6 +137,7 @@ Guards globaux (ordre) : `JwtAuthGuard` → `SubscriptionGuard` → `Permissions
 - Le statut est recalculé **à la demande** (`SubscriptionService.getSummary`, appelé par le guard à chaque requête) et par `TrialSchedulerService` (cron horaire).
 - Un tenant sans `trialEndsAt` (antérieur au pilote) est toujours considéré `ACTIVE`.
 - Codes d'erreur front : `TRIAL_READ_ONLY`, `TRIAL_EXPIRED`, `SUBSCRIPTION_SUSPENDED` → `SubscriptionBlockedScreen` / `TrialStatusBanner`.
+- `PASSWORD_CHANGE_REQUIRED` (403, `JwtAuthGuard`) → redirection `/change-password` (`lib/api.ts` + `AppLayout`).
 
 ---
 
@@ -307,6 +308,7 @@ Les 18 pages sont branchées sur l'API réelle. Le dashboard utilise `/api/repor
 20. **Seed prod : `npx --yes tsx prisma/seed.ts`** — le container prod n'a pas `ts-node` (`--omit=dev`). Utiliser `docker exec atelier2026-api-1 npx --yes tsx prisma/seed.ts`. Ne jamais tenter de seeder depuis la machine locale vers l'IP publique (port 5432 non exposé).
 21. **RAIDER — mémoire des incidents** — avant un travail risqué ressemblant à un incident connu, lire [docs/engineering/lessons-learned.md](docs/engineering/lessons-learned.md) ; après un incident ou near miss significatif, y ajouter une entrée (cause racine + prévention).
 22. **Jamais de `<form>` imbriqué** — un mini-formulaire (création inline client/véhicule…) inséré dans un autre formulaire soumet le parent (bug « Nouvel OT » fermé, LESSON-2026-007). Utiliser un conteneur `role="group"`, un bouton `type="button"` et `submitOnEnter` de `lib/inline-form.ts`.
+23. **Jamais de mot de passe en clair** — ni en base (`User.tempPassword` est déprécié, ne plus jamais l'écrire), ni dans un log, un e-mail ou une réponse de liste. Mot de passe temporaire = `generateTempPassword()` (`src/shared/security/temp-password.ts`, côté serveur), renvoyé une seule fois, `mustChangePassword: true`. Routes accessibles pendant le changement imposé : `@AllowPendingPasswordChange()` (LESSON-2026-008).
 
 ---
 

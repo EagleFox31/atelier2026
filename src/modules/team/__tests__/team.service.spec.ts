@@ -203,18 +203,35 @@ describe('TeamService', () => {
       );
     });
 
-    it('génère un mot de passe auto si aucun fourni (format PrenomNNNN!)', async () => {
+    it('mot de passe auto robuste, jamais stocké en clair, renvoyé une fois, changement imposé', async () => {
       const { service, prismaMock } = makeDeps();
       prismaMock.user.findUnique.mockResolvedValue(null);
       prismaMock.user.create.mockResolvedValue({ id: 'u-1' });
 
-      await service.create({ firstName: 'Test', lastName: 'User', garageId: TEST_GARAGE_ID });
+      const result = await service.create({ firstName: 'Test', lastName: 'User', garageId: TEST_GARAGE_ID });
 
-      // Le mot de passe auto est TestNNNN! (prénom + 4 chiffres + !)
-      expect(bcrypt.hash).toHaveBeenCalledWith(
-        expect.stringMatching(/^Test\d{4}!$/),
-        10,
-      );
+      // Format « Xk7m-Pq4r-Zt9w » (générateur cryptographique), plus « PrénomNNNN! ».
+      const hashed = bcrypt.hash.mock.calls[bcrypt.hash.mock.calls.length - 1][0] as string;
+      expect(hashed).toMatch(/^[A-Za-z2-9]{4}-[A-Za-z2-9]{4}-[A-Za-z2-9]{4}$/);
+      expect(hashed).not.toMatch(/^Test/);
+
+      const data = prismaMock.user.create.mock.calls[0][0].data;
+      expect(data).not.toHaveProperty('tempPassword');
+      expect(data.mustChangePassword).toBe(true);
+      expect(result.tempPassword).toBe(hashed); // affichage unique côté front
+    });
+
+    it('réinitialisation : rien en clair, changement imposé, sessions révoquées, mot de passe renvoyé une fois', async () => {
+      const { service, prismaMock } = makeDeps();
+      prismaMock.user.update.mockResolvedValue({ id: 'u-1', employeeCode: 'test.user', firstName: 'Test', lastName: 'User' });
+
+      const result = await service.resetPassword('u-1', undefined, TEST_GARAGE_ID);
+
+      const { data, select } = prismaMock.user.update.mock.calls[0][0];
+      expect(data).not.toHaveProperty('tempPassword');
+      expect(select).not.toHaveProperty('tempPassword');
+      expect(data).toMatchObject({ mustChangePassword: true, tokenVersion: { increment: 1 }, passwordResetRequestedAt: null });
+      expect(result.tempPassword).toMatch(/^[A-Za-z2-9]{4}-[A-Za-z2-9]{4}-[A-Za-z2-9]{4}$/);
     });
 
     it('assigne le rôle si roleCode fourni', async () => {
