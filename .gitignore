@@ -9,7 +9,7 @@ coverage/
 # Secrets & env local
 .env*
 !.env.example
-!deploy/.env.prod.example
+!deploy/legacy/oracle/.env.prod.example
 src/.env
 
 # Logs & OS
@@ -37,4 +37,5 @@ postman/newman-env.json
 
 # Déploiement local
 deploy/.env.prod
+deploy/legacy/oracle/.env.prod
 atelier2026.tar.gz

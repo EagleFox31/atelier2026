@@ -219,7 +219,7 @@ export default function VehicleDetailPage() {
               {[
                 { label: 'Marque', value: vehicle.make?.name || '—' },
                 { label: 'Modèle', value: vehicle.model?.name || '—' },
-                { label: 'Année', value: vehicle.year?.toString() || '—' },
+                { label: 'Année de fabrication', value: vehicle.year?.toString() || '—' },
                 { label: 'Carburant', value: FUEL_LABELS[vehicle.fuelType] || vehicle.fuelType || '—' },
               ].map(({ label, value }) => (
                 <div key={label} className="space-y-1">

@@ -217,7 +217,7 @@ export function VehicleForm({ customerId, vehicleId, initialData, onSuccess }: V
             name="year"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Année</FormLabel>
+                <FormLabel>Année de fabrication</FormLabel>
                 <FormControl>
                   <UIInput type="number" {...field} className="bg-muted border-border" />
                 </FormControl>

@@ -9,28 +9,39 @@ Application de gestion d'atelier automobile pour le marché camerounais (XAF, TV
 - **Frontend** : Next.js 15 (App Router) + React 19 + TypeScript + shadcn/ui + Tailwind CSS v4
 - **Backend** : NestJS 11 — API REST préfixée `/api`, port **3001**
 - **Base de données** : PostgreSQL sur **Supabase** (Prisma 7.7.0)
-- **Queue** : Redis + BullMQ (SMS, alertes stock)
-- **Auth** : JWT (1 jour) + `tokenVersion` pour révocation
+- **Queue** : Redis + BullMQ (SMS, alertes stock) + `@nestjs/schedule` (crons)
+- **Temps réel** : SSE `/api/events` (`EventsService`, clients gardés **en mémoire** du process)
+- **Auth** : JWT (1 jour) + `tokenVersion` pour révocation — le payload porte `tenantId` + `garageId`
+- **SaaS multi-tenant** : `Tenant` (abonnement) → `Garage` (données métier scopées par `garageId`)
+- **Prod** : https://atelier.trigenys.com — AWS EC2 `eu-west-3`
 
 ---
 
 ## Ports & Proxy
 
-- NestJS → **3001** (variable `API_PORT` — défaut code `3001`)
-- Next.js → **3005**
+- NestJS → **3001** (`PORT` ou `API_PORT` — défaut code `3001`)
+- Next.js → **3000** (`scripts/dev.mjs`, `npm run dev:next`)
 - `next.config.ts` rewrite `/api/*` → `BACKEND_URL/api/*` (défaut `http://localhost:3001`)
 - Le browser n'accède jamais directement au port NestJS
+- Swagger : `http://localhost:3001/api/docs`
 
 ## Commandes
 
 ```bash
 npm run dev            # type-check back + front → lance les deux serveurs
 npm run dev:api        # NestJS seul
-npm run dev:next       # Next.js seul
+npm run dev:next       # Next.js seul (port 3000)
 npm run type:check     # vérification TypeScript seule
 npm run migrate        # migrations Supabase (préférer à prisma migrate deploy — voir ci-dessous)
 npx prisma db seed     # seed (rôles, permissions, users de test)
 npx prisma generate    # regénérer le client Prisma après changement de schema
+
+npm test               # Jest (unit + contract + integration, dans src/)
+npm run test:pw        # Playwright E2E (e2e/)
+npm run test:qa        # Playwright UX/UI/CX (e2e-qa/) — contre la prod par défaut (PLAYWRIGHT_BASE_URL)
+npm run test:e2e       # Newman (collections postman/)
+npm run test:mutation  # Stryker
+npm run reset:demo     # remet les données de démo à zéro
 ```
 
 ## Migrations base de données (Supabase)
@@ -51,33 +62,41 @@ npx prisma generate    # regénérer le client Prisma après changement de schem
 
 Leçons détaillées → **[docs/comprendre-l-app-101.md](docs/comprendre-l-app-101.md)**
 
-## Déploiement MVP (Oracle Always Free)
+## Déploiement production (AWS — actuel)
 
-Guide complet → **[deploy/README.md](deploy/README.md)**
+Guide complet → **[infra/aws/README.md](infra/aws/README.md)**
 
 | Composant | Rôle |
 |-----------|------|
-| `deploy/oci/terraform/` | VM ARM + VCN + cloud-init (Docker) |
-| `deploy/docker/docker-compose.prod.yml` | Caddy + Next + NestJS + Redis |
-| `deploy/scripts/remote-deploy.sh` | rsync + build sur la VM |
+| `infra/aws/bootstrap-github-oidc.yml` | Pile CloudFormation lancée **une fois à la main** : rôles IAM OIDC pour GitHub |
+| `infra/aws/atelier-maitre.yml` | Pile `atelier-maitre-prod` : EC2 `t3.micro` Ubuntu 24.04, IP fixe, SSM (pas de SSH) |
+| `deploy/docker/docker-compose.aws.yml` | Caddy + Next + NestJS + Redis sur l'EC2 |
+| `deploy/scripts/aws-ssm-deploy.sh` | Exécuté via SSM : pull GHCR du commit exact + `up`, check `/api/health` |
 
 Règles prod :
 - **`/api/*` routé par Caddy** vers NestJS (pas le rewrite Next / `BACKEND_URL` au build)
-- **`ALLOWED_ORIGINS`** = URL publique du browser (`http://IP` ou domaine HTTPS)
+- **`ALLOWED_ORIGINS`** = URL publique du browser (`http://IP` ou `https://domaine`) ; `APP_DOMAIN` + `ACME_EMAIL` pour le HTTPS Caddy
+- Secrets applicatifs dans **SSM Parameter Store** (`/atelier-maitre/prod/env`, `/atelier-maitre/prod/ghcr-token`) — jamais dans GitHub
+- En prod AWS, `DATABASE_URL` utilise le **Session pooler Supabase (port 5432)**, pas pgbouncer 6543
 - Migrations au boot API : **`migrate-missing.mjs`** + `DIRECT_URL`
-- Seed : **`npx prisma db seed`** depuis la machine locale (pas dans l'image Docker)
+- Seed : voir règle 20 (`docker exec … npx --yes tsx prisma/seed.ts`)
+
+> Legacy : anciennes cibles (Oracle, Fly, Railway) archivées dans **`deploy/legacy/`** — ne plus s'en servir comme référence. Ne rien y ajouter.
 
 ## Variables d'environnement (.env)
 
 | Variable | Rôle |
 |----------|------|
-| `DATABASE_URL` | Pooler Supabase (pgbouncer=true, port 6543) |
+| `DATABASE_URL` | Pooler Supabase (pgbouncer=true, port 6543 en local) |
 | `DIRECT_URL` | Connexion directe Supabase (migrations, port 5432) |
-| `JWT_SECRET` | Secret JWT |
-| `API_PORT` | Port NestJS (défaut 3001) |
+| `JWT_SECRET` | Secret JWT (`npm run rotate:jwt` pour rotation) |
+| `API_PORT` / `PORT` | Port NestJS (défaut 3001) |
 | `BACKEND_URL` | URL interne NestJS pour le proxy (défaut http://localhost:3001) |
 | `ALLOWED_ORIGINS` | CORS — vide = tout autoriser en dev |
 | `REDIS_HOST` / `REDIS_PORT` | Redis pour BullMQ |
+| `PUBLIC_SIGNUP_ENABLED` | Active `/inscription` (création de tenant en libre-service) |
+| `SIGNUP_ALLOW_IF_ADMIN_EXISTS` | `true` = autoriser l'inscription même si un ADMIN existe (tests locaux) |
+| `APP_DOMAIN` / `ACME_EMAIL` | Prod uniquement — domaine + email Let's Encrypt pour Caddy |
 
 ---
 
@@ -86,7 +105,7 @@ Règles prod :
 | Module | Routes | Notes |
 |--------|--------|-------|
 | AuthModule | `/auth/login`, `/auth/logout`, `/auth/profile` | JWT + tokenVersion |
-| WorkshopModule | `/workshop/ot/*` | Machine à états OT, optimistic locking |
+| WorkshopModule | `/workshop/*` | Machine à états OT (`OT_TRANSITIONS` + `TRANSITION_ROLES`), optimistic locking |
 | CustomersModule | `/customers/*` | CRUD + soft delete |
 | VehiclesModule | `/vehicles/*` | CRUD + soft delete + `/makes` + `/models` |
 | StockModule | `/stock/*` | BullMQ alertes stock |
@@ -94,9 +113,25 @@ Règles prod :
 | TeamModule | `/team/*` | Utilisateurs/techniciens |
 | PlanningModule | `/planning/appointments/*` | Hard delete (pas de deletedAt) |
 | NotificationsModule | `/notifications/sms/*` | Simulation Orange/MTN CM |
-| ReportsModule | `/reports/*` | Revenus + performance |
-| SettingsModule | `/settings/workshop` | Paramètres atelier (singleton BDD) — GET tous, PATCH ADMIN |
+| ReportsModule | `/reports/*` | Revenus + performance + `/reports/dashboard-stats` (dashboard) |
+| CounterSalesModule | `/counter-sales` | Vente comptoir (pièces sans OT) |
+| SettingsModule | `/settings/workshop`, `/settings/workshop/logo` | Paramètres atelier par garage — GET tous, PATCH/logo ADMIN |
+| EventsModule | `/events` (SSE) | Push temps réel ciblé user/garage/rôle |
+| MarketingModule | `/public/demo-booking`, `/demo-requests/*` | Leads démo (avec forfait demandé) → notif SUPER_ADMIN |
+| SignupModule | `/public/signup` | Inscription libre-service : crée Tenant + Garage + ADMIN, démarre le pilote |
+| SubscriptionModule | `/subscription/status` | Cycle pilote (voir ci-dessous) + cron horaire de réconciliation |
+| AdminModule | `/admin/tenants/*` | Console plateforme SUPER_ADMIN |
 | SharedModule (@Global) | `/audit/*` | PrismaService + AuditService globaux |
+
+Guards globaux (ordre) : `JwtAuthGuard` → `SubscriptionGuard` → `PermissionsGuard`. Routes publiques via `@Public()`.
+
+## Multi-tenant & abonnement
+
+- **Isolation** : toute donnée métier est filtrée par `garageId` du JWT. Utiliser les helpers de `src/shared/garage/garage-scope.ts` (`garageWhere`, `assert*InGarage`) — ils renvoient **404** (pas 403) pour masquer les IDOR. Jamais de `findUnique({ id })` nu sur une entité métier.
+- **Cycle pilote** (`Tenant.subscriptionStatus`) : signup → `TRIAL` 30 j (plan `pro`) → `GRACE_PERIOD` 7 j (**lecture seule** : seuls GET/HEAD/OPTIONS passent) → `EXPIRED`. `ACTIVE` / `SUSPENDED` sont posés manuellement. Rétention données : fin d'essai + 90 j.
+- Le statut est recalculé **à la demande** (`SubscriptionService.getSummary`, appelé par le guard à chaque requête) et par `TrialSchedulerService` (cron horaire).
+- Un tenant sans `trialEndsAt` (antérieur au pilote) est toujours considéré `ACTIVE`.
+- Codes d'erreur front : `TRIAL_READ_ONLY`, `TRIAL_EXPIRED`, `SUBSCRIPTION_SUSPENDED` → `SubscriptionBlockedScreen` / `TrialStatusBanner`.
 
 ---
 
@@ -112,7 +147,10 @@ Règles prod :
 | `scripts/dev.mjs` | Orchestrateur dev — type-check puis lance les deux serveurs |
 | `scripts/migrate-missing.mjs` | Migrations Supabase via DIRECT_URL (préféré à `prisma migrate deploy`) |
 | `docs/comprendre-l-app-101.md` | Guide vivant — leçons apprises et astuces projet |
-| `deploy/README.md` | Déploiement MVP Oracle + Docker Compose |
+| `lib/role-routing.ts` | Profils (technicien/réception/caisse « purs ») + route d'accueil post-login |
+| `hooks/use-realtime-events.ts` | Abonnement SSE `/api/events` |
+| `hooks/use-trial-status.ts` | Statut pilote pour bannière / écran bloquant |
+| `infra/aws/README.md` | Déploiement production AWS |
 | `prisma/full_schema.sql` | SQL post-Prisma : triggers, `audit_logs` partitionné, vues (boot Docker / Supabase) |
 | `prisma/custom_schema.sql` | Ancien sous-ensemble — préférer `full_schema.sql` |
 
@@ -129,16 +167,21 @@ Uniquement sur **User**, **Customer**, **Vehicle** (seuls modèles avec `deleted
 
 | Rôle | Permissions |
 |------|------------|
-| ADMIN | Tout (bypass guard) |
-| CHEF_ATELIER | VEH_VIEW, VEH_CREATE, ORD_VIEW, ORD_CREATE, STK_VIEW, STK_CREATE, FAC_CREATE |
+| SUPER_ADMIN | Plateforme (tous tenants) — bypass `PermissionsGuard` **et** `SubscriptionGuard` |
+| ADMIN | Tout dans son garage (bypass `PermissionsGuard`) |
+| CHEF_ATELIER | VEH_VIEW, VEH_CREATE, ORD_VIEW, ORD_CREATE, STK_VIEW, STK_CREATE, FAC_CREATE, FAC_VIEW |
 | TECHNICIEN | VEH_VIEW, ORD_VIEW, STK_VIEW |
-| RECEPTIONNISTE | VEH_VIEW, VEH_CREATE, ORD_VIEW, ORD_CREATE |
-| CAISSIER | VEH_VIEW, ORD_VIEW, FAC_CREATE, STK_VIEW |
+| RECEPTIONNISTE | VEH_VIEW, VEH_CREATE, ORD_VIEW, ORD_CREATE, FAC_VIEW |
+| CAISSIER | VEH_VIEW, ORD_VIEW, STK_VIEW, FAC_VIEW, FAC_PAY |
+| SYSTEM | Transitions automatiques (billing, jobs) |
+
+Source de vérité : `ROLE_PERMISSIONS` dans `prisma/seed.ts` + `src/shared/rbac/permissions.ts`. Les transitions d'OT ont en plus leur propre table de rôles (`TRANSITION_ROLES`).
 
 ## Comptes de test
 
 | Email | Mot de passe | Rôle |
 |-------|-------------|------|
+| superadmin@atelier.cm | Atelier2026! | SUPER_ADMIN |
 | admin@atelier.cm | Atelier2026! | ADMIN |
 | chef@atelier.cm | Atelier2026! | CHEF_ATELIER |
 | tech1@atelier.cm | Atelier2026! | TECHNICIEN |
@@ -147,25 +190,30 @@ Uniquement sur **User**, **Customer**, **Vehicle** (seuls modèles avec `deleted
 
 ---
 
-## CI/CD & Versioning (ajouté 2026-06-01)
+## CI/CD & Versioning (mis à jour 2026-09-23)
 
 ### Pipeline GitHub Actions
 
 ```
-git push main → CI (tests + type-check + semantic-release) → Deploy (build GHCR + pull serveur)
+git push main → CI (type-check + Jest + semantic-release)
+             → Deploy AWS (CloudFormation → build GHCR → SSM pull + up → /api/health)
 ```
 
-- **CI** (`.github/workflows/ci.yml`) : type-check back + front, tests, puis `semantic-release` sur main
-- **Deploy** (`.github/workflows/deploy.yml`) : build images Docker sur runner GitHub → push GHCR → serveur fait `docker pull + up` (30 sec, pas de build sur le serveur)
+- **CI** (`.github/workflows/ci.yml`) : type-check back + front, Jest, puis `semantic-release` sur main (sauté si le dernier tag n'est pas un ancêtre de `main`)
+- **Deploy** (`.github/workflows/deploy.yml`) : déclenché par la réussite de la CI sur `main` (ou manuellement). Détecte les fichiers modifiés → met à jour la pile CloudFormation seulement si l'infra change → build/push seulement les images API/Web modifiées → déploiement via **SSM** (pas de SSH)
+- **QA UX** (`.github/workflows/qa-ux.yml`) : `npm run test:qa` contre la prod, du lundi au vendredi à 5 h UTC, ou lancé à la main (`base_url`, `allow_mutations`). Secrets `QA_EMAIL` / `QA_PASSWORD` (compte QA dédié)
 - **Cache Docker** (GitHub Actions Cache) : seules les layers modifiées sont reconstruites
 
-### Secrets GitHub Actions requis
+### Configuration GitHub Actions requise
 
-| Secret | Usage |
+Authentification AWS par **OIDC** : aucune clé AWS ni SSH stockée dans GitHub.
+
+| Variable (Actions → Variables) | Usage |
 |--------|-------|
-| `SSH_PRIVATE_KEY` | Clé Ed25519 sans passphrase (dédiée CI) |
-| `ENV_PROD` | Contenu de `deploy/.env.prod` |
-| `GHCR_TOKEN` | PAT `read:packages` pour `docker pull` sur le serveur |
+| `AWS_DEPLOY_ROLE_ARN` | Rôle assumé par le workflow (sortie de la pile bootstrap) |
+| `AWS_CLOUDFORMATION_ROLE_ARN` | Rôle d'exécution CloudFormation |
+
+Push GHCR avec `GITHUB_TOKEN`. Le token de pull GHCR et le `.env` de prod vivent dans SSM Parameter Store (voir Déploiement).
 
 ### Versioning automatique (semantic-release)
 
@@ -182,9 +230,24 @@ La version est injectée dans Next.js via `NEXT_PUBLIC_APP_VERSION` (build arg D
 
 ---
 
-## État du projet (2026-06-01)
+## État du projet (2026-09-23)
 
-### Backend — audit complet et corrigé
+### En production
+- Application complète en ligne (atelier.trigenys.com) : toutes les pages branchées sur l'API, parcours mobile par rôle, PWA, onboarding guidé
+- SaaS : landing + tarifs (3 forfaits + pilote gratuit), inscription libre-service, pilote 30 j + grâce 7 j, console SUPER_ADMIN, leads démo
+- Déploiement AWS GitOps (CloudFormation + OIDC + SSM)
+
+### Travail en cours
+- `fix/trial-onboarding-ux-qa` **mergée** dans main (`a61fb06`, squash) : sélecteur de ville, logo payant vérifié côté API, suite Playwright `test:qa` + workflow planifié `qa-ux.yml`
+- `fix/ux-onboarding-and-qa` **non mergée**, et maintenant en conflit avec main (même périmètre). À y reprendre : blocage SMS côté serveur (`assertSmsEntitled`, worker), e-mail d'inscription, onboarding obligatoire sur mobile
+- Plan de correction → [docs/PLAN-CORRECTIONS-2026-09.md](docs/PLAN-CORRECTIONS-2026-09.md)
+
+### Règles produit décidées (2026-09-23)
+- **Logo personnalisé** : seulement avec un forfait payant `ACTIVE`. Sinon (pilote, grâce, expiré) : logo Atelier Maître partout (app, devis, factures, PDF). Un logo déjà enregistré est masqué, pas supprimé
+- **SMS** : Pro et Business `ACTIVE` uniquement (conforme à la page tarifs) — ni Essentiel, ni pilote
+- **Suspension** : suspendre un tenant ne touche pas au statut des utilisateurs. Un utilisateur suspendu par son ADMIN le reste quand le tenant est réactivé
+
+### Historique — audit backend (2026-06-01)
 - ✅ Bloquants B1-B3 (schema Prisma, $extends soft delete, filtre lowStock)
 - ✅ Critiques C1-C3 (seed, RBAC, triggers SQL)
 - ✅ Incohérences I1-I4 (modules, guard catch, types)
@@ -202,16 +265,8 @@ La version est injectée dans Next.js via `NEXT_PUBLIC_APP_VERSION` (build arg D
 ### Backend — tous les endpoints présents ✅
 Workshop, Stock, Billing, Vehicles, Counter-Sales, Dashboard stats réelles.
 
-### À faire — Frontend (Prochaine étape)
-- [x] Brancher les 18 pages frontend sur les vraies APIs (remplacer `lib/mock-data.ts`)
-- [x] Page `/customers` — liste + création client
-- [x] Page `/vehicles` — liste + dropdowns marques/modèles
-- [x] Page `/workshop` — tableau des OT + machine à états
-- [x] Page `/stock` — catalogue pièces + alertes
-- [x] Page `/billing` — devis + factures + paiements
-- [x] Page `/planning` — calendrier des rendez-vous
-- [x] Page `/reports` — CA + performance techniciens
-- [x] Dashboard — brancher sur `/api/dashboard/stats`
+### Frontend — branchement API terminé
+Les 18 pages sont branchées sur l'API réelle. Le dashboard utilise `/api/reports/dashboard-stats` (`app/api/dashboard/stats/route.ts` n'est qu'un stub legacy). `lib/mock-data.ts` n'est plus importé nulle part.
 
 ---
 
