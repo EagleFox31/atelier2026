@@ -1,5 +1,6 @@
 import { StockService } from '../stock.service';
 import { NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
 
@@ -102,75 +103,60 @@ describe('StockService.applyMovement()', () => {
     );
   });
 
-  it('déclenche une alerte stock bas si qty ≤ seuil (post-commit)', async () => {
-    jest.useFakeTimers();
-    const { service, txMock, prismaMock, stockAlertsQueue } = makeDeps();
-    txMock.stockMovement.create.mockResolvedValue({ id: 'mov-1' });
-    prismaMock.partsCatalog.findUnique.mockResolvedValue({
-      id: 'part-1',
-      reference: 'REF-001',
-      nameFr: 'Filtre huile',
-      qtyInStock: 2,
-      minThreshold: 5,
-    });
+  // Les quantités sont des Decimal Prisma : les tests utilisent de vrais Decimal
+  // (des nombres masquaient la comparaison de chaînes de `<=`).
+  function partStock(qtyInStock: string, minThreshold: string) {
+    return { qtyInStock: new Prisma.Decimal(qtyInStock), minThreshold: new Prisma.Decimal(minThreshold) };
+  }
 
-    await service.applyMovement({
+  async function moveAndFlush(service: StockService) {
+    const result = await service.applyMovement({
       partId: 'part-1',
       type: 'OT_CONSUMPTION',
-      quantity: -3,
+      quantity: -1,
       userId: 'user-1',
       garageId: TEST_GARAGE_ID,
     });
-
     await jest.runAllTimersAsync();
+    return result;
+  }
 
-    expect(stockAlertsQueue.add).toHaveBeenCalledWith('low-stock', {
-      partId: 'part-1',
-      reference: 'REF-001',
-      name: 'Filtre huile',
-      currentQty: 2,
-      threshold: 5,
-    });
+  it.each([
+    ['2 pour un seuil de 5', '2.000', '5.000'],
+    ['égalité 3 = 3 (égalité = sous seuil)', '3.000', '3.000'],
+    ['9 pour un seuil de 10 (raté par « <= » sur Decimal)', '9.000', '10.000'],
+    ['2 pour un seuil de 10 (raté par « <= » sur Decimal)', '2.000', '10.000'],
+  ])('met en file une alerte stock bas après commit : %s', async (_label, qty, min) => {
+    jest.useFakeTimers({ now: new Date('2026-10-01T10:00:00.000Z') });
+    const { service, txMock, prismaMock, stockAlertsQueue } = makeDeps();
+    txMock.stockMovement.create.mockResolvedValue({ id: 'mov-1' });
+    prismaMock.partsCatalog.findUnique.mockResolvedValue(partStock(qty, min));
+
+    await moveAndFlush(service);
+
+    expect(stockAlertsQueue.add).toHaveBeenCalledWith(
+      'low-stock',
+      { partId: 'part-1', garageId: TEST_GARAGE_ID },
+      expect.objectContaining({
+        jobId: 'low-stock_part-1_2026-10-01',
+        attempts: 3,
+        removeOnComplete: { age: 2 * 24 * 60 * 60 },
+      }),
+    );
     jest.useRealTimers();
   });
 
-  it('alerte déclenchée quand qty === seuil (égalité = sous seuil)', async () => {
+  it.each([
+    ['10 pour un seuil de 5', '10.000', '5.000'],
+    ['10 pour un seuil de 9 (faux positif de « <= » sur Decimal)', '10.000', '9.000'],
+  ])('n’envoie pas d’alerte au-dessus du seuil : %s', async (_label, qty, min) => {
     jest.useFakeTimers();
     const { service, txMock, prismaMock, stockAlertsQueue } = makeDeps();
     txMock.stockMovement.create.mockResolvedValue({ id: 'mov-1' });
-    prismaMock.partsCatalog.findUnique.mockResolvedValue({
-      id: 'part-1', reference: 'REF-002', nameFr: 'Courroie',
-      qtyInStock: 3, minThreshold: 3,
-    });
+    prismaMock.partsCatalog.findUnique.mockResolvedValue(partStock(qty, min));
 
-    await service.applyMovement({ partId: 'part-1', type: 'OT_CONSUMPTION', quantity: -1, userId: 'u-1', garageId: TEST_GARAGE_ID });
-    await jest.runAllTimersAsync();
+    await moveAndFlush(service);
 
-    expect(stockAlertsQueue.add).toHaveBeenCalledWith('low-stock', expect.objectContaining({ currentQty: 3 }));
-    jest.useRealTimers();
-  });
-
-  it('n\'envoie pas d\'alerte si stock au-dessus du seuil', async () => {
-    jest.useFakeTimers();
-    const { service, txMock, prismaMock, stockAlertsQueue } = makeDeps();
-    txMock.stockMovement.create.mockResolvedValue({ id: 'mov-1' });
-    prismaMock.partsCatalog.findUnique.mockResolvedValue({
-      id: 'part-1',
-      reference: 'REF-001',
-      nameFr: 'Filtre huile',
-      qtyInStock: 10,
-      minThreshold: 5,
-    });
-
-    await service.applyMovement({
-      partId: 'part-1',
-      type: 'PURCHASE',
-      quantity: 10,
-      userId: 'user-1',
-      garageId: TEST_GARAGE_ID,
-    });
-
-    await jest.runAllTimersAsync();
     expect(stockAlertsQueue.add).not.toHaveBeenCalled();
     jest.useRealTimers();
   });
@@ -181,8 +167,7 @@ describe('StockService.applyMovement()', () => {
     txMock.stockMovement.create.mockResolvedValue({ id: 'mov-1' });
     prismaMock.partsCatalog.findUnique.mockResolvedValue(null);
 
-    await service.applyMovement({ partId: 'part-inexistant', type: 'PURCHASE', quantity: 1, userId: 'u-1', garageId: TEST_GARAGE_ID });
-    await jest.runAllTimersAsync();
+    await moveAndFlush(service);
 
     expect(stockAlertsQueue.add).not.toHaveBeenCalled();
     jest.useRealTimers();
@@ -193,14 +178,10 @@ describe('StockService.applyMovement()', () => {
     const { service, txMock, prismaMock, stockAlertsQueue } = makeDeps();
     const movement = { id: 'mov-1' };
     txMock.stockMovement.create.mockResolvedValue(movement);
-    prismaMock.partsCatalog.findUnique.mockResolvedValue({
-      id: 'part-1', reference: 'R', nameFr: 'P', qtyInStock: 1, minThreshold: 5,
-    });
+    prismaMock.partsCatalog.findUnique.mockResolvedValue(partStock('1.000', '5.000'));
     stockAlertsQueue.add.mockRejectedValue(new Error('Redis indisponible'));
 
-    const result = await service.applyMovement({ partId: 'part-1', type: 'OT_CONSUMPTION', quantity: -1, userId: 'u-1', garageId: TEST_GARAGE_ID });
-
-    await jest.runAllTimersAsync();
+    const result = await moveAndFlush(service);
 
     // Le mouvement a bien été retourné malgré l'échec de l'alerte
     expect(result).toEqual(movement);
