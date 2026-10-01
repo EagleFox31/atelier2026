@@ -192,6 +192,8 @@ model Tenant {
   plan                  String             @default("starter")
   status                String             @default("active")
   subscriptionStatus    SubscriptionStatus @default(TRIAL) @map("subscription_status")
+  /// Statut à restaurer quand le SUPER_ADMIN réactive un tenant suspendu.
+  statusBeforeSuspension SubscriptionStatus? @map("status_before_suspension")
   trialStartedAt        DateTime?          @map("trial_started_at") @db.Timestamptz
   trialEndsAt           DateTime?          @map("trial_ends_at") @db.Timestamptz
   graceEndsAt           DateTime?          @map("grace_ends_at") @db.Timestamptz

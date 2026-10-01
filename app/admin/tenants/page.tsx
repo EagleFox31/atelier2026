@@ -29,8 +29,8 @@ function TenantCard({ tenant, onRefresh }: { tenant: TenantSummary; onRefresh: (
     try {
       const res = await superAdminApi.toggleTenantStatus(tenant.id);
       toast.success(res.status === 'suspended'
-        ? `${tenant.name} suspendu — tous les utilisateurs sont bloqués`
-        : `${tenant.name} réactivé`);
+        ? `${tenant.name} suspendu — l'accès à l'atelier est bloqué`
+        : `${tenant.name} réactivé — les comptes suspendus par l'atelier le restent`);
       onRefresh();
     } catch {
       toast.error('Erreur lors du changement de statut');

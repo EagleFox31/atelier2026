@@ -7,7 +7,7 @@ Chaque lot correspond à une PR, dans l'ordre d'exécution.
 | Lot | Sujet | Priorité | Effort | État |
 |-----|-------|----------|--------|------|
 | 0 | Porter ce qui manque de `fix/ux-onboarding-and-qa` sur `main` | Bloquant | ½ j | À faire |
-| 1 | Suspension de tenant sans toucher au statut des utilisateurs | Haute (bug) | ½ j | Règle validée |
+| 1 | Suspension de tenant sans toucher au statut des utilisateurs | Haute (bug) | ½ j | ✅ Fait (`fix/tenant-suspension`) |
 | 2 | Droits par forfait (logo, SMS) centralisés + guard sans requête supplémentaire | Haute | 1 j | Règles validées |
 | 3 | Redis : worker `stock-alerts` manquant + SSE multi-instance | Moyenne / différé | ½ j + ½ j | À faire |
 | 4 | Nettoyage : dépendances, code mort, `.env.example` | Basse | 1 h | Anciens déploiements ✅ |
@@ -56,6 +56,8 @@ Chaque lot correspond à une PR, dans l'ordre d'exécution.
 - passe **tous** les utilisateurs du tenant en `SUSPENDED` (c'est ce qui bloque réellement l'accès), puis **tous** en `ACTIVE` à la réactivation. Un utilisateur désactivé par son ADMIN (`TeamService.toggleStatus`) est donc réactivé à tort ;
 - n'utilise pas de transaction ;
 - ne pose jamais `Tenant.subscriptionStatus = SUSPENDED`, alors que le guard et le front (`SUBSCRIPTION_SUSPENDED`) l'attendent.
+
+**Réalisé (2026-10-01).** Suspension portée par `subscriptionStatus` + nouvelle colonne `status_before_suspension` ; plus aucun `user.updateMany`. Les tenants suspendus avec l'ancien mécanisme sont réactivés une dernière fois « à l'ancienne » (tous leurs comptes suspendus réactivés, comme avant), ce qui évite toute intervention manuelle en prod. `Tenant.status` reste écrit en miroir pour compatibilité.
 
 **Principe retenu.** La suspension se fait **au niveau du tenant**. Le statut d'un utilisateur ne reflète que ce que son ADMIN a décidé. La règle validée en découle naturellement : réactiver le tenant ne touche à personne, donc ceux que l'ADMIN avait suspendus le restent.
 

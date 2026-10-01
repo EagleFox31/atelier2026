@@ -312,6 +312,7 @@ async function migrateSubscriptionLifecycle() {
     { col: 'subscription_started_at', sql: 'ALTER TABLE public.tenants ADD COLUMN subscription_started_at TIMESTAMPTZ' },
     { col: 'subscription_ends_at', sql: 'ALTER TABLE public.tenants ADD COLUMN subscription_ends_at TIMESTAMPTZ' },
     { col: 'data_retention_ends_at', sql: 'ALTER TABLE public.tenants ADD COLUMN data_retention_ends_at TIMESTAMPTZ' },
+    { col: 'status_before_suspension', sql: 'ALTER TABLE public.tenants ADD COLUMN status_before_suspension subscription_status_t' },
   ];
 
   for (const { col, sql } of columns) {
