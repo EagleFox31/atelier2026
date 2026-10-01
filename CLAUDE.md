@@ -301,6 +301,7 @@ Les 18 pages sont branchées sur l'API réelle. Le dashboard utilise `/api/repor
 18. **`audit_logs` partitionné bloque `prisma db push`** — si `audit_logs` existe déjà comme table partitionnée (`relkind = 'p'`), Prisma génère un `ALTER TABLE ... RENAME CONSTRAINT + ALTER COLUMN TYPE` invalide. L'entrypoint le droppe automatiquement si partitionné. Ne jamais laisser `audit_logs` en état partitionné avant un `prisma db push`.
 19. **`@db.Inet` obligatoire pour `ip_address` dans AuditLog** — sans ce type hint, Prisma voit `String?` (TEXT) alors que la DB a `INET` → AlterColumn bloquant sur re-déploiement.
 20. **Seed prod : `npx --yes tsx prisma/seed.ts`** — le container prod n'a pas `ts-node` (`--omit=dev`). Utiliser `docker exec atelier2026-api-1 npx --yes tsx prisma/seed.ts`. Ne jamais tenter de seeder depuis la machine locale vers l'IP publique (port 5432 non exposé).
+21. **RAIDER — mémoire des incidents** — avant un travail risqué ressemblant à un incident connu, lire [docs/engineering/lessons-learned.md](docs/engineering/lessons-learned.md) ; après un incident ou near miss significatif, y ajouter une entrée (cause racine + prévention).
 
 ---
 
