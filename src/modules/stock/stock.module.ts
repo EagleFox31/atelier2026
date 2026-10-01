@@ -5,14 +5,15 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { StockService } from './stock.service';
 import { PartsFlowService } from './parts-flow.service';
 import { StockController } from './stock.controller';
+import { STOCK_ALERTS_QUEUE, StockAlertsProcessor } from './stock-alerts.processor';
 
 @Module({
   imports: [
     SharedModule,
     NotificationsModule,
-    BullModule.registerQueue({ name: 'stock-alerts' }),
+    BullModule.registerQueue({ name: STOCK_ALERTS_QUEUE }),
   ],
-  providers: [StockService, PartsFlowService],
+  providers: [StockService, PartsFlowService, StockAlertsProcessor],
   controllers: [StockController],
   exports: [StockService, PartsFlowService],
 })

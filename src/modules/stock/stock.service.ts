@@ -6,6 +6,12 @@ import { assertOTInGarage, assertPartInGarage, requireGarageId } from '../../sha
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { StockMovementType, PartStatus } from '@prisma/client';
+import {
+  LOW_STOCK_JOB,
+  STOCK_ALERTS_QUEUE,
+  lowStockJobId,
+  type LowStockJobData,
+} from './stock-alerts.processor';
 
 @Injectable()
 export class StockService {
@@ -14,7 +20,7 @@ export class StockService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
-    @InjectQueue('stock-alerts') private stockAlertsQueue: Queue,
+    @InjectQueue(STOCK_ALERTS_QUEUE) private stockAlertsQueue: Queue,
   ) {}
 
   /**
@@ -37,8 +43,8 @@ export class StockService {
     if (data.serviceOrderId) {
       await assertOTInGarage(this.prisma, data.serviceOrderId, g);
     }
-    return this.prisma.$transaction(async (tx) => {
-      const movement = await tx.stockMovement.create({
+    const movement = await this.prisma.$transaction(async (tx) =>
+      tx.stockMovement.create({
         data: {
           garageId: g,
           partId: data.partId,
@@ -51,28 +57,43 @@ export class StockService {
           qtyBefore: 0,
           qtyAfter: 0,
         },
-      });
+      }),
+    );
 
-      // 2. Tâche asynchrone pour les alertes (BASE) - Post-transaction
-      // On le fait via setImmediate pour simuler le "post-commit" ou on attend le retour de la méthode
-      setImmediate(async () => {
-        try {
-          const part = await this.prisma.partsCatalog.findUnique({ where: { id: data.partId } });
-          if (part && part.qtyInStock <= part.minThreshold) {
-            await this.stockAlertsQueue.add('low-stock', {
-              partId: part.id,
-              reference: part.reference,
-              name: part.nameFr,
-              currentQty: part.qtyInStock,
-              threshold: part.minThreshold,
-            });
-          }
-        } catch (err) {
-          this.logger.error(`Échec alerte stock bas pour pièce ${data.partId}`, err);
-        }
-      });
+    // Après le commit : qty_in_stock a été recalculé par le trigger SQL.
+    this.enqueueLowStockAlert(data.partId, g);
+    return movement;
+  }
 
-      return movement;
+  /**
+   * Met en file une alerte « stock bas » traitée par StockAlertsProcessor
+   * (notification in-app CHEF_ATELIER + ADMIN du garage). Une erreur ici
+   * (Redis indisponible…) ne doit jamais faire échouer le mouvement de stock.
+   */
+  private enqueueLowStockAlert(partId: string, garageId: string) {
+    setImmediate(async () => {
+      try {
+        const part = await this.prisma.partsCatalog.findUnique({
+          where: { id: partId },
+          select: { qtyInStock: true, minThreshold: true },
+        });
+        // Decimal Prisma : lte(), jamais <= (qui compare des chaînes : "9" <= "10" est faux).
+        if (!part || !part.qtyInStock.lte(part.minThreshold)) return;
+
+        await this.stockAlertsQueue.add(
+          LOW_STOCK_JOB,
+          { partId, garageId } satisfies LowStockJobData,
+          {
+            jobId: lowStockJobId(partId),
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 5_000 },
+            removeOnComplete: { age: 2 * 24 * 60 * 60 },
+            removeOnFail: { age: 7 * 24 * 60 * 60 },
+          },
+        );
+      } catch (err) {
+        this.logger.error(`Échec alerte stock bas pour pièce ${partId}`, err);
+      }
     });
   }
 

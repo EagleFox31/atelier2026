@@ -9,7 +9,7 @@ Chaque lot correspond à une PR, dans l'ordre d'exécution.
 | 0 | Porter ce qui manque de `fix/ux-onboarding-and-qa` sur `main` | Bloquant | ½ j | À faire |
 | 1 | Suspension de tenant sans toucher au statut des utilisateurs | Haute (bug) | ½ j | ✅ Fait (`fix/tenant-suspension`) |
 | 2 | Droits par forfait (logo, SMS) centralisés + guard sans requête supplémentaire | Haute | 1 j | Règles validées |
-| 3 | Redis : worker `stock-alerts` manquant + SSE multi-instance | Moyenne / différé | ½ j + ½ j | À faire |
+| 3 | Redis : worker `stock-alerts` manquant + SSE multi-instance | Moyenne / différé | ½ j + ½ j | 3a ✅ (`fix/stock-alerts-worker`), 3b différé |
 | 4 | Nettoyage : dépendances, code mort, `.env.example` | Basse | 1 h | Anciens déploiements ✅ |
 | 5 | Déploiements sans gêne pour les ateliers | Moyenne | ½ j | Points 1-2 ✅ |
 
@@ -135,7 +135,11 @@ Chaque lot correspond à une PR, dans l'ordre d'exécution.
 | `sms-notifications` | `NotificationsService`, `WorkshopService`, `SchedulerService` (rappels J+7, J+15, veille de RDV) | `SmsProcessor` ✅ |
 | `stock-alerts` | `StockService` (seuil bas atteint) | **Aucun worker** ❌ |
 
-### 3a — Worker `stock-alerts` manquant (à faire)
+### 3a — Worker `stock-alerts` manquant ✅ (2026-10-01)
+
+**Réalisé.** `StockAlertsProcessor` notifie (in-app + SSE) CHEF_ATELIER et ADMIN du garage de la pièce ; jobs dédupliqués par pièce et par jour (`jobId`), conservés 2 jours / 7 jours en échec ; arriéré de plus de 24 h ignoré. **Bug corrigé au passage** : `qtyInStock <= minThreshold` comparait des `Decimal` Prisma comme des chaînes (« 9 ≤ 10 » faux, « 10 ≤ 9 » vrai) → alertes ratées ou à tort ; remplacé par `.lte()`. Option SMS reportée au lot 2 (droits par forfait).
+
+#### Constat initial
 Les jobs `low-stock` sont ajoutés à la file mais personne ne les consomme. Ils s'accumulent dans Redis, et aucune alerte n'est envoyée.
 
 **Actions.**
