@@ -478,7 +478,8 @@ export const demoRequestsApi = {
 
 export const superAdminApi = {
   listTenants:        () => get<TenantSummary[]>('/admin/tenants'),
-  toggleTenantStatus: (id: string) => patch<{ tenantId: string; status: string }>(`/admin/tenants/${id}/toggle-status`, {}),
+  toggleTenantStatus: (id: string) =>
+    patch<{ tenantId: string; status: 'active' | 'suspended'; subscriptionStatus: string }>(`/admin/tenants/${id}/toggle-status`, {}),
 };
 
 export interface TenantSummary {
@@ -487,7 +488,9 @@ export interface TenantSummary {
   name: string;
   email: string;
   plan: string;
-  status: string;
+  /** 'suspended' si l'atelier est suspendu par la plateforme. */
+  status: 'active' | 'suspended';
+  subscriptionStatus: string;
   createdAt: string;
   userCount: number;
   garageCount: number;

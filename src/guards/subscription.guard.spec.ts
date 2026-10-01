@@ -49,6 +49,28 @@ describe('SubscriptionGuard', () => {
     await expect(guard.canActivate(context('POST'))).resolves.toBe(true);
   });
 
+  it('blocks reads and writes of a tenant suspended by the platform', async () => {
+    subscriptions.getSummary.mockResolvedValue({
+      status: SubscriptionStatus.SUSPENDED,
+    });
+
+    for (const method of ['GET', 'POST']) {
+      await expect(guard.canActivate(context(method))).rejects.toMatchObject({
+        response: expect.objectContaining({ errorCode: 'SUBSCRIPTION_SUSPENDED' }),
+      });
+    }
+  });
+
+  it('lets SUPER_ADMIN through even when the tenant is suspended', async () => {
+    subscriptions.getSummary.mockResolvedValue({
+      status: SubscriptionStatus.SUSPENDED,
+    });
+
+    await expect(
+      guard.canActivate(context('POST', '/api/admin/tenants/t1/toggle-status', ['SUPER_ADMIN'])),
+    ).resolves.toBe(true);
+  });
+
   it('allows reads but blocks writes during grace period', async () => {
     subscriptions.getSummary.mockResolvedValue({
       status: SubscriptionStatus.GRACE_PERIOD,
