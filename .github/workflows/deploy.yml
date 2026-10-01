@@ -34,38 +34,28 @@ jobs:
           ref: ${{ env.DEPLOY_SHA }}
           fetch-depth: 2
 
-      - uses: dorny/paths-filter@v3
+      # Diff du commit déployé contre son 1er parent : couvre les commits simples,
+      # les squash ET les commits de merge (dorny/paths-filter ne voyait aucun
+      # fichier sur un merge commit → build et déploiement sautés en silence).
+      - name: Detect changed paths
         id: filter
-        with:
-          filters: |
-            api:
-              - 'src/**'
-              - 'server.ts'
-              - 'prisma/**'
-              - 'scripts/**'
-              - 'tsconfig.server*.json'
-              - 'deploy/docker/Dockerfile.api'
-              - 'package.json'
-              - 'package-lock.json'
-            web:
-              - 'app/**'
-              - 'components/**'
-              - 'lib/**'
-              - 'contexts/**'
-              - 'hooks/**'
-              - 'public/**'
-              - 'styles/**'
-              - 'deploy/docker/Dockerfile.web'
-              - 'next.config.*'
-              - 'tailwind.config.*'
-              - 'package.json'
-              - 'package-lock.json'
-            runtime:
-              - 'deploy/docker/docker-compose.aws.yml'
-              - 'deploy/docker/Caddyfile'
-              - 'deploy/scripts/aws-ssm-deploy.sh'
-            infra:
-              - 'infra/aws/atelier-maitre.yml'
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHANGED="$(git diff --name-only HEAD^1 HEAD)"
+          echo "Fichiers modifiés :"
+          printf '%s\n' "$CHANGED"
+
+          match() {
+            if printf '%s\n' "$CHANGED" | grep -Eq "$1"; then echo true; else echo false; fi
+          }
+
+          {
+            echo "api=$(match '^(src/|server\.ts$|prisma/|scripts/|tsconfig\.server[^/]*\.json$|deploy/docker/Dockerfile\.api$|package(-lock)?\.json$)')"
+            echo "web=$(match '^(app/|components/|lib/|contexts/|hooks/|public/|styles/|deploy/docker/Dockerfile\.web$|next\.config\.|tailwind\.config\.|package(-lock)?\.json$)')"
+            echo "runtime=$(match '^(deploy/docker/docker-compose\.aws\.yml|deploy/docker/Caddyfile|deploy/scripts/aws-ssm-deploy\.sh)$')"
+            echo "infra=$(match '^infra/aws/atelier-maitre\.yml$')"
+          } | tee -a "$GITHUB_OUTPUT"
 
   provision:
     name: Provision AWS infrastructure
