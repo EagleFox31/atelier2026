@@ -307,7 +307,9 @@ export class SubscriptionPaymentsService {
     const publicUrl = process.env.APP_PUBLIC_URL?.trim();
     if (!publicUrl) return undefined;
     try {
-      return new URL('/subscription/payment-return', publicUrl).toString();
+      const returnUrl = new URL('/settings', publicUrl);
+      returnUrl.searchParams.set('payment', 'return');
+      return returnUrl.toString();
     } catch {
       throw new BadRequestException({
         message: 'APP_PUBLIC_URL est invalide.',
