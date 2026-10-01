@@ -50,6 +50,15 @@ export default function SettingsPage() {
     Boolean(user?.tenantId) &&
     (subscription?.status !== 'ACTIVE' ||
       !['pro', 'business'].includes(subscription?.plan.toLowerCase() ?? ''));
+  const smsLockMessage = !subscription
+    ? 'Vérification de votre abonnement en cours.'
+    : subscription.status === 'TRIAL'
+      ? 'Les SMS sont désactivés pendant le pilote gratuit afin d’éviter des frais opérateur.'
+      : subscription.status === 'GRACE_PERIOD'
+        ? 'Les SMS sont suspendus pendant la période de grâce.'
+        : subscription.status === 'ACTIVE'
+          ? 'Les SMS sont réservés aux forfaits Pro et Business.'
+          : 'Les SMS nécessitent un abonnement Pro ou Business actif.';
 
   const [loading, setLoading] = useState(true);
   const [savingGeneral, setSavingGeneral] = useState(false);
@@ -487,8 +496,7 @@ export default function SettingsPage() {
                 <CardContent className="space-y-6">
                   {smsLocked && (
                     <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                      Les SMS sont désactivés pendant le pilote gratuit afin d&apos;éviter des frais opérateur.
-                      Ils deviennent disponibles avec un abonnement Pro ou Business actif.
+                      {smsLockMessage} Ils deviennent disponibles avec un abonnement Pro ou Business actif.
                     </div>
                   )}
                   <div className="space-y-4">
