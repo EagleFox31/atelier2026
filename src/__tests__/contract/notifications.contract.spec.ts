@@ -3,6 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import { getQueueToken } from '@nestjs/bullmq';
 import { NotificationsController } from '../../modules/notifications/notifications.controller';
 import { NotificationsService } from '../../modules/notifications/notifications.service';
+import { SubscriptionService } from '../../modules/subscription/subscription.service';
 import {
   createTestApp,
   makeDbUser,
@@ -65,6 +66,7 @@ describe('Notifications — contrats de réponse HTTP', () => {
       controllers: [NotificationsController],
       extraProviders: [
         NotificationsService,
+        { provide: SubscriptionService, useValue: { assertSmsEntitled: jest.fn().mockResolvedValue(undefined) } },
         { provide: getQueueToken('sms-notifications'), useValue: { add: queueAddMock } },
       ],
       prismaOverride: {

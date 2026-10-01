@@ -14,6 +14,7 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { NotificationsController } from '../notifications.controller';
 import { NotificationsService } from '../notifications.service';
 import { PrismaService } from '../../../shared/prisma/prisma.service';
+import { SubscriptionService } from '../../subscription/subscription.service';
 
 // ── Stub guard : injecte le user depuis le header X-Test-User ─────────────────
 
@@ -68,6 +69,7 @@ beforeAll(async () => {
     controllers: [NotificationsController],
     providers: [
       NotificationsService,
+      { provide: SubscriptionService, useValue: { assertSmsEntitled: jest.fn().mockResolvedValue(undefined) } },
       { provide: PrismaService, useValue: prismaMock },
       { provide: getQueueToken('sms-notifications'), useValue: queueMock },
       { provide: APP_GUARD, useClass: StubAuthGuard },
