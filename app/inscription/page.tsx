@@ -33,7 +33,7 @@ export default function InscriptionPage() {
             <span className="landing-gradient-text">3 étapes</span>
           </h1>
           <p className="mx-auto mt-3 max-w-lg text-pretty text-[var(--afrique-earth-muted)]">
-            Testez les fonctionnalités Pro pendant 30 jours, sans carte bancaire. Le pilote démarre une fois votre espace créé.
+            Testez les outils Pro de gestion pendant 30 jours, sans carte bancaire. Les SMS opérateur sont désactivés pendant le pilote. Le pilote démarre une fois votre espace créé.
           </p>
         </div>
         <SignupWizard />
