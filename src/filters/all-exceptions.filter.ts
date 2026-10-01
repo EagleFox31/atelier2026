@@ -13,12 +13,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
         let status = HttpStatus.INTERNAL_SERVER_ERROR;
         let message: string | string[] = 'Erreur interne du serveur';
         let code = 'INTERNAL_ERROR';
+        let details: Record<string, unknown> = {};
 
         if (exception instanceof HttpException) {
             status = exception.getStatus();
             const res = exception.getResponse() as any;
             message = typeof res === 'string' ? res : res.message || res.error || message;
-            code = typeof res === 'string' ? 'HTTP_ERROR' : res.error || 'HTTP_ERROR';
+            // Un errorCode métier explicite (TRIAL_READ_ONLY, PAID_FEATURE_REQUIRED…) est un
+            // contrat d'API : il prime sur le libellé HTTP générique (« Forbidden »).
+            code = typeof res === 'string' ? 'HTTP_ERROR' : res.errorCode || res.error || 'HTTP_ERROR';
+            if (typeof res === 'object' && res !== null) {
+                // Détails métier fournis volontairement par l'exception (subscriptionStatus, feature…).
+                const { message: _m, error: _e, statusCode: _s, errorCode: _c, ...rest } = res;
+                details = rest;
+            }
         }
         // Gérer proprement les erreurs Prisma (au lieu de crasher le front avec un vieux message SQL)
         else if (exception instanceof Prisma.PrismaClientKnownRequestError) {
@@ -79,6 +87,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
         // Réponse au format prévisible pour le Frontend
         response.status(status).json({
+            ...details,
             statusCode: status,
             errorCode: code,
             message: message,
