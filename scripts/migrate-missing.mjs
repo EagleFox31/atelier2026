@@ -126,8 +126,27 @@ async function main() {
   await migrateSmsNotificationsGarageId();
   await migratePartsCatalogGarageReference();
   await migrateWorkshopLogoUrl();
+  await migratePasswordSecurity();
 
   console.log('\n✅ Migration terminée.');
+}
+
+/**
+ * Sécurité des mots de passe : colonne must_change_password + effacement des
+ * mots de passe stockés en clair. Idempotent : après le premier passage, plus
+ * aucune ligne n'a temp_password non nul, donc l'UPDATE ne touche plus rien.
+ */
+async function migratePasswordSecurity() {
+  await q(`
+    ALTER TABLE public.users
+    ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT false
+  `);
+  const { rowCount } = await q(`
+    UPDATE public.users
+    SET must_change_password = true, temp_password = NULL
+    WHERE temp_password IS NOT NULL
+  `);
+  console.log(`   ✅ Mots de passe en clair effacés : ${rowCount ?? 0} compte(s) devront changer leur mot de passe`);
 }
 
 async function migrateDemoRequests() {

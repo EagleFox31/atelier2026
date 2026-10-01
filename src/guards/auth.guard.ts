@@ -8,7 +8,12 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { IS_PUBLIC_KEY, PERMISSIONS_KEY, ROLES_KEY } from '../decorators/auth.decorator';
+import {
+  ALLOW_PENDING_PASSWORD_CHANGE_KEY,
+  IS_PUBLIC_KEY,
+  PERMISSIONS_KEY,
+  ROLES_KEY,
+} from '../decorators/auth.decorator';
 import { permissionGranted } from '../shared/rbac/permissions';
 import { PrismaService } from '../shared/prisma/prisma.service';
 import { JwtSecretsService } from '../modules/auth/jwt-secrets.service';
@@ -63,6 +68,21 @@ export class JwtAuthGuard implements CanActivate {
     } catch (err) {
       if (err instanceof UnauthorizedException) throw err;
       throw new UnauthorizedException('Token invalide ou expiré');
+    }
+
+    // Mot de passe temporaire : tout est bloqué sauf les routes explicitement autorisées
+    // (profil, déconnexion, changement de mot de passe).
+    if (request.user.mustChangePassword) {
+      const allowed = this.reflector.getAllAndOverride<boolean>(ALLOW_PENDING_PASSWORD_CHANGE_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]);
+      if (!allowed) {
+        throw new ForbiddenException({
+          message: 'Vous devez choisir un nouveau mot de passe avant de continuer.',
+          errorCode: 'PASSWORD_CHANGE_REQUIRED',
+        });
+      }
     }
     return true;
   }

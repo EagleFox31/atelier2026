@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { generateTempPassword } from '../../shared/security/temp-password';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { assertTeamMemberInGarage, garageWhere, requireGarageId } from '../../shared/garage/garage-scope';
 
@@ -39,7 +40,7 @@ export class TeamService {
                 phone: true,
                 specialty: true,
                 status: true,
-                tempPassword: true,
+                mustChangePassword: true,
                 passwordResetRequestedAt: true,
                 lastLoginAt: true,
                 roles: {
@@ -92,7 +93,9 @@ export class TeamService {
     async create(data: { firstName: string; lastName: string; email?: string; phone?: string; roleCode?: string; specialty?: string; password?: string; garageId?: string; tenantId?: string }) {
         const g = requireGarageId(data.garageId);
         const tenantId = data.tenantId;
-        const plainPassword = data.password ?? this.generatePassword(data.firstName);
+        // Mot de passe défini par un tiers (ADMIN ou généré) : jamais stocké en clair,
+        // renvoyé une seule fois, changement imposé à la première connexion.
+        const plainPassword = data.password ?? generateTempPassword();
         const passwordHash = await bcrypt.hash(plainPassword, 10);
         const employeeCode = await this.generateEmployeeCode(data.firstName, data.lastName);
 
@@ -105,11 +108,11 @@ export class TeamService {
                 phone: data.phone,
                 specialty: data.specialty,
                 passwordHash,
-                tempPassword: plainPassword,
+                mustChangePassword: true,
                 garageId: g,
                 ...(tenantId ? { tenantId } : {}),
             },
-            select: { id: true, employeeCode: true, firstName: true, lastName: true, email: true, phone: true, status: true, tempPassword: true, specialty: true },
+            select: { id: true, employeeCode: true, firstName: true, lastName: true, email: true, phone: true, status: true, specialty: true },
         });
 
         if (data.roleCode) {
@@ -119,25 +122,26 @@ export class TeamService {
             }
         }
 
-        return user;
+        // Affichage unique côté front (contrat de réponse « tempPassword » conservé).
+        return { ...user, tempPassword: plainPassword };
     }
 
     async resetPassword(id: string, password?: string, garageId?: string | null) {
         const user = await this.findOne(id, garageId);
-        const plainPassword = password ?? this.generatePassword(user.firstName);
+        const plainPassword = password ?? generateTempPassword();
         const passwordHash = await bcrypt.hash(plainPassword, 10);
-        return this.prisma.user.update({
+        const updated = await this.prisma.user.update({
             where: { id },
-            data: { passwordHash, tempPassword: plainPassword, passwordResetRequestedAt: null },
-            select: { id: true, employeeCode: true, firstName: true, lastName: true, tempPassword: true },
+            data: {
+                passwordHash,
+                mustChangePassword: true,
+                passwordResetRequestedAt: null,
+                // Les sessions ouvertes avec l'ancien mot de passe sont révoquées.
+                tokenVersion: { increment: 1 },
+            },
+            select: { id: true, employeeCode: true, firstName: true, lastName: true },
         });
-    }
-
-    /** Génère mot de passe auto : PrenomNNNN! */
-    private generatePassword(firstName: string): string {
-        const digits = Math.floor(1000 + Math.random() * 9000);
-        const base = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
-        return `${base}${digits}!`;
+        return { ...updated, tempPassword: plainPassword };
     }
 
     /** Génère prenom.nom (ex: jean.dupont), avec suffixe numérique si doublon. */

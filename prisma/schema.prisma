@@ -278,7 +278,10 @@ model User {
   garageId                     String?                 @map("garage_id") @db.Uuid
   phone                        String?
   passwordHash                 String                  @map("password_hash")
+  /// DÉPRÉCIÉ — ne plus jamais écrire (mots de passe en clair). Vidé par la migration 20261001_password_security ; colonne à supprimer ensuite.
   tempPassword                 String?                 @map("temp_password")
+  /// Mot de passe temporaire (créé/réinitialisé par un tiers) : changement imposé à la prochaine connexion.
+  mustChangePassword           Boolean                 @default(false) @map("must_change_password")
   specialty                    String?
   status                       UserStatus              @default(ACTIVE)
   tokenVersion                 Int                     @default(0) @map("token_version")

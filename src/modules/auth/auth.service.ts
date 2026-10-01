@@ -1,5 +1,5 @@
 
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { JwtSecretsService } from './jwt-secrets.service';
@@ -63,8 +63,57 @@ export class AuthService {
         lastName: user.lastName,
         email: user.email,
         employeeCode: user.employeeCode,
+        mustChangePassword: user.mustChangePassword,
       },
     };
+  }
+
+  /**
+   * Changement de mot de passe par l'utilisateur lui-même (obligatoire après un
+   * mot de passe temporaire). Révoque les autres sessions (tokenVersion) et
+   * renvoie un nouveau jeton pour la session courante.
+   */
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, passwordHash: true, tenantId: true, garageId: true, email: true },
+    });
+    if (!user) throw new UnauthorizedException('Session invalide ou expirée');
+
+    if (!(await bcrypt.compare(currentPassword, user.passwordHash))) {
+      throw new BadRequestException({
+        message: 'Le mot de passe actuel est incorrect.',
+        errorCode: 'CURRENT_PASSWORD_INVALID',
+      });
+    }
+    if (await bcrypt.compare(newPassword, user.passwordHash)) {
+      throw new BadRequestException({
+        message: 'Le nouveau mot de passe doit être différent de l’actuel.',
+        errorCode: 'PASSWORD_UNCHANGED',
+      });
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        passwordHash: await bcrypt.hash(newPassword, 10),
+        mustChangePassword: false,
+        tokenVersion: { increment: 1 },
+      },
+      select: { id: true, email: true, tokenVersion: true, tenantId: true, garageId: true },
+    });
+
+    const access_token = await this.jwtService.signAsync(
+      {
+        sub: updated.id,
+        email: updated.email,
+        version: updated.tokenVersion,
+        tenantId: updated.tenantId ?? null,
+        garageId: updated.garageId ?? null,
+      },
+      { secret: this.jwtSecrets.getSigningSecret(), expiresIn: this.jwtSecrets.getExpiresIn() },
+    );
+    return { access_token, mustChangePassword: false };
   }
 
   /**
