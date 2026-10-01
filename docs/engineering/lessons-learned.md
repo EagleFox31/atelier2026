@@ -165,8 +165,11 @@ La suite QA passe désormais ; les sélecteurs par nom accessible (`getByLabel` 
 **Leçon généralisée**
 Un workflow planifié rouge doit notifier quelqu'un ; préférer les sélecteurs par nom accessible aux sélecteurs positionnels.
 
+**Récidive (2026-10-01, lot 0B)**
+Même piège dans la suite `e2e-ux/` portée depuis la #11 : `getByPlaceholder('Nom')` résolvait aussi « Prénom » (strict mode violation). La première prévention (corriger le test concerné) était donc insuffisante.
+
 **Principe dérivé / changement de standard**
-—
+Convention de test renforcée : pour `getByLabel` / `getByPlaceholder` / `getByText` sur un libellé court ou contenu dans un autre (« Nom », « Email », « Ville »…), **toujours `{ exact: true }`** ou un rôle accessible (`getByRole(..., { name, exact: true })`). La suite `e2e-ux/` tourne désormais sur chaque PR front (`ux-guardrails.yml`), ce qui détecte ces régressions avant merge.
 
 ### LESSON-2026-005 — Réactiver un atelier réactivait des employés suspendus
 
@@ -223,3 +226,31 @@ Un contrat d'API se teste au niveau où le client le consomme (le corps HTTP), p
 
 **Principe dérivé / changement de standard**
 Tout nouveau `errorCode` documenté pour le front doit avoir au moins un test d'intégration HTTP qui l'assert.
+
+### LESSON-2026-007 — Un formulaire imbriqué fermait la fenêtre « Nouvel OT »
+
+- **Date** : 2026-10-01
+- **Catégorie** : `ux` · `architecture`
+- **Statut** : prevention-added
+- **Lié à** : branche `fix/lot0b-signup-ux-guardrails` (commit « fix(workshop): keep the New OT dialog open… »)
+
+**Contexte**
+La création inline d'un client ou d'un véhicule (`InlineCustomerCreate`, `InlineVehicleCreate`) est utilisée seule (réception express) et **dans** le formulaire « Nouvel OT ».
+
+**Échec / near miss**
+Bug en production : cliquer « Créer et sélectionner » dans « Nouvel OT » fermait toute la fenêtre ; la réceptionniste perdait l'OT en cours de saisie. Révélé en portant la suite Playwright de la #11.
+
+**Cause racine**
+Les composants inline étaient des `<form>` : imbriqués dans le `<form>` de l'OT (HTML invalide), leur événement submit remontait au formulaire parent via le système d'événements de React. Composant réutilisable conçu pour un seul contexte d'usage.
+
+**Résolution**
+Conteneur `role="group"` + bouton `type="button"` ; utilitaire partagé `lib/inline-form.ts` (`submitOnEnter`) qui garde « Entrée crée » sans soumettre le formulaire parent.
+
+**Prévention**
+Test e2e « Créer et sélectionner garde immédiatement le nouveau client sans rechargement » (modale toujours ouverte, pas de rechargement) dans `e2e-ux/`, exécuté sur chaque PR front ; contre-épreuve faite : avec l'ancien `<form>`, le test échoue.
+
+**Leçon généralisée**
+Un composant réutilisable doit être sûr dans tous ses contextes d'insertion : un sous-formulaire ne doit jamais être un `<form>`.
+
+**Principe dérivé / changement de standard**
+Règle de travail CLAUDE.md n° 22 : jamais de `<form>` imbriqué ; les mini-formulaires utilisent `submitOnEnter`.

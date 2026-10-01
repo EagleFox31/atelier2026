@@ -39,6 +39,7 @@ npx prisma generate    # regénérer le client Prisma après changement de schem
 npm test               # Jest (unit + contract + integration, dans src/)
 npm run test:pw        # Playwright E2E (e2e/)
 npm run test:qa        # Playwright UX/UI/CX (e2e-qa/) — contre la prod par défaut (PLAYWRIGHT_BASE_URL)
+npm run test:ux        # Garde-fous UX avant merge (e2e-ux/) — API simulée, port 3100 ; CI : ux-guardrails.yml
 npm run test:e2e       # Newman (collections postman/)
 npm run test:mutation  # Stryker
 npm run reset:demo     # remet les données de démo à zéro
@@ -302,6 +303,7 @@ Les 18 pages sont branchées sur l'API réelle. Le dashboard utilise `/api/repor
 19. **`@db.Inet` obligatoire pour `ip_address` dans AuditLog** — sans ce type hint, Prisma voit `String?` (TEXT) alors que la DB a `INET` → AlterColumn bloquant sur re-déploiement.
 20. **Seed prod : `npx --yes tsx prisma/seed.ts`** — le container prod n'a pas `ts-node` (`--omit=dev`). Utiliser `docker exec atelier2026-api-1 npx --yes tsx prisma/seed.ts`. Ne jamais tenter de seeder depuis la machine locale vers l'IP publique (port 5432 non exposé).
 21. **RAIDER — mémoire des incidents** — avant un travail risqué ressemblant à un incident connu, lire [docs/engineering/lessons-learned.md](docs/engineering/lessons-learned.md) ; après un incident ou near miss significatif, y ajouter une entrée (cause racine + prévention).
+22. **Jamais de `<form>` imbriqué** — un mini-formulaire (création inline client/véhicule…) inséré dans un autre formulaire soumet le parent (bug « Nouvel OT » fermé, LESSON-2026-007). Utiliser un conteneur `role="group"`, un bouton `type="button"` et `submitOnEnter` de `lib/inline-form.ts`.
 
 ---
 
