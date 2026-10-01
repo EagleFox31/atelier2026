@@ -8,6 +8,7 @@ import { customersApi, handleApiError } from '@/lib/api';
 import { Loader2, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { submitOnEnter } from '@/lib/inline-form';
 
 function looksLikePhone(s: string) {
   const digits = s.replace(/\D/g, '');
@@ -33,8 +34,8 @@ export function InlineCustomerCreate({ searchHint = '', onCreated, className }: 
   const [phone, setPhone] = useState(looksLikePhone(searchHint) ? searchHint.replace(/[^\d+\s]/g, '').trim() : '');
   const [submitting, setSubmitting] = useState(false);
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleCreate() {
+    if (submitting) return;
     if (!firstName.trim() || !lastName.trim() || phone.replace(/\D/g, '').length < 8) {
       toast.error('Prénom, nom et téléphone (8 chiffres min.) sont requis');
       return;
@@ -63,7 +64,8 @@ export function InlineCustomerCreate({ searchHint = '', onCreated, className }: 
   }
 
   return (
-    <form onSubmit={handleCreate} className={cn('space-y-3', className)}>
+    // Pas de <form> : ce bloc est souvent imbriqué dans le formulaire « Nouvel OT » (voir lib/inline-form.ts).
+    <div role="group" onKeyDown={submitOnEnter(handleCreate)} className={cn('space-y-3', className)}>
       <p className="text-sm font-semibold text-foreground flex items-center gap-2">
         <UserPlus size={16} className="text-brand" />
         Créer ce client
@@ -89,9 +91,9 @@ export function InlineCustomerCreate({ searchHint = '', onCreated, className }: 
           className="h-9"
         />
       </div>
-      <Button type="submit" disabled={submitting} className="w-full bg-brand hover:bg-brand-hover h-10">
+      <Button type="button" onClick={handleCreate} disabled={submitting} className="w-full bg-brand hover:bg-brand-hover h-10">
         {submitting ? <Loader2 size={16} className="animate-spin" /> : 'Créer et sélectionner'}
       </Button>
-    </form>
+    </div>
   );
 }

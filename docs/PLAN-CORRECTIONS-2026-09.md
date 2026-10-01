@@ -6,7 +6,7 @@ Chaque lot correspond à une PR, dans l'ordre d'exécution.
 
 | Lot | Sujet | Priorité | Effort | État |
 |-----|-------|----------|--------|------|
-| 0 | Porter ce qui manque de `fix/ux-onboarding-and-qa` sur `main` | Bloquant | ½ j | 0A ✅ SMS + UX (`fix/lot0-sms-entitlements`) · 0B e-mail d'inscription + garde-fous Playwright |
+| 0 | Porter ce qui manque de `fix/ux-onboarding-and-qa` sur `main` | Bloquant | ½ j | 0A ✅ SMS + UX · 0B ✅ garde-fous Playwright + reprise inscription + bug « Nouvel OT » · e-mail d'inscription : décision en attente |
 | 1 | Suspension de tenant sans toucher au statut des utilisateurs | Haute (bug) | ½ j | ✅ Fait (`fix/tenant-suspension`) |
 | 2 | Droits par forfait (logo, SMS) centralisés + guard sans requête supplémentaire | Haute | 1 j | 2A ✅ logo · 2B ✅ SMS (`fix/lot0-sms-entitlements`) · 2C garde sans requête + `features` au front |
 | 3 | Redis : worker `stock-alerts` manquant + SSE multi-instance | Moyenne / différé | ½ j + ½ j | 3a ✅ (`fix/stock-alerts-worker`), 3b différé |

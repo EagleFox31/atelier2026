@@ -1,0 +1,75 @@
+name: UX guardrails
+
+# Garde-fous UX/UI/CX AVANT merge : Playwright sur un build de production local,
+# API entièrement simulée (e2e-ux/). Ne tourne que si la PR touche le front ou
+# ces tests (RAIDER — change-scoped execution). Le smoke test quotidien contre
+# la prod reste qa-ux.yml (e2e-qa/).
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'contexts/**'
+      - 'hooks/**'
+      - 'lib/**'
+      - 'public/**'
+      - 'styles/**'
+      - 'next.config.*'
+      - 'postcss.config.*'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'e2e-ux/**'
+      - 'playwright.ux.config.ts'
+      - '.github/workflows/ux-guardrails.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ux-guardrails-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  playwright-ux:
+    name: Playwright UX guardrails
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # next build vérifie les types de tout le projet (dont lib/prisma.ts) :
+      # le client Prisma doit exister, comme dans ci.yml et Dockerfile.web.
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run UX guardrails (build + next start, API simulée)
+        run: npm run test:ux
+        env:
+          CI: 'true'
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-ux-report
+          path: |
+            reports/playwright-ux
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14

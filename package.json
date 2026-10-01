@@ -31,6 +31,7 @@
     "test:pw:headed": "playwright test --headed",
     "test:pw:report": "playwright show-report reports/playwright",
     "test:qa": "playwright test -c playwright.qa.config.ts",
+    "test:ux": "playwright test -c playwright.ux.config.ts",
     "test:qa:headed": "playwright test -c playwright.qa.config.ts --headed",
     "test:qa:report": "playwright show-report reports/playwright-qa"
   },

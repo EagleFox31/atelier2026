@@ -376,7 +376,12 @@ export function OnboardingModal({ onDone }: OnboardingModalProps) {
   const Icon = current.icon;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="onboarding-title"
+      className="fixed inset-0 z-[100] flex items-center justify-center"
+    >
       {/* Backdrop */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -427,7 +432,7 @@ export function OnboardingModal({ onDone }: OnboardingModalProps) {
 
                 {/* Text */}
                 <div className="space-y-2">
-                  <h2 className="text-xl font-bold text-foreground leading-snug">
+                  <h2 id="onboarding-title" className="text-xl font-bold text-foreground leading-snug">
                     {step === 0
                       ? `Bonjour, ${user?.firstName} 👋`
                       : current.title}
