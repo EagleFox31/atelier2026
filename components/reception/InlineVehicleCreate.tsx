@@ -11,6 +11,7 @@ import { vehiclesApi, handleApiError } from '@/lib/api';
 import { Car, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { submitOnEnter } from '@/lib/inline-form';
 
 export interface CreatedVehicle {
   id: string;
@@ -51,8 +52,8 @@ export function InlineVehicleCreate({ customerId, searchHint = '', onCreated, cl
       .finally(() => setModelsLoading(false));
   }, [makeId]);
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleCreate() {
+    if (submitting) return;
     if (!plateNumber.trim() || !makeId || !modelId) {
       toast.error('Plaque, marque et modèle sont requis');
       return;
@@ -88,7 +89,8 @@ export function InlineVehicleCreate({ customerId, searchHint = '', onCreated, cl
   }
 
   return (
-    <form onSubmit={handleCreate} className={cn('space-y-3', className)}>
+    // Pas de <form> : ce bloc est souvent imbriqué dans le formulaire « Nouvel OT » (voir lib/inline-form.ts).
+    <div role="group" onKeyDown={submitOnEnter(handleCreate)} className={cn('space-y-3', className)}>
       <p className="text-sm font-semibold text-foreground flex items-center gap-2">
         <Car size={16} className="text-brand" />
         Enregistrer ce véhicule
@@ -138,9 +140,9 @@ export function InlineVehicleCreate({ customerId, searchHint = '', onCreated, cl
           </Select>
         </div>
       </div>
-      <Button type="submit" disabled={submitting} className="w-full bg-brand hover:bg-brand-hover h-10">
+      <Button type="button" onClick={handleCreate} disabled={submitting} className="w-full bg-brand hover:bg-brand-hover h-10">
         {submitting ? <Loader2 size={16} className="animate-spin" /> : 'Créer et sélectionner'}
       </Button>
-    </form>
+    </div>
   );
 }
