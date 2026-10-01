@@ -195,3 +195,31 @@ Une opération censée être réversible ne doit pas écraser un état qu'elle n
 
 **Principe dérivé / changement de standard**
 —
+
+### LESSON-2026-006 — Les codes d'erreur métier n'atteignaient jamais le client
+
+- **Date** : 2026-10-01
+- **Catégorie** : `architecture` · `testing`
+- **Statut** : prevention-added
+- **Lié à** : branche `fix/lot0-sms-entitlements` (commit « fix(api): keep business errorCode in HTTP error responses »)
+
+**Contexte**
+Les gardes et services lèvent des `ForbiddenException({ errorCode, … })` documentées comme contrat front : `TRIAL_READ_ONLY`, `TRIAL_EXPIRED`, `SUBSCRIPTION_SUSPENDED`, `PAID_FEATURE_REQUIRED`, `SMS_SUBSCRIPTION_REQUIRED`.
+
+**Échec / near miss**
+Le filtre global `AllExceptionsFilter` ne lisait que `res.error` : toute exception HTTP ressortait avec `errorCode: "HTTP_ERROR"`, sans ses détails (`subscriptionStatus`, `plan`…). Le contrat documenté dans `CLAUDE.md` ne fonctionnait pas en production. Découvert par un test d'intégration HTTP écrit pour le droit SMS.
+
+**Cause racine**
+Les tests des gardes vérifiaient l'exception levée, jamais le corps HTTP réellement renvoyé ; le filtre global, transverse, n'avait pas de test sur ce cas.
+
+**Résolution**
+Le filtre privilégie `res.errorCode` et conserve les détails métier, sans qu'ils puissent écraser `statusCode`, `errorCode`, `message`, `path` ou `timestamp`. Comportement inchangé sans `errorCode`.
+
+**Prévention**
+Tests du filtre : code métier + détails conservés, réponse inchangée sans code, champs protégés. Le test d'intégration HTTP du SMS vérifie `SMS_SUBSCRIPTION_REQUIRED` de bout en bout.
+
+**Leçon généralisée**
+Un contrat d'API se teste au niveau où le client le consomme (le corps HTTP), pas seulement au niveau de l'objet qui le produit : un composant transverse (filtre, intercepteur, sérialiseur) peut l'effacer en silence.
+
+**Principe dérivé / changement de standard**
+Tout nouveau `errorCode` documenté pour le front doit avoir au moins un test d'intégration HTTP qui l'assert.

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { SubscriptionStatus } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { ClockService } from './clock.service';
+import { featureRequiredError, hasFeature, type Feature } from './entitlements';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -42,6 +43,18 @@ export class SubscriptionService {
     const now = this.clock.now();
     const tenant = await this.reconcileTenant(tenantId, now);
     return this.toSummary(tenant, now);
+  }
+
+  /** Refuse (403 avec errorCode métier) si le forfait du tenant n'inclut pas la fonctionnalité. */
+  async assertFeature(tenantId: string, feature: Feature): Promise<void> {
+    const { status, plan } = await this.getSummary(tenantId);
+    if (!hasFeature({ status, plan }, feature)) {
+      throw featureRequiredError(feature, { status, plan });
+    }
+  }
+
+  assertSmsEntitled(tenantId: string): Promise<void> {
+    return this.assertFeature(tenantId, 'sms');
   }
 
   async reconcileTenant(

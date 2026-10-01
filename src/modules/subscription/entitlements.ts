@@ -12,7 +12,19 @@ import { SubscriptionStatus } from '@prisma/client';
  * ou de feature flags (OpenFeature/Unleash) serait disproportionnée pour une
  * table statique de quelques règles, sans état distant à synchroniser.
  */
-export type Feature = 'branding';
+export type Feature = 'branding' | 'sms';
+
+export type PlanId = 'essential' | 'pro' | 'business';
+
+/** Identifiant de forfait canonique. `starter` = ancien nom d'« Essentiel ». Inconnu → null (refus). */
+export function normalizePlan(plan: string): PlanId | null {
+  const normalized = plan.trim().toLowerCase();
+  if (normalized === 'starter') return 'essential';
+  if (normalized === 'essential' || normalized === 'pro' || normalized === 'business') {
+    return normalized;
+  }
+  return null;
+}
 
 export type EntitlementContext = {
   status: SubscriptionStatus | `${SubscriptionStatus}`;
@@ -22,6 +34,11 @@ export type EntitlementContext = {
 const ENTITLEMENTS: Record<Feature, (ctx: EntitlementContext) => boolean> = {
   /** Logo personnalisé (app, devis, factures, PDF) : tout forfait payant actif. */
   branding: (ctx) => ctx.status === SubscriptionStatus.ACTIVE,
+  /** SMS Orange / MTN : Pro ou Business actif (page tarifs). Refus par défaut sinon. */
+  sms: (ctx) => {
+    const plan = normalizePlan(ctx.plan);
+    return ctx.status === SubscriptionStatus.ACTIVE && (plan === 'pro' || plan === 'business');
+  },
 };
 
 const FEATURE_REQUIRED: Record<Feature, { errorCode: string; message: string }> = {
@@ -29,6 +46,10 @@ const FEATURE_REQUIRED: Record<Feature, { errorCode: string; message: string }> 
     // Code conservé tel quel : contrat existant de POST /settings/workshop/logo.
     errorCode: 'PAID_FEATURE_REQUIRED',
     message: 'Le logo personnalisé est disponible après activation d’un forfait payant.',
+  },
+  sms: {
+    errorCode: 'SMS_SUBSCRIPTION_REQUIRED',
+    message: 'Les SMS sont disponibles avec un abonnement Pro ou Business actif.',
   },
 };
 
@@ -41,5 +62,6 @@ export function featureRequiredError(feature: Feature, ctx: EntitlementContext):
     ...FEATURE_REQUIRED[feature],
     feature,
     subscriptionStatus: ctx.status,
+    plan: ctx.plan,
   });
 }

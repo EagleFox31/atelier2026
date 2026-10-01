@@ -1,6 +1,6 @@
 import { ForbiddenException } from '@nestjs/common';
 import { SubscriptionStatus } from '@prisma/client';
-import { featureRequiredError, hasFeature } from './entitlements';
+import { featureRequiredError, hasFeature, normalizePlan } from './entitlements';
 
 describe('entitlements', () => {
   describe('branding (logo personnalisé)', () => {
@@ -15,6 +15,44 @@ describe('entitlements', () => {
     ])('%s / %s → %s', (status, plan, expected) => {
       expect(hasFeature({ status, plan }, 'branding')).toBe(expected);
     });
+  });
+
+  describe('sms (Pro / Business actif uniquement, refus par défaut)', () => {
+    it.each([
+      [SubscriptionStatus.ACTIVE, 'pro', true],
+      [SubscriptionStatus.ACTIVE, 'business', true],
+      [SubscriptionStatus.ACTIVE, ' PRO ', true],
+      [SubscriptionStatus.ACTIVE, 'essential', false],
+      [SubscriptionStatus.ACTIVE, 'starter', false],
+      [SubscriptionStatus.ACTIVE, 'enterprise', false],
+      [SubscriptionStatus.ACTIVE, '', false],
+      [SubscriptionStatus.TRIAL, 'pro', false],
+      [SubscriptionStatus.GRACE_PERIOD, 'business', false],
+      [SubscriptionStatus.EXPIRED, 'pro', false],
+      [SubscriptionStatus.SUSPENDED, 'business', false],
+    ])('%s / "%s" → %s', (status, plan, expected) => {
+      expect(hasFeature({ status, plan }, 'sms')).toBe(expected);
+    });
+
+    it('refus SMS : errorCode SMS_SUBSCRIPTION_REQUIRED avec statut et forfait', () => {
+      const err = featureRequiredError('sms', { status: SubscriptionStatus.ACTIVE, plan: 'essential' });
+      expect(err.getResponse()).toMatchObject({
+        errorCode: 'SMS_SUBSCRIPTION_REQUIRED',
+        feature: 'sms',
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
+        plan: 'essential',
+      });
+    });
+  });
+
+  it.each([
+    ['starter', 'essential'],
+    ['Essential', 'essential'],
+    ['pro', 'pro'],
+    ['BUSINESS', 'business'],
+    ['enterprise', null],
+  ])('normalizePlan("%s") → %s', (input, expected) => {
+    expect(normalizePlan(input)).toBe(expected);
   });
 
   it('featureRequiredError conserve le contrat PAID_FEATURE_REQUIRED du logo', () => {

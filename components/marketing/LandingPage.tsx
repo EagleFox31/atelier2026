@@ -2096,15 +2096,16 @@ export function LandingPage() {
               </div>
 
               <p style={{ fontSize: '0.82rem', lineHeight: 1.55, color: C.muted, marginTop: '0.8rem', marginBottom: '1.35rem', minHeight: 40 }}>
-                Testez Atelier Maître dans votre vrai atelier avant de choisir votre forfait.
+                Testez les outils Pro de gestion dans votre vrai atelier, sans carte bancaire. Les SMS opérateur restent désactivés pendant le pilote.
               </p>
 
               <div style={{ height: 1, background: 'rgba(60,40,20,0.08)', marginBottom: '1.25rem' }} />
 
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.72rem', flex: 1 }}>
-                <CheckItem color={C.green}>Fonctionnalités Pro principales</CheckItem>
+                <CheckItem color={C.green}>Outils Pro de gestion pendant 30 jours</CheckItem>
                 <CheckItem color={C.green}>1 garage</CheckItem>
-                <CheckItem color={C.green}>Équipe et comptes de test</CheckItem>
+                <CheckItem color={C.green}>Utilisateurs illimités</CheckItem>
+                <CheckItem color={C.green}>SMS opérateur non inclus</CheckItem>
                 <CheckItem color={C.green}>Aucune carte bancaire</CheckItem>
                 <CheckItem color={C.green}>7 jours de lecture seule après le pilote</CheckItem>
                 <CheckItem color={C.green}>Données conservées 90 jours après le pilote</CheckItem>

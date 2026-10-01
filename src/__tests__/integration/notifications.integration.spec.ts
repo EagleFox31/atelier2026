@@ -1,8 +1,9 @@
 import request from 'supertest';
-import { INestApplication } from '@nestjs/common';
+import { ForbiddenException, INestApplication } from '@nestjs/common';
 import { getQueueToken } from '@nestjs/bullmq';
 import { NotificationsController } from '../../modules/notifications/notifications.controller';
 import { NotificationsService } from '../../modules/notifications/notifications.service';
+import { SubscriptionService } from '../../modules/subscription/subscription.service';
 import {
   createTestApp,
   makeDbUser,
@@ -29,6 +30,7 @@ describe('Notifications — intégration HTTP', () => {
   let smsHistoryMock: jest.Mock;
   let smsCreateMock: jest.Mock;
   let queueAddMock: jest.Mock;
+  let assertSmsEntitledMock: jest.Mock;
 
   function routeUser({ where }: { where: { id: string } }) {
     if (where.id === 'admin-1') return Promise.resolve(ADMIN_USER);
@@ -41,6 +43,7 @@ describe('Notifications — intégration HTTP', () => {
     smsHistoryMock = jest.fn().mockResolvedValue([]);
     smsCreateMock = jest.fn().mockResolvedValue({ id: 'notif-123', phoneTo: '+237690000000', status: 'PENDING' });
     queueAddMock = jest.fn().mockResolvedValue({ id: 'job-123' });
+    assertSmsEntitledMock = jest.fn().mockResolvedValue(undefined);
 
     prisma.user.findUnique.mockImplementation(routeUser);
 
@@ -48,6 +51,7 @@ describe('Notifications — intégration HTTP', () => {
       controllers: [NotificationsController],
       extraProviders: [
         NotificationsService,
+        { provide: SubscriptionService, useValue: { assertSmsEntitled: assertSmsEntitledMock } },
         { provide: getQueueToken('sms-notifications'), useValue: { add: queueAddMock } },
       ],
       prismaOverride: {
@@ -68,6 +72,7 @@ describe('Notifications — intégration HTTP', () => {
     smsHistoryMock.mockResolvedValue([]);
     smsCreateMock.mockResolvedValue({ id: 'notif-123', phoneTo: '+237690000000', status: 'PENDING' });
     queueAddMock.mockResolvedValue({ id: 'job-123' });
+    assertSmsEntitledMock.mockResolvedValue(undefined);
   });
 
   // ── RBAC — @RequireRole('ADMIN') ─────────────────────────────────────────────
@@ -150,6 +155,25 @@ describe('Notifications — intégration HTTP', () => {
   // ── POST /api/notifications/sms/send ──────────────────────────────────────────
 
   describe('POST /api/notifications/sms/send', () => {
+    it('403 — refuse le SMS lorsque le forfait ne le permet pas', async () => {
+      assertSmsEntitledMock.mockRejectedValueOnce(
+        new ForbiddenException({
+          message: 'Les SMS sont disponibles avec un abonnement Pro ou Business actif.',
+          errorCode: 'SMS_SUBSCRIPTION_REQUIRED',
+        }),
+      );
+
+      const res = await request(app.getHttpServer())
+        .post('/api/notifications/sms/send')
+        .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
+        .send({ phoneTo: '+237690000000', templateCode: 'VEHICLE_READY' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.errorCode).toBe('SMS_SUBSCRIPTION_REQUIRED');
+      expect(smsCreateMock).not.toHaveBeenCalled();
+      expect(queueAddMock).not.toHaveBeenCalled();
+    });
+
     it('201 — ADMIN enfile un SMS via template → notification retournée', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/notifications/sms/send')
@@ -157,6 +181,7 @@ describe('Notifications — intégration HTTP', () => {
         .send({ phoneTo: '+237690000000', templateCode: 'VEHICLE_READY' });
 
       expect(res.status).toBe(201);
+      expect(assertSmsEntitledMock).toHaveBeenCalledWith('tenant-test');
       expect(res.body.id).toBe('notif-123');
       expect(res.body.status).toBe('PENDING');
     });

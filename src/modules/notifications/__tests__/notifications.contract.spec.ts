@@ -17,6 +17,7 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { NotificationsController } from '../notifications.controller';
 import { NotificationsService } from '../notifications.service';
 import { PrismaService } from '../../../shared/prisma/prisma.service';
+import { SubscriptionService } from '../../subscription/subscription.service';
 
 class StubAuthGuard implements CanActivate {
   canActivate(ctx: ExecutionContext) {
@@ -91,6 +92,7 @@ beforeAll(async () => {
     controllers: [NotificationsController],
     providers: [
       NotificationsService,
+      { provide: SubscriptionService, useValue: { assertSmsEntitled: jest.fn().mockResolvedValue(undefined) } },
       { provide: PrismaService, useValue: prismaMock },
       { provide: getQueueToken('sms-notifications'), useValue: { add: jest.fn() } },
       { provide: APP_GUARD, useClass: StubAuthGuard },

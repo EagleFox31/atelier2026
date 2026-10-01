@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, ArgumentsHost } from '@nestjs/common';
+import { ArgumentsHost, ForbiddenException, HttpException, HttpStatus } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AllExceptionsFilter } from '../all-exceptions.filter';
 
@@ -55,6 +55,44 @@ describe('AllExceptionsFilter', () => {
         host,
       );
       expect(getBody(json).message).toEqual(messages);
+    });
+
+    it('conserve le errorCode métier et ses détails (contrat front, ex. TRIAL_READ_ONLY)', () => {
+      const { host, json, statusFn } = makeHost();
+      filter.catch(
+        new ForbiddenException({
+          message: 'Votre pilote est terminé.',
+          errorCode: 'TRIAL_READ_ONLY',
+          subscriptionStatus: 'GRACE_PERIOD',
+        }),
+        host,
+      );
+      const body = getBody(json);
+      expect(statusFn).toHaveBeenCalledWith(403);
+      expect(body.errorCode).toBe('TRIAL_READ_ONLY');
+      expect(body.subscriptionStatus).toBe('GRACE_PERIOD');
+      expect(body.message).toBe('Votre pilote est terminé.');
+      expect(body.statusCode).toBe(403);
+    });
+
+    it('sans errorCode métier : comportement inchangé (libellé HTTP, sans champ parasite)', () => {
+      const { host, json } = makeHost();
+      filter.catch(new ForbiddenException('Accès refusé'), host);
+      const body = getBody(json);
+      expect(body.errorCode).toBe('Forbidden');
+      expect(Object.keys(body).sort()).toEqual(['errorCode', 'message', 'path', 'statusCode', 'timestamp']);
+    });
+
+    it('un détail métier ne peut pas écraser statusCode / errorCode / message / path', () => {
+      const { host, json } = makeHost();
+      filter.catch(
+        new HttpException({ message: 'm', errorCode: 'X', path: '/forge', timestamp: 'forge' }, 400),
+        host,
+      );
+      const body = getBody(json);
+      expect(body.errorCode).toBe('X');
+      expect(body.path).toBe('/api/test');
+      expect(body.timestamp).not.toBe('forge');
     });
 
     it('inclut path et timestamp dans la réponse', () => {

@@ -34,8 +34,11 @@ export class NotificationsService {
     });
   }
 
-  async sendSms(data: SendSmsDto, garageId?: string | null) {
+  async sendSms(data: SendSmsDto, garageId?: string | null, tenantId?: string | null) {
     const g = requireGarageId(garageId);
+    if (!tenantId) {
+      throw new ForbiddenException('Contexte tenant requis pour envoyer un SMS.');
+    }
     if (data.customerId) {
       await assertCustomerInGarage(this.prisma, data.customerId, g);
     }
@@ -61,6 +64,7 @@ export class NotificationsService {
     });
 
     await this.smsQueue.add(data.templateCode, {
+      tenantId,
       phone: data.phoneTo,
       message,
       customerId: data.customerId,
