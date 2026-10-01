@@ -382,6 +382,11 @@ export function SignupWizard() {
           <p className="mt-2 text-sm text-slate-600">
             Communiquez ces identifiants à votre équipe (mot de passe temporaire).
           </p>
+          <p className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-700">
+            Ces mots de passe ne sont <strong>affichés qu’une seule fois</strong> et ne sont envoyés nulle part.
+            Chaque membre devra choisir son propre mot de passe à sa première connexion. En cas d’oubli,
+            vous pourrez en générer un nouveau depuis Équipe.
+          </p>
         </div>
         <ul className="space-y-3">
           {teamCreated.map((m) => (

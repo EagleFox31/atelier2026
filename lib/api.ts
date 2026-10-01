@@ -47,6 +47,7 @@ export function getApiErrorMessage(err: unknown, fallback = 'Une erreur inattend
 // restent des erreurs normales avec leur propre message.
 
 export const SERVICE_STATUS_EVENT = 'atelier:service-status';
+export const PASSWORD_CHANGE_PATH = '/change-password';
 export type ServiceStatusDetail = { unavailable: boolean };
 
 const SERVICE_UNAVAILABLE_MESSAGE =
@@ -130,6 +131,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new ApiError(401, 'Session expirée');
   }
 
+  // Mot de passe temporaire : l'API bloque tout jusqu'au changement (JwtAuthGuard).
+  if (res.status === 403 && errorBody?.errorCode === 'PASSWORD_CHANGE_REQUIRED') {
+    if (window.location.pathname !== PASSWORD_CHANGE_PATH) {
+      window.location.href = PASSWORD_CHANGE_PATH;
+    }
+    const message = typeof errorBody.message === 'string' ? errorBody.message : 'Changement de mot de passe requis';
+    throw new ApiError(403, message, 'PASSWORD_CHANGE_REQUIRED');
+  }
+
   if (!res.ok) {
     const body = errorBody ?? {};
     const rawMessage = Array.isArray(body.message)
@@ -155,6 +165,8 @@ export const authApi = {
   profile: () => get<ApiUser>('/auth/profile'),
   forgotPassword: (identifier: string) =>
     post<{ message: string }>('/auth/forgot-password', { identifier }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    post<{ access_token: string; mustChangePassword: boolean }>('/auth/change-password', { currentPassword, newPassword }),
   completeOnboarding: () =>
     patch<{ onboardingCompletedAt: string | null }>('/auth/onboarding', {}),
 };
@@ -352,6 +364,8 @@ export interface ApiUser {
   roles: string[];
   permissions: string[];
   onboardingCompletedAt: string | null;
+  /** Mot de passe temporaire : changement imposé avant tout accès (page /change-password). */
+  mustChangePassword?: boolean;
   tenantId: string | null;
   garageId: string | null;
   garage: { id: string; name: string; slug: string } | null;

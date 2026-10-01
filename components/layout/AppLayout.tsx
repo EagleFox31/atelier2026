@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CommandPalette } from './CommandPalette';
 import { useAuth } from '@/contexts/auth-context';
-import { authApi } from '@/lib/api';
+import { authApi, PASSWORD_CHANGE_PATH } from '@/lib/api';
 import { OnboardingModal } from '@/components/onboarding/OnboardingModal';
 import { GuideMenu } from '@/components/onboarding/GuideMenu';
 import { GettingStartedNav } from '@/components/onboarding/GettingStartedNav';
@@ -32,8 +32,9 @@ export function AppLayout({ children }: AppLayoutProps) {
   const pathname  = usePathname();
   const router    = useRouter();
   const { isAuthenticated, isLoading, user, logout, updateUser, hasRole } = useAuth();
+  const mustChangePassword = Boolean(user?.mustChangePassword);
   const shouldLoadSubscription =
-    isAuthenticated && Boolean(user?.tenantId) && !hasRole('SUPER_ADMIN');
+    isAuthenticated && Boolean(user?.tenantId) && !hasRole('SUPER_ADMIN') && !mustChangePassword;
   const {
     data: subscription,
     isLoading: subscriptionLoading,
@@ -52,10 +53,18 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
   }, [isLoading, isAuthenticated, pathname, router]);
 
-  // Onboarding : une fois par compte (persisté en BDD sur le profil utilisateur)
+  // Mot de passe temporaire : aucun écran de l'app tant qu'il n'est pas changé.
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && mustChangePassword && pathname !== PASSWORD_CHANGE_PATH) {
+      router.replace(PASSWORD_CHANGE_PATH);
+    }
+  }, [isLoading, isAuthenticated, mustChangePassword, pathname, router]);
+
+  // Onboarding : une fois par compte (persisté en BDD sur le profil utilisateur),
+  // et seulement après un éventuel changement de mot de passe imposé.
   useEffect(() => {
     if (!user) return;
-    setShowOnboarding(!user.onboardingCompletedAt);
+    setShowOnboarding(!user.onboardingCompletedAt && !user.mustChangePassword);
   }, [user]);
 
   async function closeOnboarding() {
@@ -71,6 +80,26 @@ export function AppLayout({ children }: AppLayoutProps) {
   // Page publique (login) : pas de layout
   if (PUBLIC_PATHS.includes(pathname)) {
     return <>{children}</>;
+  }
+
+  // Changement de mot de passe : page autonome (connecté, sans menu ni appels métier).
+  if (pathname === PASSWORD_CHANGE_PATH) {
+    if (isLoading || !isAuthenticated) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Loader size="md" />
+        </div>
+      );
+    }
+    return <>{children}</>;
+  }
+
+  if (mustChangePassword) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader size="md" />
+      </div>
+    );
   }
 
   // Page génération PDF : contenu seul (auth requise)

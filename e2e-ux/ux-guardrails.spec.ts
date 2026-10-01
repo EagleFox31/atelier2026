@@ -44,11 +44,13 @@ async function mockAuthenticatedApp(
     trial?: boolean;
     customerCreate?: boolean;
     onboardingPending?: boolean;
+    mustChangePassword?: boolean;
   } = {},
 ) {
-  const profile = options.onboardingPending
+  let profile = options.onboardingPending
     ? { ...PROFILE, onboardingCompletedAt: null }
-    : PROFILE;
+    : { ...PROFILE };
+  if (options.mustChangePassword) profile = { ...profile, mustChangePassword: true };
 
   await page.addInitScript((profile) => {
     localStorage.setItem('atelier_token', 'ux-token');
@@ -61,6 +63,15 @@ async function mockAuthenticatedApp(
     const path = url.pathname;
     const method = request.method();
 
+    if (path === '/api/auth/change-password' && method === 'POST') {
+      // Le mot de passe est changé : le profil suivant n'impose plus rien.
+      profile = { ...profile, mustChangePassword: false };
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ access_token: 'ux-token-2', mustChangePassword: false }),
+      });
+    }
     if (path === '/api/auth/profile') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(profile) });
     }
@@ -316,6 +327,25 @@ test.describe('Atelier Maître — garde-fous UX/UI/CX', () => {
 
     await expect.poll(() => onboardingWrites).toBe(1);
     await expect(page.getByRole('dialog').getByText(/^Bonjour, Test/)).toHaveCount(0);
+  });
+
+  test('un mot de passe temporaire impose son changement avant tout accès à l’app', async ({ page }) => {
+    await mockAuthenticatedApp(page, { trial: false, mustChangePassword: true });
+
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL(/\/change-password$/);
+    await expect(page.getByText('Choisissez votre mot de passe')).toBeVisible();
+
+    const save = page.getByRole('button', { name: 'Enregistrer mon mot de passe' });
+    await page.getByLabel('Mot de passe temporaire', { exact: true }).fill('Xk7m-Pq4r-Zt9w');
+    await page.getByLabel('Nouveau mot de passe', { exact: true }).fill('court1');
+    await expect(save).toBeDisabled(); // règles serveur reprises côté front
+
+    await page.getByLabel('Nouveau mot de passe', { exact: true }).fill('Garage-Akwa-2026');
+    await page.getByLabel('Confirmer le nouveau mot de passe', { exact: true }).fill('Garage-Akwa-2026');
+    await save.click();
+
+    await expect(page).toHaveURL(/\/dashboard$/);
   });
 
   test('le login parle d’identifiant employé et non de code employé', async ({ page }) => {

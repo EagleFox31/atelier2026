@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -9,10 +9,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { teamApi } from "@/lib/api";
+import { OneTimeCredentials } from "@/components/team/OneTimeCredentials";
 import { useAuth } from "@/contexts/auth-context";
 import {
-  Eye, EyeOff, ShieldCheck, Wrench, Settings, UserCheck,
-  CreditCard, ChevronRight, ChevronLeft, Check, Copy,
+  ShieldCheck, Wrench, Settings, UserCheck,
+  CreditCard, ChevronRight, ChevronLeft, Check,
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import {
@@ -67,12 +68,6 @@ const CREATABLE_BY: Record<string, RoleCode[]> = {
 const SPECIALTIES = ['Mécanique', 'Électricité', 'Carrosserie', 'Climatisation', 'Pneumatiques', 'Diagnostic', 'Autre'];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function generatePassword(firstName: string): string {
-  const digits = Math.floor(1000 + Math.random() * 9000);
-  const base = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
-  return `${base}${digits}!`;
-}
 
 function toEmployeeCode(first: string, last: string): string {
   const n = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z]/g, '');
@@ -168,10 +163,9 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
   const { hasRole } = useAuth();
   const [step, setStep]               = useState(0);
   const [selectedRole, setRole]       = useState<RoleCode | null>(null);
-  const [generatedPwd, setGenPwd]     = useState('');
-  const [showPwd, setShowPwd]         = useState(false);
   const [submitting, setSubmitting]   = useState(false);
-  const [copied, setCopied]           = useState(false);
+  // Mot de passe temporaire généré PAR LE SERVEUR, affiché une seule fois après création.
+  const [created, setCreated] = useState<{ name: string; employeeCode: string | null; tempPassword: string } | null>(null);
   const [duplicates, setDuplicates]   = useState<any[]>([]);
   const [checkingDup, setCheckingDup] = useState(false);
 
@@ -183,21 +177,11 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
   const { firstName, lastName } = infoForm.watch();
   const previewCode = firstName && lastName ? toEmployeeCode(firstName, lastName) : null;
 
-  // Génère le mot de passe dès que le prénom est saisi
-  useEffect(() => {
-    if (firstName?.length >= 2) setGenPwd(generatePassword(firstName));
-  }, [firstName]);
 
   const availableRoles = (Object.entries(CREATABLE_BY) as [string, RoleCode[]][])
     .filter(([r]) => hasRole(r))
     .flatMap(([, roles]) => roles)
     .filter((v, i, a) => a.indexOf(v) === i);
-
-  function copyPassword() {
-    navigator.clipboard.writeText(generatedPwd);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
 
   async function handleCreate() {
     if (!selectedRole) return;
@@ -211,17 +195,34 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
         email:     info.email     || undefined,
         specialty: info.specialty || undefined,
         roleCode:  selectedRole,
-        password:  generatedPwd,
-      }) as any;
-      toast.success(`Compte créé — identifiant : ${created.employeeCode}`, { duration: 8000 });
-      infoForm.reset();
-      setStep(0); setRole(null); setGenPwd('');
-      onSuccess?.();
+      }) as { employeeCode: string | null; tempPassword: string };
+      toast.success('Compte créé');
+      setCreated({
+        name: `${info.firstName} ${info.lastName}`,
+        employeeCode: created.employeeCode,
+        tempPassword: created.tempPassword,
+      });
     } catch {
       toast.error("Erreur lors de la création");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (created) {
+    return (
+      <OneTimeCredentials
+        name={created.name}
+        employeeCode={created.employeeCode}
+        tempPassword={created.tempPassword}
+        onDone={() => {
+          setCreated(null);
+          infoForm.reset();
+          setStep(0); setRole(null);
+          onSuccess?.();
+        }}
+      />
+    );
   }
 
   return (
@@ -307,12 +308,6 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
                   <span className="text-slate-500">Identifiant</span>
                   <span className="font-mono font-semibold text-brand">{previewCode}</span>
                 </div>
-                {generatedPwd && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-500">Mot de passe</span>
-                    <span className="font-mono font-semibold text-slate-700">{generatedPwd}</span>
-                  </div>
-                )}
               </div>
             )}
 
@@ -375,27 +370,11 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
               </div>
             ))}
 
-            {/* Mot de passe avec bouton révéler + copier */}
-            <div className="flex items-center justify-between px-4 py-2.5">
-              <span className="text-slate-500">Mot de passe</span>
-              <div className="flex items-center gap-2">
-                <span className="font-mono font-semibold text-slate-700">
-                  {showPwd ? generatedPwd : '••••••••'}
-                </span>
-                <button type="button" onClick={() => setShowPwd(v => !v)}
-                  className="text-slate-400 hover:text-slate-600">
-                  {showPwd ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
-                <button type="button" onClick={copyPassword}
-                  className="text-slate-400 hover:text-brand transition-colors">
-                  {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                </button>
-              </div>
-            </div>
           </div>
 
-          <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-            ⚠️ Notez ce mot de passe maintenant — vous pourrez toujours le voir depuis la page Équipe.
+          <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 leading-relaxed">
+            Un mot de passe temporaire sera généré à la création et affiché <strong>une seule fois</strong>.
+            La personne devra choisir son propre mot de passe à sa première connexion.
           </p>
 
           {/* Alerte doublons */}
