@@ -45,6 +45,10 @@ async function mockAuthenticatedApp(
     customerCreate?: boolean;
     onboardingPending?: boolean;
     mustChangePassword?: boolean;
+    /** Aucune session au départ (pages publiques : invitation…). */
+    loggedOut?: boolean;
+    /** Champs du profil renvoyé par /api/auth/profile (rôles…). */
+    profileOverrides?: Record<string, unknown>;
   } = {},
 ) {
   // Profil mutable (onboarding, changement de mot de passe) : type ouvert volontairement.
@@ -52,11 +56,14 @@ async function mockAuthenticatedApp(
     ? { ...PROFILE, onboardingCompletedAt: null }
     : { ...PROFILE };
   if (options.mustChangePassword) profile = { ...profile, mustChangePassword: true };
+  if (options.profileOverrides) profile = { ...profile, ...options.profileOverrides };
 
-  await page.addInitScript((profile) => {
-    localStorage.setItem('atelier_token', 'ux-token');
-    localStorage.setItem('atelier_user', JSON.stringify(profile));
-  }, profile);
+  if (!options.loggedOut) {
+    await page.addInitScript((profile) => {
+      localStorage.setItem('atelier_token', 'ux-token');
+      localStorage.setItem('atelier_user', JSON.stringify(profile));
+    }, profile);
+  }
 
   await page.route('**/api/**', async (route) => {
     const request = route.request();
@@ -347,6 +354,70 @@ test.describe('Atelier Maître — garde-fous UX/UI/CX', () => {
     await save.click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
+  });
+
+  test('un employé invité choisit son mot de passe et arrive connecté sur son espace', async ({ page }) => {
+    const token = 'Q2hhbmdlTWVJbW1lZGlhdGVseS1BdGVsaWVyTWFpdHJl';
+    await mockAuthenticatedApp(page, {
+      trial: false,
+      loggedOut: true,
+      profileOverrides: { firstName: 'Marie', lastName: 'Nkolo', roles: ['TECHNICIEN'], permissions: ['ORD_VIEW', 'VEH_VIEW', 'STK_VIEW'] },
+    });
+    let acceptedPassword: string | null = null;
+    await page.route(`**/api/public/invitations/${token}**`, async (route) => {
+      const request = route.request();
+      if (request.method() === 'POST') {
+        acceptedPassword = (request.postDataJSON() as { password: string }).password;
+        return route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ access_token: 'ux-token-invited', user: { id: 'user-ux-admin', mustChangePassword: false } }),
+        });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          firstName: 'Marie',
+          employeeCode: 'marie.nkolo',
+          workshopName: 'Garage UX',
+          expiresAt: '2026-10-05T09:00:00.000Z',
+        }),
+      });
+    });
+
+    await page.goto(`/invitation/${token}`);
+    await expect(page.getByText('Bienvenue, Marie')).toBeVisible();
+    await expect(page.getByText('marie.nkolo', { exact: true })).toBeVisible();
+
+    const activate = page.getByRole('button', { name: 'Activer mon compte' });
+    await page.getByLabel('Mot de passe', { exact: true }).fill('court1');
+    await expect(activate).toBeDisabled(); // règles serveur reprises côté front
+
+    await page.getByLabel('Mot de passe', { exact: true }).fill('Garage-Akwa-2026');
+    await page.getByLabel('Confirmer le mot de passe', { exact: true }).fill('Garage-Akwa-2026');
+    await activate.click();
+
+    await expect(page).toHaveURL(/\/workshop$/); // accueil du profil technicien
+    expect(acceptedPassword).toBe('Garage-Akwa-2026');
+  });
+
+  test('un lien d’invitation expiré explique quoi faire au lieu d’afficher le formulaire', async ({ page }) => {
+    await page.route('**/api/public/invitations/**', (route) =>
+      route.fulfill({
+        status: 410,
+        contentType: 'application/json',
+        body: JSON.stringify({ statusCode: 410, errorCode: 'INVITATION_EXPIRED', message: 'Ce lien d’invitation a expiré.' }),
+      }),
+    );
+
+    await page.goto('/invitation/Q2hhbmdlTWVJbW1lZGlhdGVseS1BdGVsaWVyTWFpdHJl');
+
+    await expect(page.getByText('Invitation expirée')).toBeVisible();
+    await expect(page.getByText(/valables 72 heures/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Activer mon compte' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Aller à la connexion' })).toBeVisible();
+    await expect(page).toHaveURL(/\/invitation\//); // page publique : pas de redirection vers /login
   });
 
   test('le login parle d’identifiant employé et non de code employé', async ({ page }) => {

@@ -23,6 +23,12 @@ import { TrialStatusBanner } from '@/components/subscription/TrialStatusBanner';
 import { SubscriptionBlockedScreen } from '@/components/subscription/SubscriptionBlockedScreen';
 
 const PUBLIC_PATHS = ['/', '/login', '/forgot-password', '/demo', '/inscription'];
+/** Pages publiques dynamiques (ex. /invitation/<jeton>) : correspondance par préfixe. */
+const PUBLIC_PATH_PREFIXES = ['/invitation/'];
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.includes(pathname) || PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -48,14 +54,17 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   // Redirection si non authentifié
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !PUBLIC_PATHS.includes(pathname)) {
+    if (!isLoading && !isAuthenticated && !isPublicPath(pathname)) {
       router.replace('/login');
     }
   }, [isLoading, isAuthenticated, pathname, router]);
 
   // Mot de passe temporaire : aucun écran de l'app tant qu'il n'est pas changé.
   useEffect(() => {
-    if (!isLoading && isAuthenticated && mustChangePassword && pathname !== PASSWORD_CHANGE_PATH) {
+    if (
+      !isLoading && isAuthenticated && mustChangePassword && pathname !== PASSWORD_CHANGE_PATH &&
+      !PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+    ) {
       router.replace(PASSWORD_CHANGE_PATH);
     }
   }, [isLoading, isAuthenticated, mustChangePassword, pathname, router]);
@@ -78,7 +87,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   }
 
   // Page publique (login) : pas de layout
-  if (PUBLIC_PATHS.includes(pathname)) {
+  if (isPublicPath(pathname)) {
     return <>{children}</>;
   }
 

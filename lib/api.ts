@@ -254,6 +254,8 @@ export const teamApi = {
   create:        (body: unknown) => post('/team', body),
   update:        (id: string, body: unknown) => patch(`/team/${id}`, body),
   resetPassword:  (id: string, password?: string) => post(`/team/${id}/reset-password`, { password }),
+  /** Renvoie l'invitation par e-mail (ADMIN) : nouveau lien, l'ancien devient invalide. */
+  resendInvitation: (id: string) => post<InvitationDelivery>(`/team/${id}/invite`),
   toggleStatus:   (id: string) => patch(`/team/${id}/toggle-status`, {}),
   delete:         (id: string) => del(`/team/${id}`),
 };
@@ -409,6 +411,35 @@ export const marketingApi = {
     post<{ received: true }>('/public/demo-booking', body),
 };
 
+// ─── Invitations d'équipe ───────────────────────────────────────────────────
+export type InvitationStatus = 'none' | 'pending' | 'expired' | 'accepted';
+
+/** Résultat d'un envoi d'invitation (création d'un membre avec e-mail, renvoi). */
+export interface InvitationDelivery {
+  status: 'pending';
+  email: string;
+  expiresAt: string;
+  /** skipped : e-mail non configuré côté serveur ; failed : erreur d'envoi. */
+  emailStatus: 'sent' | 'skipped' | 'failed';
+}
+
+export interface PublicInvitation {
+  firstName: string;
+  employeeCode: string | null;
+  workshopName: string | null;
+  expiresAt: string;
+}
+
+/** Routes publiques (sans session) de la page /invitation/[token]. */
+export const invitationsApi = {
+  get: (token: string) => get<PublicInvitation>(`/public/invitations/${encodeURIComponent(token)}`),
+  accept: (token: string, password: string) =>
+    post<{ access_token: string; user: { id: string; mustChangePassword: boolean } }>(
+      `/public/invitations/${encodeURIComponent(token)}/accept`,
+      { password },
+    ),
+};
+
 // ─── Inscription atelier (public) ───────────────────────────────────────────
 export interface SignupTeamCreated {
   roleCode: string;
@@ -416,7 +447,10 @@ export interface SignupTeamCreated {
   lastName: string;
   email: string | null;
   employeeCode: string;
-  tempPassword: string;
+  /** Membre sans e-mail : mot de passe temporaire affiché une seule fois. */
+  tempPassword?: string;
+  /** Membre avec e-mail : invitation envoyée (aucun mot de passe). */
+  invitation?: InvitationDelivery;
 }
 
 export interface SignupPayload {

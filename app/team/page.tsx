@@ -16,8 +16,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
 } from "@/components/ui/dialog";
 import { TeamMemberForm } from "@/components/forms/TeamMemberForm";
-import { teamApi } from "@/lib/api";
+import { teamApi, type InvitationStatus } from "@/lib/api";
 import { OneTimeCredentials } from "@/components/team/OneTimeCredentials";
+import { InvitationBadge, ResendInvitationButton } from "@/components/team/InvitationControls";
 import { useAuth } from "@/contexts/auth-context";
 import { countTeamMembersOnlineNow } from "@/lib/team-presence";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,13 +28,14 @@ interface TeamMember {
   id: string;
   firstName: string;
   lastName: string;
-  email: string;
+  email: string | null;
   phone?: string;
   specialty?: string;
   employeeCode: string;
   status: string;
   passwordResetRequestedAt?: string | null;
   lastLoginAt?: string | null;
+  invitationStatus?: InvitationStatus;
   roles: { role: { label: string; code: string } }[];
   assignedOTs?: { id: string; reference: string; status: string }[];
 }
@@ -149,7 +151,8 @@ function PasswordCell({ member, onReset }: { member: TeamMember; onReset: () => 
 }
 
 export default function TeamPage() {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
+  const canInvite = hasRole('ADMIN');
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -340,6 +343,7 @@ export default function TeamPage() {
                                   Reset demandé
                                 </span>
                               )}
+                              <InvitationBadge status={member.invitationStatus} />
                             </div>
                             <p className="text-xs text-muted-foreground">{role}{member.specialty ? ` · ${member.specialty}` : ''}</p>
                             <p className="text-[10px] font-mono text-muted-foreground">{member.employeeCode}</p>
@@ -355,7 +359,15 @@ export default function TeamPage() {
                         </Badge>
                       </div>
 
-                      {/* Mot de passe + actions */}
+                      {/* Invitation + mot de passe + actions */}
+                      {canInvite && member.email &&
+                        (member.invitationStatus === 'pending' || member.invitationStatus === 'expired') && (
+                        <ResendInvitationButton
+                          memberId={member.id}
+                          memberName={`${member.firstName} ${member.lastName}`}
+                          onSent={fetchTeam}
+                        />
+                      )}
                       <PasswordCell member={member} onReset={fetchTeam} />
                       <StatusToggle member={member} onToggle={fetchTeam} />
 
