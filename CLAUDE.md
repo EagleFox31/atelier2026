@@ -250,43 +250,43 @@ Workflow partagé : [EagleFox31/appfactory-project-automation](https://github.co
 
 ---
 
-## État du projet (2026-09-23)
+## État du projet (2026-10-02)
+
+Référence : `main` à `8320b97` (merge de #44), déployé sur AWS le 2026-10-02 (workflow Deploy AWS vert). Version publiée : `1.9.0` (`version.txt`) ; la PR de release #32 « chore(main): release 1.10.0 » est ouverte et regroupe les changements depuis.
 
 ### En production
-- Application complète en ligne (atelier.trigenys.com) : toutes les pages branchées sur l'API, parcours mobile par rôle, PWA, onboarding guidé
+- Application complète (atelier.trigenys.com) : toutes les pages branchées sur l'API, parcours mobile par rôle, PWA, onboarding guidé
 - SaaS : landing + tarifs (3 forfaits + pilote gratuit), inscription libre-service, pilote 30 j + grâce 7 j, console SUPER_ADMIN, leads démo
-- Déploiement AWS GitOps (CloudFormation + OIDC + SSM)
+- Déploiement AWS GitOps (CloudFormation + OIDC + SSM), détection des changements sur les merge commits (#26), coupure de déploiement annoncée et sans perte de saisie (#27)
+- Versioning par le workflow partagé AppFactory Release Please (#28, première release `1.9.0` via #29)
+- Suspension d'un tenant sans réactiver les employés suspendus individuellement (#30)
+- Alertes de stock bas traitées par un worker, quantités `Decimal` comparées correctement (#31)
+- Marque Atelier Maître tant que le forfait n'inclut pas le logo personnalisé (#34)
+- Droit SMS appliqué de bout en bout (API + worker) et codes d'erreur métier transmis au client (#35, LESSON-2026-006)
+- « Nouvel OT » reste ouvert lors de la création inline d'un client, garde-fous UX `test:ux` sur les PR (#36)
+- E-mail de bienvenue après inscription, via Resend (#37)
+- Mots de passe : plus aucun en clair, mots de passe temporaires forts, changement imposé (#38)
+- Paiement d'abonnement NotchPay : fondation (environnements test/live séparés, webhook signé) (#41) et page de paiement hébergée (#42)
+- `MessagingModule` : abstraction des fournisseurs SMS / WhatsApp, `simulator` seul disponible (#39) ; suivi : préfixes opérateurs vérifiés, relances bornées, aucun numéro en clair dans les logs (#44)
+- Invitations d'équipe par e-mail : lien d'activation à usage unique (72 h), page `/invitation/[token]` (#40)
+- Limitation de débit sur l'API, dont le login (429 `RATE_LIMITED`, LESSON-2026-009) (#43)
 
 ### Travail en cours
-- `fix/trial-onboarding-ux-qa` **mergée** dans main (`a61fb06`, squash) : sélecteur de ville, logo payant vérifié côté API, suite Playwright `test:qa` + workflow planifié `qa-ux.yml`
-- `fix/ux-onboarding-and-qa` **non mergée**, et maintenant en conflit avec main (même périmètre). À y reprendre : blocage SMS côté serveur (`assertSmsEntitled`, worker), e-mail d'inscription, onboarding obligatoire sur mobile
-- Plan de correction → [docs/PLAN-CORRECTIONS-2026-09.md](docs/PLAN-CORRECTIONS-2026-09.md)
+- Issues ouvertes : passerelles SMS réelles Techsoft (#19) et SmsPro / Sender ID (#20), modèles + consentement + historique de remise (#21), bot WhatsApp (#22), quotas SMS/WhatsApp par garage (#23), activation Pro + NotchPay (#7), URLs avec slug tenant/garage (#12, #16), campagne de régression Playwright (#17)
+- Plan de correction → [docs/PLAN-CORRECTIONS-2026-09.md](docs/PLAN-CORRECTIONS-2026-09.md) (lot 3b SSE multi-instance différé, lot 5 point 3 fenêtre de déploiement à faire)
 
-### Règles produit décidées (2026-09-23)
+### Règles produit décidées
 - **Logo personnalisé** : seulement avec un forfait payant `ACTIVE`. Sinon (pilote, grâce, expiré) : logo Atelier Maître partout (app, devis, factures, PDF). Un logo déjà enregistré est masqué, pas supprimé
 - **SMS** : Pro et Business `ACTIVE` uniquement (conforme à la page tarifs) — ni Essentiel, ni pilote
 - **Suspension** : suspendre un tenant ne touche pas au statut des utilisateurs. Un utilisateur suspendu par son ADMIN le reste quand le tenant est réactivé
+- **Invitations** : un membre avec e-mail reçoit un lien d'activation à usage unique (72 h) et choisit son mot de passe ; sans e-mail, repli sur le mot de passe temporaire affiché une seule fois (2026-10-02)
+- **Relances SMS** : un envoi en échec temporaire chez le fournisseur fait 3 tentatives au maximum (backoff exponentiel, `smsJobOptions`) — SMS manuels, « véhicule prêt », rappels de RDV et de factures ; un refus définitif n'est jamais relancé (2026-10-02)
+- **Opérateurs** : seuls les préfixes vérifiés auprès de l'ART (et sources citées dans `src/modules/messaging/shared/phone.ts`) sont attribués à un opérateur ; tout le reste vaut `UNKNOWN` (2026-10-02)
 
-### Historique — audit backend (2026-06-01)
-- ✅ Bloquants B1-B3 (schema Prisma, $extends soft delete, filtre lowStock)
-- ✅ Critiques C1-C3 (seed, RBAC, triggers SQL)
-- ✅ Incohérences I1-I4 (modules, guard catch, types)
-- ✅ DTOs customers + vehicles avec validation
-- ✅ `AllExceptionsFilter` — P2002/P2003/P2025/PrismaValidationError/InitializationError
-- ✅ CORS configurable via `ALLOWED_ORIGINS`
-- ✅ Script dev avec type-check et affichage URL réseau WiFi
-
-### Frontend — plomberie auth en place
-- ✅ `lib/api.ts` — client API complet pour tous les modules
-- ✅ `contexts/auth-context.tsx` — AuthProvider
-- ✅ `app/login/page.tsx` — page de connexion
-- ✅ `AppLayout.tsx` — protection des routes
-
-### Backend — tous les endpoints présents ✅
-Workshop, Stock, Billing, Vehicles, Counter-Sales, Dashboard stats réelles.
-
-### Frontend — branchement API terminé
-Les 18 pages sont branchées sur l'API réelle. Le dashboard utilise `/api/reports/dashboard-stats` (`app/api/dashboard/stats/route.ts` n'est qu'un stub legacy). `lib/mock-data.ts` n'est plus importé nulle part.
+### Historique
+- Audit backend (2026-06-01) : bloquants B1-B3, critiques C1-C3, incohérences I1-I4, DTOs validés, `AllExceptionsFilter`, CORS configurable — tous traités
+- Les pages sont branchées sur l'API réelle ; le dashboard utilise `/api/reports/dashboard-stats`
+- Lot 4 « Nettoyage » (2026-10-02) : `@google/genai`, `lib/mock-data.ts` et le stub `app/api/dashboard/stats` supprimés ; CSP Helmet active sur l'API, CSP *report-only* sur le web (`next.config.ts`) ; scripts ponctuels archivés dans `scripts/archive/`
 
 ---
 
