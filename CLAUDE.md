@@ -138,7 +138,8 @@ Guards globaux (ordre) : `ClientIpThrottlerGuard` → `JwtAuthGuard` → `Subscr
 
 - **Isolation** : toute donnée métier est filtrée par `garageId` du JWT. Utiliser les helpers de `src/shared/garage/garage-scope.ts` (`garageWhere`, `assert*InGarage`) — ils renvoient **404** (pas 403) pour masquer les IDOR. Jamais de `findUnique({ id })` nu sur une entité métier.
 - **Cycle pilote** (`Tenant.subscriptionStatus`) : signup → `TRIAL` 30 j (plan `pro`) → `GRACE_PERIOD` 7 j (**lecture seule** : seuls GET/HEAD/OPTIONS passent) → `EXPIRED`. `ACTIVE` / `SUSPENDED` sont posés manuellement. Rétention données : fin d'essai + 90 j.
-- Le statut est recalculé **à la demande** (`SubscriptionService.getSummary`, appelé par le guard à chaque requête) et par `TrialSchedulerService` (cron horaire).
+- Le statut est recalculé **en mémoire** à chaque requête (`resolveSubscriptionStatus`, à partir des champs tenant déjà chargés par `JwtAuthGuard` — aucune requête en plus ; repli `getSummary` hors HTTP) et persisté par `TrialSchedulerService` (cron horaire).
+- **Droits par forfait** : `entitlements.ts` est la seule source. `/subscription/status` renvoie `features` (`sms`, `branding`) ; le front grise l'UI à partir de ce champ, sans règle de forfait dupliquée.
 - Un tenant sans `trialEndsAt` (antérieur au pilote) est toujours considéré `ACTIVE`.
 - Codes d'erreur front : `TRIAL_READ_ONLY`, `TRIAL_EXPIRED`, `SUBSCRIPTION_SUSPENDED` → `SubscriptionBlockedScreen` / `TrialStatusBanner`.
 - `PASSWORD_CHANGE_REQUIRED` (403, `JwtAuthGuard`) → redirection `/change-password` (`lib/api.ts` + `AppLayout`).

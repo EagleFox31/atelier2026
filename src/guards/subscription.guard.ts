@@ -30,6 +30,7 @@ export class SubscriptionGuard implements CanActivate {
       | {
           tenantId?: string | null;
           roles?: Array<{ role: { code: string } }>;
+          tenant?: Parameters<SubscriptionService['statusFromLoadedTenant']>[0];
         }
       | undefined;
 
@@ -50,7 +51,11 @@ export class SubscriptionGuard implements CanActivate {
       return true;
     }
 
-    const summary = await this.subscriptions.getSummary(user.tenantId);
+    // Statut calculé en mémoire depuis le tenant chargé par JwtAuthGuard (0 requête) ;
+    // repli sur getSummary() si ces champs sont absents.
+    const summary =
+      this.subscriptions.statusFromLoadedTenant(user.tenant) ??
+      (await this.subscriptions.getSummary(user.tenantId));
 
     if (
       summary.status === SubscriptionStatus.ACTIVE ||

@@ -9,6 +9,8 @@ describe('SubscriptionGuard', () => {
 
   const subscriptions = {
     getSummary: jest.fn(),
+    // Chemin de repli par défaut (pas de tenant chargé) ; le chemin en mémoire est testé à part.
+    statusFromLoadedTenant: jest.fn().mockReturnValue(null),
   };
 
   const guard = new SubscriptionGuard(reflector as never, subscriptions as never);
