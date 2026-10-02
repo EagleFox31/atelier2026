@@ -305,6 +305,8 @@ Le décorateur ne fait que poser des métadonnées ; c'est le garde qui applique
 **Prévention**
 Test de contrat `invitations.contract.spec.ts` : la 6e tentative par IP reçoit 429, une autre IP non. Note dans CLAUDE.md (multi-tenant & abonnement).
 
+**Suite (2026-10-02, branche `fix/rate-limiting`)** : `ClientIpThrottlerGuard` est désormais la **première garde globale** (`APP_GUARD`) ; limites centralisées dans `src/shared/security/rate-limits.ts` (globale 600/min/IP — un garage partage souvent une IP — ; connexion 10/min, mot de passe oublié 5/15 min, inscription 5/min, démo 6/min, invitations 20 et 5/min) ; `/api/health` et le webhook NotchPay exclus (`@SkipThrottle`) ; 429 métier `RATE_LIMITED` + `Retry-After`. **Garde-fou anti-récidive** : `rate-limit.contract.spec.ts` lit les providers du vrai `AppModule` et échoue si la garde n'y est plus la première `APP_GUARD` (contre-épreuve faite).
+
 **Leçon généralisée**
 Un mécanisme de sécurité déclaratif (décorateur, annotation) se prouve par un test de son effet observable, pas par sa présence dans le code.
 

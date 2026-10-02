@@ -102,6 +102,7 @@ Règles prod :
 | `RESEND_API_KEY` | Clé Resend « Sending access » (domaine `trigenys.com`) — e-mail de bienvenue ; absente = aucun envoi |
 | `SIGNUP_EMAIL_FROM` / `SIGNUP_EMAIL_REPLY_TO` | Expéditeur (`Atelier Maître <ateliermaitre@trigenys.com>`) / réponse facultative |
 | `APP_PUBLIC_URL` | URL publique pour les liens et le logo des e-mails (sinon `https://APP_DOMAIN`) |
+| `RATE_LIMIT_ENABLED` | `false` désactive la limitation de débit (tests locaux / Postman uniquement — jamais en prod) |
 | `TEAM_INVITE_EMAIL_FROM` | Expéditeur des invitations d'équipe (facultatif, défaut `SIGNUP_EMAIL_FROM`) |
 
 ---
@@ -129,7 +130,7 @@ Règles prod :
 | AdminModule | `/admin/tenants/*` | Console plateforme SUPER_ADMIN |
 | SharedModule (@Global) | `/audit/*` | PrismaService + AuditService globaux |
 
-Guards globaux (ordre) : `JwtAuthGuard` → `SubscriptionGuard` → `PermissionsGuard`. Routes publiques via `@Public()`.
+Guards globaux (ordre) : `ClientIpThrottlerGuard` → `JwtAuthGuard` → `SubscriptionGuard` → `PermissionsGuard`. Limites de débit : `src/shared/security/rate-limits.ts` (`@Throttle(RATE_LIMITS.x)` ; `@SkipThrottle()` pour sondes et webhooks) — 429 `RATE_LIMITED`. Routes publiques via `@Public()`.
 
 ## Multi-tenant & abonnement
 
