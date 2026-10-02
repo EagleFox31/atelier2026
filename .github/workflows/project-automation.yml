@@ -1,0 +1,51 @@
+name: Project automation
+
+# Synchronise les Issues et PR avec le GitHub Project « Atelier Maître Product
+# Development » (AppFactory, .github/project-config.json).
+# Authentification « broker-user » : jeton utilisateur éphémère obtenu par OIDC
+# auprès du broker AppFactory — aucun PAT ni secret dans ce dépôt.
+# Mise en service (une seule fois) : docs/engineering/appfactory.md.
+#
+# Limite connue (documentée par AppFactory) : seuls les événements déclenchés par
+# le propriétaire du Project (EagleFox31) sont pris en charge. Un événement d'un
+# contributeur ou d'un bot échoue côté broker ; resynchroniser alors l'Issue à la
+# main (Run workflow → issue_number).
+
+on:
+  issues:
+    types: [opened, reopened, edited, closed]
+  # pull_request_target : le workflow AppFactory ne checkout que la branche par
+  # défaut (code de confiance), jamais le code de la PR.
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, closed]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue à resynchroniser (facultatif) ; vide = bootstrap/réconciliation du Project"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  sync-project:
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+      id-token: write
+    # AppFactory main @ b1deb7b : runtime Project « durable » autorisé par le broker
+    # hébergé (ALLOWED_JOB_WORKFLOW_REFS), = runtime promu 14d5116 + correctif de
+    # concurrence par Issue/PR (évite de perdre des événements en rafale).
+    # Hors release (v1.3.0 = 247ee8c ne contient pas le broker zero-PAT).
+    uses: EagleFox31/appfactory-project-automation/.github/workflows/reusable-project-automation.yml@b1deb7b1069739879d7a4acb9cd3521bca835049
+    with:
+      authentication: broker-user
+      broker_url: ${{ vars.APPFACTORY_PROJECT_BROKER_URL || 'https://appfactory-project-token-broker.lawrynnjennifer.workers.dev/v1/github/user-token' }}
+      broker_audience: appfactory-project-automation
+      appfactory_ref: b1deb7b1069739879d7a4acb9cd3521bca835049
+      config_path: .github/project-config.json
+      issue_number: ${{ inputs.issue_number }}
