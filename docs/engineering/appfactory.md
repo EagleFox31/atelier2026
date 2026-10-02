@@ -37,7 +37,10 @@ Résultats vérifiés localement avec l'analyseur AppFactory (`scripts/impact/an
 
 `main` n'a pas de protection de branche aujourd'hui. Si on en ajoute une, rendre obligatoire **`CI result`** (et, si voulu, `Playwright UX guardrails`). Un job sauté parce que hors périmètre compte comme réussi ; un filtre `paths:` au niveau du workflow, lui, laisserait le check en attente — c'est pourquoi `ux-guardrails.yml` n'en a plus.
 
-### Exception RAIDER : `deploy.yml` garde sa propre détection
+### Exception RAIDER : `deploy.yml` n'utilise pas l'analyse d'impact
+
+> **Mise à jour (2026-10-02)** : `deploy.yml` déploie désormais **à la release** et reconstruit tout ; il n'a plus de détection de chemins (LESSON-2026-011). Le constat ci-dessous sur `workflow_run` reste vrai et explique pourquoi l'analyse d'impact n'y est pas branchée.
+
 
 `deploy.yml` tourne sur `workflow_run` (après CI sur `main`). L'analyseur AppFactory (`resolveRange`) ne connaît que les événements `pull_request` (base/head) et `push` (`before`/`after`). Un payload `workflow_run` n'a ni l'un ni l'autre, et l'analyseur répond `event-without-comparable-range`, donc **fallback all**. Testé localement avec un payload `workflow_run` simulé : chaque succès de CI, même pour un commit de docs, reconstruirait les deux images et redéploierait (30 à 60 s de coupure).
 

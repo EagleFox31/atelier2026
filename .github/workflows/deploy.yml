@@ -1,5 +1,16 @@
 name: Deploy AWS
 
+# Déploiement À LA RELEASE, pas à chaque merge (une seule coupure de 30 à 60 s,
+# au moment choisi) :
+# - merge d'une PR ordinaire sur main → CI verte → ce workflow s'arrête au job
+#   « Release gate » : rien n'est déployé (résumé explicite, pas un faux vert) ;
+# - merge de la PR de release AppFactory (version.txt modifié) → CI verte →
+#   déploiement COMPLET du commit de release (les deux images, la pile, le runtime) ;
+# - Run workflow (manuel) → déploiement complet de main, pour un correctif urgent.
+# Tout reconstruire à la release supprime la détection de chemins par regex et ses
+# trous (fichiers oubliés, plage limitée au dernier commit). Le cache Docker garde
+# une image inchangée identique : son conteneur n'est alors pas recréé.
+
 on:
   workflow_run:
     workflows: ['CI']
@@ -7,8 +18,17 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Seuls les candidats au déploiement entrent dans la file de production. Un run
+# ordinaire (simple contrôle, quelques secondes) prend un groupe à lui : sinon,
+# GitHub ne gardant qu'un seul run en attente par groupe, il pourrait évincer un
+# déploiement de release en attente (LESSON-2026-011). Le filtre sur le message
+# est large exprès : un faux positif ne fait qu'attendre son tour dans la file.
 concurrency:
-  group: atelier-maitre-production
+  group: >-
+    ${{ (github.event_name == 'workflow_dispatch' ||
+         contains(github.event.workflow_run.head_commit.message, 'release'))
+        && 'atelier-maitre-production'
+        || format('deploy-gate-{0}', github.run_id) }}
   cancel-in-progress: false
 
 env:
@@ -17,12 +37,11 @@ env:
   DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
-  changes:
-    name: Detect changed files
+  gate:
+    name: Release gate
     runs-on: ubuntu-latest
     # Une exécution manuelle de la CI (validation complète) ne doit pas redéployer
-    # la prod : seuls les runs CI issus d'un push (ou d'un re-run) déclenchent ici.
-    # Redéployer à la main = « Run workflow » sur Deploy AWS.
+    # la prod : seuls les runs CI issus d'un push (ou d'un re-run) passent ici.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.workflow_run.conclusion == 'success' &&
@@ -30,52 +49,45 @@ jobs:
     permissions:
       contents: read
     outputs:
-      api: ${{ steps.filter.outputs.api }}
-      web: ${{ steps.filter.outputs.web }}
-      runtime: ${{ steps.filter.outputs.runtime }}
-      infra: ${{ steps.filter.outputs.infra }}
+      deploy: ${{ steps.decide.outputs.deploy }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.DEPLOY_SHA }}
           fetch-depth: 2
 
-      # Diff du commit déployé contre son 1er parent : couvre les commits simples,
-      # les squash ET les commits de merge (dorny/paths-filter ne voyait aucun
-      # fichier sur un merge commit → build et déploiement sautés en silence).
-      # Volontairement pas l'Impact-Aware CI AppFactory : sur `workflow_run`, son
-      # analyseur ne trouve pas de plage et déploierait tout (exception RAIDER
-      # documentée dans docs/engineering/appfactory.md). Garder ces ensembles de
-      # chemins alignés avec .github/appfactory-impact.json.
-      - name: Detect changed paths
-        id: filter
+      # Commit de release = version.txt modifié par rapport au 1er parent (couvre
+      # squash ET merge commit de la PR de release). version.txt n'est jamais
+      # édité à la main : seule la PR de release AppFactory le change.
+      - name: Decide
+        id: decide
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          CHANGED="$(git diff --name-only HEAD^1 HEAD)"
-          echo "Fichiers modifiés :"
-          printf '%s\n' "$CHANGED"
-
-          match() {
-            if printf '%s\n' "$CHANGED" | grep -Eq "$1"; then echo true; else echo false; fi
-          }
-
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            reason="déploiement manuel (Run workflow)"
+            deploy=true
+          elif ! git diff --quiet HEAD^1 HEAD -- version.txt; then
+            reason="release v$(tr -d '[:space:]' < version.txt)"
+            deploy=true
+          else
+            reason="commit hors release : la prod sera mise à jour au merge de la PR de release (ou via Run workflow)"
+            deploy=false
+          fi
+          echo "deploy=$deploy" >> "$GITHUB_OUTPUT"
           {
-            echo "api=$(match '^(src/|server\.ts$|prisma/|scripts/|tsconfig\.server[^/]*\.json$|deploy/docker/Dockerfile\.api$|package(-lock)?\.json$)')"
-            echo "web=$(match '^(app/|components/|lib/|contexts/|hooks/|public/|styles/|deploy/docker/Dockerfile\.web$|next\.config\.|tailwind\.config\.|package(-lock)?\.json$|version\.txt$)')"
-            echo "runtime=$(match '^(deploy/docker/docker-compose\.aws\.yml|deploy/docker/Caddyfile|deploy/docker/maintenance/.+|deploy/scripts/aws-ssm-deploy\.sh)$')"
-            echo "infra=$(match '^infra/aws/atelier-maitre\.yml$')"
-          } | tee -a "$GITHUB_OUTPUT"
+            echo "### Release gate"
+            echo "- Commit : \`${DEPLOY_SHA}\`"
+            echo "- Déploiement : **$deploy** — $reason"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "deploy=$deploy ($reason)"
 
   provision:
     name: Provision AWS infrastructure
-    needs: changes
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      needs.changes.outputs.api == 'true' ||
-      needs.changes.outputs.web == 'true' ||
-      needs.changes.outputs.runtime == 'true' ||
-      needs.changes.outputs.infra == 'true'
+    needs: gate
+    if: needs.gate.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -132,11 +144,8 @@ jobs:
   build-push:
     name: Build and push GHCR images
     runs-on: ubuntu-latest
-    needs: changes
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      needs.changes.outputs.api == 'true' ||
-      needs.changes.outputs.web == 'true'
+    needs: gate
+    if: needs.gate.outputs.deploy == 'true'
     permissions:
       contents: read
       packages: write
@@ -171,7 +180,6 @@ jobs:
       - uses: docker/setup-buildx-action@v3
 
       - name: Build and push API image
-        if: ${{ needs.changes.outputs.api == 'true' || github.event_name == 'workflow_dispatch' }}
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -183,7 +191,6 @@ jobs:
           cache-to: type=gha,mode=max,scope=api
 
       - name: Build and push Web image
-        if: ${{ needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch' }}
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -197,17 +204,12 @@ jobs:
 
   deploy:
     name: Deploy application with Session Manager
-    needs: [changes, provision, build-push]
+    needs: [gate, provision, build-push]
     if: >-
       always() &&
-      needs.changes.result == 'success' &&
+      needs.gate.outputs.deploy == 'true' &&
       needs.provision.result == 'success' &&
-      (needs.build-push.result == 'success' || needs.build-push.result == 'skipped') &&
-      (github.event_name == 'workflow_dispatch' ||
-       needs.changes.outputs.api == 'true' ||
-       needs.changes.outputs.web == 'true' ||
-       needs.changes.outputs.runtime == 'true' ||
-       needs.changes.outputs.infra == 'true')
+      needs.build-push.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
