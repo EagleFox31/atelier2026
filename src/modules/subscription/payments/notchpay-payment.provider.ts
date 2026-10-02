@@ -36,6 +36,31 @@ function asNumber(value: unknown): number | null {
   return null;
 }
 
+/**
+ * NotchPay a DEUX identifiants (constaté sur la sandbox, 2026-10-02) :
+ * - `reference` = SON identifiant de transaction (`trx.test_…` / `trx.…`), sans champ `id` ;
+ * - `merchant_reference` / `trxref` = NOTRE référence (`sub_…`) passée à l'initialisation.
+ * Lire `reference` comme notre référence faisait ignorer tous les webhooks (LESSON-2026-013).
+ */
+export function notchPayIdentifiers(source: JsonObject | null): {
+  providerTransactionId: string | null;
+  merchantReference: string | null;
+} {
+  if (!source) return { providerTransactionId: null, merchantReference: null };
+  const rawReference = asString(source.reference);
+  const isProviderReference = rawReference?.startsWith('trx.') ?? false;
+  return {
+    providerTransactionId:
+      asString(source.id) ??
+      asString(source.transaction) ??
+      (isProviderReference ? rawReference : null),
+    merchantReference:
+      asString(source.merchant_reference) ??
+      asString(source.trxref) ??
+      (isProviderReference ? null : rawReference),
+  };
+}
+
 export function normalizeNotchPayStatus(value: unknown): ProviderPaymentStatus {
   const status = asString(value)?.toLowerCase();
   if (!status) return 'UNKNOWN';
@@ -93,10 +118,7 @@ export class NotchPayPaymentProvider implements PaymentProvider {
 
     const transaction = asObject(payload.transaction);
     const providerTransactionId =
-      asString(payload.transaction) ??
-      asString(transaction?.id) ??
-      asString(transaction?.transaction) ??
-      asString(transaction?.reference);
+      asString(payload.transaction) ?? notchPayIdentifiers(transaction).providerTransactionId;
     const authorizationUrl =
       asString(payload.authorization_url) ?? asString(transaction?.authorization_url);
 
@@ -119,14 +141,11 @@ export class NotchPayPaymentProvider implements PaymentProvider {
     const transaction = asObject(payload.transaction);
     const data = transaction ?? asObject(payload.data) ?? payload;
     const providerStatus = asString(data.status);
+    const ids = notchPayIdentifiers(data);
 
     return {
-      providerTransactionId:
-        asString(data.id) ??
-        asString(data.transaction) ??
-        asString(payload.transaction) ??
-        reference,
-      reference: asString(data.reference),
+      providerTransactionId: ids.providerTransactionId ?? asString(payload.transaction) ?? reference,
+      reference: ids.merchantReference,
       amount: asNumber(data.amount),
       currency: asString(data.currency)?.toUpperCase() ?? null,
       status: normalizeNotchPayStatus(providerStatus),
@@ -152,7 +171,7 @@ export class NotchPayPaymentProvider implements PaymentProvider {
     const root = asObject(payload);
     const data = asObject(root?.data);
     const transaction = asObject(data?.transaction);
-    const type = asString(root?.type);
+    const type = asString(root?.type) ?? asString(root?.event);
     if (!root || !data || !type) {
       throw new BadRequestException({
         message: 'Webhook NotchPay invalide.',
@@ -161,9 +180,11 @@ export class NotchPayPaymentProvider implements PaymentProvider {
     }
 
     const statusFromType = type.startsWith('payment.') ? type.slice('payment.'.length) : null;
+    const fromData = notchPayIdentifiers(data);
+    const fromTransaction = notchPayIdentifiers(transaction);
     const providerTransactionId =
-      asString(data.id) ?? asString(data.transaction) ?? asString(transaction?.id);
-    const reference = asString(data.reference) ?? asString(transaction?.reference);
+      fromData.providerTransactionId ?? fromTransaction.providerTransactionId;
+    const reference = fromData.merchantReference ?? fromTransaction.merchantReference;
 
     if (!providerTransactionId && !reference) {
       throw new BadRequestException({

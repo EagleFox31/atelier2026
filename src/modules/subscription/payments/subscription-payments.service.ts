@@ -2,8 +2,10 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
   Inject,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import { SubscriptionStatus } from '@prisma/client';
 import { createHash, randomUUID } from 'crypto';
@@ -50,6 +52,8 @@ export function addBillingPeriod(start: Date, billingCycle: BillingCycle): Date 
 
 @Injectable()
 export class SubscriptionPaymentsService {
+  private readonly logger = new Logger(SubscriptionPaymentsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProvider,
@@ -130,31 +134,57 @@ export class SubscriptionPaymentsService {
     }
   }
 
+  /**
+   * Chaque refus ou événement ignoré est journalisé (code + identifiants, jamais le
+   * corps ni un secret) : un paiement non appliqué ne doit jamais être silencieux
+   * (LESSON-2026-013).
+   */
   async handleWebhook(rawBody: Buffer, signature: string | undefined, payload: unknown) {
     if (!this.provider.verifyWebhookSignature(rawBody, signature)) {
+      this.logger.warn(`Webhook ${this.provider.name} refusé : signature invalide ou absente`);
       throw new ForbiddenException({
         message: 'Signature webhook NotchPay invalide.',
         errorCode: 'INVALID_PAYMENT_WEBHOOK_SIGNATURE',
       });
     }
 
-    const event = this.provider.parseWebhook(payload);
-    const fingerprint = createHash('sha256').update(rawBody).digest('hex');
-    const verifiedPayment =
-      event.status === 'COMPLETE'
-        ? await this.provider.retrievePayment(
-            event.providerTransactionId ?? event.reference ?? '',
-          )
-        : null;
-
+    let event: PaymentWebhookEvent | undefined;
     try {
-      return await this.applyWebhookEvent(fingerprint, event, verifiedPayment);
+      event = this.provider.parseWebhook(payload);
+      const fingerprint = createHash('sha256').update(rawBody).digest('hex');
+      const verifiedPayment =
+        event.status === 'COMPLETE'
+          ? await this.provider.retrievePayment(
+              event.providerTransactionId ?? event.reference ?? '',
+            )
+          : null;
+
+      const result = await this.applyWebhookEvent(fingerprint, event, verifiedPayment);
+      if ('ignored' in result && result.ignored) {
+        this.logger.warn(
+          `Webhook ${event.type} ignoré : aucun paiement pour ${this.describe(event)}`,
+        );
+      } else {
+        this.logger.log(`Webhook ${event.type} appliqué (${this.describe(event)}) : ${JSON.stringify(result)}`);
+      }
+      return result;
     } catch (error) {
       if (this.isUniqueConstraintError(error)) {
         return { received: true, duplicate: true, activated: false };
       }
+      const errorCode =
+        error instanceof HttpException
+          ? ((error.getResponse() as { errorCode?: string }).errorCode ?? error.getStatus())
+          : 'UNEXPECTED';
+      this.logger.warn(
+        `Webhook ${event?.type ?? '?'} refusé (${errorCode}) : ${event ? this.describe(event) : 'charge illisible'}`,
+      );
       throw error;
     }
+  }
+
+  private describe(event: PaymentWebhookEvent): string {
+    return `transaction=${event.providerTransactionId ?? '-'} référence=${event.reference ?? '-'} statut=${event.status}`;
   }
 
   private async applyWebhookEvent(

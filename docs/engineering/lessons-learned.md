@@ -400,3 +400,31 @@ L'idempotence (même message deux fois) et la sérialisation (messages différen
 **Principe dérivé / changement de standard**
 Revue des handlers de webhook / jobs : pour chaque ressource modifiée, vérifier « que se passe-t-il si deux événements différents arrivent en même temps ? ».
 
+### LESSON-2026-013 — Webhooks NotchPay ignorés en silence : mauvais champ de référence
+
+- **Date** : 2026-10-02
+- **Catégorie** : `integration` · `billing` · `observability`
+- **Statut** : prevention-added
+- **Lié à** : #41 (fondation NotchPay), garage de test QA en sandbox
+
+**Contexte**
+Premier paiement de bout en bout en sandbox sur la prod (garage de test dédié, numéro de test `670000000`).
+
+**Échec**
+Paiement accepté par NotchPay, mais l'abonnement restait `TRIAL`, sans aucune erreur visible ni côté client ni côté API.
+
+**Cause racine**
+L'intégration a été écrite d'après une doc simplifiée (`id` = transaction, `reference` = notre référence). Dans la réalité (journal de requêtes NotchPay), il n'y a pas d'`id` : `reference` est l'identifiant NotchPay (`trx.test_…`) et notre référence est dans `merchant_reference` / `trxref`. Le webhook cherchait donc notre paiement avec un `trx.…` dans la colonne `reference`, ne le trouvait pas, l'enregistrait comme « ignoré » et répondait **200** : NotchPay ne réessaie jamais. Aucun log n'indiquait l'événement ignoré.
+
+**Résolution**
+`notchPayIdentifiers()` distingue les deux identifiants (préfixe `trx.`, `merchant_reference`, `trxref`) pour l'initialisation, la vérification et le webhook ; nom d'événement accepté sous `type` ou `event`. Chaque webhook refusé ou ignoré est journalisé (code + identifiants, jamais le corps ni un secret).
+
+**Prévention**
+Tests construits sur la **réponse réelle de la sandbox** (fixture `SANDBOX_TRANSACTION`), dont un test de bout en bout fournisseur réel + service qui active l'abonnement ; contre-épreuve faite (4 tests rouges sans le correctif). Garage de test QA permanent pour rejouer un paiement sandbox après chaque changement de l'intégration.
+
+**Leçon généralisée**
+Une intégration de paiement se valide sur une **charge réelle** du prestataire (sandbox), pas sur la doc ; et un événement de paiement non appliqué ne doit jamais renvoyer un succès silencieux sans trace.
+
+**Principe dérivé / changement de standard**
+Toute intégration externe : fixtures copiées d'échanges réels (sandbox) + journalisation des refus/ignorés avant la mise en service.
+
