@@ -349,8 +349,22 @@ export interface SubscriptionSummary {
   blocked: boolean;
 }
 
+export type SubscriptionBillingCycle = 'monthly' | 'annual';
+
+export interface SubscriptionCheckout {
+  paymentId: string;
+  reference: string;
+  amountXaf: number;
+  currency: 'XAF';
+  billingCycle: SubscriptionBillingCycle;
+  garageCount: number;
+  authorizationUrl: string;
+}
+
 export const subscriptionApi = {
   status: () => get<SubscriptionSummary>('/subscription/status'),
+  createCheckout: (billingCycle: SubscriptionBillingCycle) =>
+    post<SubscriptionCheckout>('/subscription/checkout', { billingCycle }),
 };
 
 // ─── Types ─────────────────────────────────────────────────────────────────
