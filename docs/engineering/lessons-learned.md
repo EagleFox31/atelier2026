@@ -371,3 +371,32 @@ Avec une file de concurrence GitHub, un run en attente n'est pas garanti : ne ja
 
 **Principe dérivé / changement de standard**
 Les déploiements de prod sont déclenchés par une release (version explicite), pas par chaque merge.
+
+### LESSON-2026-012 — Deux paiements confirmés en même temps : un mois payé perdu (near miss)
+
+- **Date** : 2026-10-02
+- **Catégorie** : `concurrency` · `billing`
+- **Statut** : prevention-added
+- **Lié à** : `src/modules/subscription/payments/subscription-payments.service.ts` (#41)
+
+**Contexte**
+Le webhook NotchPay prolonge l'abonnement : il lit `tenants.subscriptionEndsAt`, ajoute une période, puis écrit. L'idempotence couvrait le **même** événement reçu deux fois (empreinte unique + mise à jour conditionnelle).
+
+**Échec / near miss**
+Relu avant la mise en service : deux paiements **différents** du même atelier (double clic, deux onglets, mensuel puis annuel) confirmés en même temps lisent la même échéance dans deux transactions (READ COMMITTED) ; chacune écrit « échéance + 1 mois ». Le client paie deux fois et reçoit un mois. Aucun cas en prod (paiements encore en sandbox).
+
+**Cause racine**
+Lecture-modification-écriture sur une ligne partagée sans verrou : l'idempotence par événement ne protège pas des écritures concurrentes d'événements distincts.
+
+**Résolution**
+`SELECT … FROM tenants WHERE id = $1 FOR UPDATE` dans la transaction, avant de lire l'échéance : la seconde transaction attend la première et part de la nouvelle échéance.
+
+**Prévention**
+Test de concurrence simulée (`adds up two different payments confirmed at the same time`) : deux webhooks en parallèle sur une ligne partagée avec verrou exclusif ; contre-épreuve faite (sans verrou : 2026-12-01 au lieu de 2027-01-01). Test d'ordre : le verrou précède la lecture.
+
+**Leçon généralisée**
+L'idempotence (même message deux fois) et la sérialisation (messages différents sur la même ressource) sont deux problèmes distincts : toute écriture « lire puis cumuler » sur une ligne partagée prend un verrou de ligne ou se fait en une seule instruction SQL atomique.
+
+**Principe dérivé / changement de standard**
+Revue des handlers de webhook / jobs : pour chaque ressource modifiée, vérifier « que se passe-t-il si deux événements différents arrivent en même temps ? ».
+

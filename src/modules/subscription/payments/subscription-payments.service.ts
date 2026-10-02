@@ -219,6 +219,11 @@ export class SubscriptionPaymentsService {
         return { received: true, duplicate: true, activated: false };
       }
 
+      // Verrou de ligne jusqu'à la fin de la transaction : deux paiements DIFFÉRENTS
+      // confirmés en même temps pour le même atelier doivent s'additionner. Sans lui,
+      // les deux lisent la même échéance et l'un des deux mois payés est perdu.
+      await tx.$queryRaw`SELECT id FROM tenants WHERE id = ${payment.tenantId}::uuid FOR UPDATE`;
+
       const tenant = await tx.tenant.findUniqueOrThrow({
         where: { id: payment.tenantId },
         select: {

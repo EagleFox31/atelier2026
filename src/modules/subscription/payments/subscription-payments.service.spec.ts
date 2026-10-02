@@ -109,6 +109,7 @@ describe('SubscriptionPaymentsService', () => {
         }),
         update: jest.fn().mockResolvedValue({}),
       },
+      $queryRaw: jest.fn().mockResolvedValue([]),
     };
     const prisma = { $transaction: jest.fn((callback) => callback(tx)) };
     const provider = makeProvider();
@@ -239,5 +240,95 @@ describe('SubscriptionPaymentsService', () => {
     ).rejects.toMatchObject({
       response: expect.objectContaining({ errorCode: 'PAYMENT_AMOUNT_MISMATCH' }),
     });
+  });
+
+  it('locks the tenant row before reading its due date', async () => {
+    const order: string[] = [];
+    const tx = {
+      subscriptionPayment: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'payment-1', tenantId: 'tenant-1', providerTransactionId: 'trx-1', reference: 'sub-1',
+          amountXaf: 45_000, currency: 'XAF', plan: 'pro', billingCycle: 'monthly', status: 'PENDING',
+        }),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      subscriptionPaymentEvent: { create: jest.fn().mockResolvedValue({}) },
+      $queryRaw: jest.fn(async (sql: TemplateStringsArray) => { order.push(sql.join('?')); return []; }),
+      tenant: {
+        findUniqueOrThrow: jest.fn(async () => {
+          order.push('read tenant');
+          return { subscriptionStatus: SubscriptionStatus.TRIAL, subscriptionStartedAt: null, subscriptionEndsAt: null };
+        }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+    };
+    const prisma = { $transaction: jest.fn((callback) => callback(tx)) };
+    const provider = makeProvider();
+    provider.parseWebhook.mockReturnValue({ type: 'payment.complete', status: 'COMPLETE', providerTransactionId: 'trx-1', reference: 'sub-1' });
+    provider.retrievePayment.mockResolvedValue({
+      providerTransactionId: 'trx-1', reference: 'sub-1', amount: 45_000, currency: 'XAF', status: 'COMPLETE', providerStatus: 'complete',
+    });
+
+    await new SubscriptionPaymentsService(prisma as never, provider).handleWebhook(Buffer.from('{}'), 'sig', {});
+
+    expect(order).toHaveLength(2);
+    expect(order[0]).toMatch(/FROM tenants WHERE id = \?::uuid FOR UPDATE/);
+    expect(order[1]).toBe('read tenant');
+  });
+
+  it('adds up two different payments confirmed at the same time (no lost month)', async () => {
+    // Base simulée : une ligne tenant partagée, un verrou exclusif tenu jusqu'à la fin
+    // de la transaction (comme FOR UPDATE), et une lecture lente pour ouvrir la fenêtre
+    // de course. Sans le verrou, les deux transactions lisent la même échéance.
+    const start = new Date('2026-11-01T00:00:00.000Z');
+    const row = { subscriptionStatus: SubscriptionStatus.ACTIVE as SubscriptionStatus, subscriptionStartedAt: start, subscriptionEndsAt: start };
+    let lockTail: Promise<void> = Promise.resolve();
+    const payments: Record<string, object> = {
+      'trx-a': { id: 'pay-a', tenantId: 'tenant-1', providerTransactionId: 'trx-a', reference: 'sub-a', amountXaf: 45_000, currency: 'XAF', plan: 'pro', billingCycle: 'monthly', status: 'PENDING' },
+      'trx-b': { id: 'pay-b', tenantId: 'tenant-1', providerTransactionId: 'trx-b', reference: 'sub-b', amountXaf: 45_000, currency: 'XAF', plan: 'pro', billingCycle: 'monthly', status: 'PENDING' },
+    };
+    const prisma = {
+      $transaction: jest.fn(async (callback: (tx: unknown) => Promise<unknown>) => {
+        let release: () => void = () => undefined;
+        const tx = {
+          subscriptionPayment: {
+            findFirst: jest.fn(async ({ where }: { where: { OR: Array<{ providerTransactionId?: string }> } }) =>
+              payments[where.OR.find((c) => c.providerTransactionId)!.providerTransactionId!]),
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+          },
+          subscriptionPaymentEvent: { create: jest.fn().mockResolvedValue({}) },
+          $queryRaw: jest.fn(async () => {
+            const previous = lockTail;
+            lockTail = new Promise<void>((resolve) => { release = resolve; });
+            await previous;
+            return [];
+          }),
+          tenant: {
+            findUniqueOrThrow: jest.fn(async () => {
+              const snapshot = { ...row };
+              await new Promise((r) => setTimeout(r, 20));
+              return snapshot;
+            }),
+            update: jest.fn(async ({ data }: { data: Partial<typeof row> }) => { Object.assign(row, data); }),
+          },
+        };
+        try { return await callback(tx); } finally { release(); }
+      }),
+    };
+    const provider = makeProvider();
+    provider.parseWebhook.mockImplementation((payload: unknown) => ({
+      type: 'payment.complete', status: 'COMPLETE', providerTransactionId: (payload as { id: string }).id, reference: (payload as { id: string }).id.replace('trx', 'sub'),
+    }));
+    provider.retrievePayment.mockImplementation(async (id: string) => ({
+      providerTransactionId: id, reference: id.replace('trx', 'sub'), amount: 45_000, currency: 'XAF', status: 'COMPLETE', providerStatus: 'complete',
+    }));
+    const service = new SubscriptionPaymentsService(prisma as never, provider);
+
+    await Promise.all([
+      service.handleWebhook(Buffer.from('a'), 'sig', { id: 'trx-a' }),
+      service.handleWebhook(Buffer.from('b'), 'sig', { id: 'trx-b' }),
+    ]);
+
+    expect(row.subscriptionEndsAt.toISOString()).toBe('2027-01-01T00:00:00.000Z');
   });
 });
