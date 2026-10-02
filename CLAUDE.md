@@ -100,6 +100,7 @@ Règles prod :
 | `SIGNUP_ALLOW_IF_ADMIN_EXISTS` | `true` = autoriser l'inscription même si un ADMIN existe (tests locaux) |
 | `APP_DOMAIN` / `ACME_EMAIL` | Prod uniquement — domaine + email Let's Encrypt pour Caddy |
 | `RESEND_API_KEY` | Clé Resend « Sending access » (domaine `trigenys.com`) — e-mail de bienvenue ; absente = aucun envoi |
+| `SMS_PROVIDER` / `WHATSAPP_PROVIDER` | Fournisseur de messagerie (`simulator` par défaut, seule valeur actuelle) ; valeur inconnue = l'API refuse de démarrer |
 | `SIGNUP_EMAIL_FROM` / `SIGNUP_EMAIL_REPLY_TO` | Expéditeur (`Atelier Maître <ateliermaitre@trigenys.com>`) / réponse facultative |
 | `APP_PUBLIC_URL` | URL publique pour les liens et le logo des e-mails (sinon `https://APP_DOMAIN`) |
 
@@ -117,7 +118,8 @@ Règles prod :
 | BillingModule | `/billing/*` | TVA 19.25%, timbre, idempotence paiements |
 | TeamModule | `/team/*` | Utilisateurs/techniciens |
 | PlanningModule | `/planning/appointments/*` | Hard delete (pas de deletedAt) |
-| NotificationsModule | `/notifications/sms/*` | Simulation Orange/MTN CM |
+| NotificationsModule | `/notifications/sms/*` | Mise en file SMS (`sms-notifications`) — envoi par `SmsProcessor` |
+| MessagingModule | — | Jetons `SMS_PROVIDER` / `WHATSAPP_PROVIDER` choisis par env ; erreurs définitives vs temporaires ; E.164 +237. Aucun module métier n'importe un fournisseur |
 | ReportsModule | `/reports/*` | Revenus + performance + `/reports/dashboard-stats` (dashboard) |
 | CounterSalesModule | `/counter-sales` | Vente comptoir (pièces sans OT) |
 | SettingsModule | `/settings/workshop`, `/settings/workshop/logo` | Paramètres atelier par garage — GET tous, PATCH/logo ADMIN |

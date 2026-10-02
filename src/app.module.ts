@@ -23,6 +23,7 @@ import { MarketingModule } from './modules/marketing/marketing.module';
 import { SignupModule } from './modules/signup/signup.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { SubscriptionModule } from './modules/subscription/subscription.module';
+import { MessagingModule } from './modules/messaging/messaging.module';
 import { SchedulerService } from './workers/scheduler.service';
 import { SmsProcessor } from './workers/sms.processor';
 import { JwtAuthGuard, PermissionsGuard } from './guards/auth.guard';
@@ -71,6 +72,7 @@ import { AppController } from './app.controller';
     SubscriptionModule,
 
     // 4. Background Jobs (Workers & Schedulers)
+    MessagingModule, // fournisseur SMS/WhatsApp injecté dans SmsProcessor (SMS_PROVIDER)
     BullModule.registerQueue(
       { name: 'sms-notifications' },
       { name: 'stock-alerts' },

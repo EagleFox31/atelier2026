@@ -128,6 +128,7 @@ Chaque lot correspond à une PR, dans l'ordre d'exécution.
 - ajouter une interface `SmsProvider` (`send(phone, text) → { providerId, status }`), avec le simulateur comme implémentation par défaut ;
 - choisir **un agrégateur local** qui couvre Orange **et** MTN avec une seule API, un nom d'expéditeur personnalisé et une facturation en XAF. C'est plus simple à intégrer que deux API d'opérateur, et moins cher que Twilio sur le Cameroun ;
 - comparer 2 ou 3 offres (prix unitaire, délai d'activation du nom d'expéditeur, rapports de remise, paiement Mobile Money), et prévoir un quota mensuel de SMS par forfait pour maîtriser le coût.
+- **#18 ✅ (2026-10-02, `feat/issue-18-messaging-provider`)** : `MessagingModule` (`src/modules/messaging/`) — interfaces `SmsProvider` / `WhatsAppProvider` injectées (`SMS_PROVIDER`, `WHATSAPP_PROVIDER`), choix par `SMS_PROVIDER` (défaut `simulator`, valeur inconnue = arrêt au démarrage), erreurs `PermanentMessagingError` (→ `UnrecoverableError`) / `TemporaryMessagingError` (→ retry BullMQ, FAILED à la dernière tentative), normalisation E.164 +237, `gatewayRef` stocké, clé d'idempotence = id de notification ou de job. `mockSmsGateway` supprimé. Restent : adaptateurs Techsoft (#19) et SmsPro (#20), DLR/historique (#21), WhatsApp réel + webhooks (#22), quotas (#23).
 
 ---
 
