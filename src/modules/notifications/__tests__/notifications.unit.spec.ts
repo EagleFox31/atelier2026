@@ -53,6 +53,7 @@ const buildModule = async (prismaOverrides: Record<string, unknown> = {}) => {
   return {
     service: module.get<NotificationsService>(NotificationsService),
     prisma: prismaMock,
+    queue: queueMock,
   };
 };
 
@@ -210,5 +211,32 @@ describe('getUserIdsByRoles', () => {
 
     const ids = await service.getUserIdsByRoles(['ROLE_INEXISTANT']);
     expect(ids).toEqual([]);
+  });
+});
+
+// ── sendSms (mise en file) ───────────────────────────────────────────────────
+
+describe('sendSms — options de la file sms-notifications', () => {
+  it('met le SMS en file avec relances bornées, rétention et jobId déterministe', async () => {
+    const { service, prisma, queue } = await buildModule();
+    prisma.sMSNotification.create.mockResolvedValue({ id: 'sms-1', status: 'PENDING' });
+
+    await service.sendSms(
+      { phoneTo: '699000001', templateCode: 'VEHICLE_READY', lang: 'fr' } as any,
+      'garage-1',
+      'tenant-1',
+    );
+
+    expect(queue.add).toHaveBeenCalledWith(
+      'VEHICLE_READY',
+      expect.objectContaining({ tenantId: 'tenant-1', notificationId: 'sms-1', phone: '699000001' }),
+      {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 60_000 },
+        removeOnComplete: { age: 7 * 24 * 60 * 60 },
+        removeOnFail: { age: 7 * 24 * 60 * 60 },
+        jobId: 'sms-notification_sms-1',
+      },
+    );
   });
 });

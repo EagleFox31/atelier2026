@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { OTStatus, PartStatus } from '@prisma/client';
@@ -558,6 +559,41 @@ describe('WorkshopService — flux QC', () => {
         body: expect.stringContaining('LT-123-AB'),
       }),
     );
+  });
+
+  it('READY met le SMS « véhicule prêt » en file avec relances et jobId par version, sans numéro en clair dans les logs', async () => {
+    const logSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+    const { service, prismaMock, smsQueueMock } = makeDeps();
+    prismaMock.customer = {
+      findUnique: jest.fn().mockResolvedValue({
+        id: 'cust-1', phonePrimary: '+237699123456', firstName: 'Awa', lastName: 'Ngono', lang: 'fr',
+      }),
+    };
+    prismaMock.serviceOrder.findUnique.mockResolvedValue(makeOT({ status: OTStatus.QC_PENDING, version: 3 }));
+    prismaMock.$executeRaw.mockResolvedValue(1);
+
+    try {
+      await service.updateStatus('ot-1', OTStatus.READY, makeUser(['CHEF_ATELIER']), {});
+      await new Promise((r) => setImmediate(r));
+      await new Promise((r) => setImmediate(r));
+
+      expect(smsQueueMock.add).toHaveBeenCalledWith(
+        'vehicle_ready',
+        expect.objectContaining({ phone: '+237699123456', serviceOrderId: 'ot-1', customerId: 'cust-1' }),
+        {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 60_000 },
+          removeOnComplete: { age: 7 * 24 * 60 * 60 },
+          removeOnFail: { age: 7 * 24 * 60 * 60 },
+          jobId: 'vehicle-ready_ot-1_v4',
+        },
+      );
+      const logged = logSpy.mock.calls.map((call) => String(call[0])).join('\n');
+      expect(logged).toContain('+2376******56');
+      expect(logged).not.toContain('699123456');
+    } finally {
+      logSpy.mockRestore();
+    }
   });
 
   it('QC_REJECTED → IN_PROGRESS (itération qualité)', async () => {

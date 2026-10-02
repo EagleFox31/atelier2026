@@ -195,6 +195,7 @@ describe('Notifications — intégration HTTP', () => {
       expect(queueAddMock).toHaveBeenCalledWith(
         'VEHICLE_READY',
         expect.objectContaining({ phone: '+237690000000', lang: 'en' }),
+        expect.objectContaining({ jobId: 'sms-notification_notif-123', attempts: 3 }),
       );
     });
 
@@ -207,6 +208,7 @@ describe('Notifications — intégration HTTP', () => {
       expect(queueAddMock).toHaveBeenCalledWith(
         'VEHICLE_READY',
         expect.objectContaining({ lang: 'fr' }),
+        expect.objectContaining({ jobId: 'sms-notification_notif-123', attempts: 3 }),
       );
     });
   });
