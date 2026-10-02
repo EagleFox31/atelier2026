@@ -1,5 +1,64 @@
 # Changelog
 
+## [1.10.0](https://github.com/EagleFox31/atelier2026/compare/v1.9.0...v1.10.0) (2026-10-02)
+
+
+### Features
+
+* **auth:** one-time temporary passwords and forced password change screen ([cde86e0](https://github.com/EagleFox31/atelier2026/commit/cde86e0dbf19ed1f3784642553bc625c52aa299f))
+* **billing:** show the Atelier Maître brand unless the plan includes custom branding ([5bdd3a2](https://github.com/EagleFox31/atelier2026/commit/5bdd3a277b5c23e3d67adc68e5c561ad6a069f3b))
+* **billing:** show the Atelier Maître brand unless the plan includes custom branding ([85b5be0](https://github.com/EagleFox31/atelier2026/commit/85b5be01ce71f8bade1e5e6821232113eedb0b02))
+* **messaging:** introduce provider abstraction for SMS and WhatsApp ([481510d](https://github.com/EagleFox31/atelier2026/commit/481510dc93150662944f6da399292c5e264d325b))
+* **messaging:** introduce provider abstraction for SMS and WhatsApp ([4781c07](https://github.com/EagleFox31/atelier2026/commit/4781c07801377768c4d99274d3971d28bcd59f04)), closes [#18](https://github.com/EagleFox31/atelier2026/issues/18)
+* **signup:** send a branded welcome email after workspace creation ([6875938](https://github.com/EagleFox31/atelier2026/commit/68759382dd5f9978a7027109f0938352b7b7c4e6))
+* **signup:** send a branded welcome email after workspace creation ([408d77e](https://github.com/EagleFox31/atelier2026/commit/408d77eb9d397924157f8ebc7fa1fc9f844f3c66))
+* **subscription:** add hosted checkout UI ([93e31c3](https://github.com/EagleFox31/atelier2026/commit/93e31c37f7fa616ddbde89f7f07c529c916ceab2))
+* **subscription:** add hosted checkout UI ([338362b](https://github.com/EagleFox31/atelier2026/commit/338362b7c91c1f9c2af39ce015e9ffdfd0768de2))
+* **subscription:** add NotchPay payment foundation ([023dd0f](https://github.com/EagleFox31/atelier2026/commit/023dd0ff614a73b32b305d2e77f5a9b096f2b674))
+* **subscription:** add NotchPay payment foundation ([001823e](https://github.com/EagleFox31/atelier2026/commit/001823e684cc792c404de21d58f09e4d1e667a69))
+* **subscription:** compute status in memory and expose plan features ([467aac4](https://github.com/EagleFox31/atelier2026/commit/467aac4ef67fa305aef6c78f937475b3891a9b05))
+* **subscription:** compute status in memory and expose plan features ([161d622](https://github.com/EagleFox31/atelier2026/commit/161d6220898514b4c084958714715782e3fc32c0))
+* **subscription:** support separate NotchPay environments ([96783a1](https://github.com/EagleFox31/atelier2026/commit/96783a14f77d9b8a7501a22d24ff1bf076e7af41))
+* **team:** invitation activation page and team invitation UI ([b985b3b](https://github.com/EagleFox31/atelier2026/commit/b985b3b872be7682d9f5960fad6465fb046a47e5))
+* **team:** secure employee invitations by email ([5954fa8](https://github.com/EagleFox31/atelier2026/commit/5954fa8a6c9937ca670725ea4eacebd969303743))
+* **team:** send secure employee invitations by email ([0423cc0](https://github.com/EagleFox31/atelier2026/commit/0423cc05348c92190316e5950cf78d506e34ea7c))
+
+
+### Bug Fixes
+
+* **admin:** keep individually suspended users suspended on tenant reactivation ([6b36d1e](https://github.com/EagleFox31/atelier2026/commit/6b36d1ead205e0864cd0e9982b2638d8c2eeb6d1))
+* **admin:** keep individually suspended users suspended on tenant reactivation ([5d49af8](https://github.com/EagleFox31/atelier2026/commit/5d49af89bc063ac32c3ad374e976639603abf05f))
+* **api:** keep business errorCode in HTTP error responses ([b9db803](https://github.com/EagleFox31/atelier2026/commit/b9db80383b464c3c0e92cb1a037987c718e7b89b))
+* **logs:** ne plus journaliser query string ni arguments Prisma ([8fbe53d](https://github.com/EagleFox31/atelier2026/commit/8fbe53d81f20c6d9ebc9cc2e8a290e17dc3608f3))
+* **messaging:** table d'opérateurs camerounais vérifiée ([a5f673e](https://github.com/EagleFox31/atelier2026/commit/a5f673ece191485558ecc7fede8d2218d42bca1e))
+* **onboarding:** skip hidden tour targets ([f4adcea](https://github.com/EagleFox31/atelier2026/commit/f4adcea464e99549a372323ba918ae3ef0631468))
+* **pwa:** harden stale while revalidate caching ([b3eb59b](https://github.com/EagleFox31/atelier2026/commit/b3eb59b73acfc2cd91d760fec5cc92019bb50b46))
+* **security:** add report-only Content-Security-Policy to the web app ([96f39f6](https://github.com/EagleFox31/atelier2026/commit/96f39f62e910912ea4235670658b0637920d5294))
+* **security:** enable Helmet CSP on the API ([794de61](https://github.com/EagleFox31/atelier2026/commit/794de6189d9e397b6253097554f52b16ff228a5f))
+* **security:** enforce rate limiting across the API (login brute force) ([5a77700](https://github.com/EagleFox31/atelier2026/commit/5a7770058746582596a5d81284be623ddeda89fc))
+* **security:** enforce rate limiting across the API (login brute force) ([10b5841](https://github.com/EagleFox31/atelier2026/commit/10b5841f7ce938311ec74cb27f47e6803c8412c4))
+* **security:** no clear-text passwords, strong temporary passwords, forced change ([94048d6](https://github.com/EagleFox31/atelier2026/commit/94048d65dde949790557da486fd6d0e4bd1a195c))
+* **security:** stop storing passwords in clear text and force changing temporary ones ([96610de](https://github.com/EagleFox31/atelier2026/commit/96610de256469d46f2b5d15c262672a96ef81b4b))
+* **settings:** explain active SMS entitlement ([4d9f59e](https://github.com/EagleFox31/atelier2026/commit/4d9f59ebef96960062464fede428351957096883))
+* **settings:** tailor SMS lock guidance by status ([e94df13](https://github.com/EagleFox31/atelier2026/commit/e94df13aca34185b4b3d536cf8a87058c8af5dc7))
+* **signup:** recover cleanly after lost final response ([7776480](https://github.com/EagleFox31/atelier2026/commit/7776480a70afa3a1e2a91abb7777289185e13a14))
+* **sms:** enforce the SMS entitlement end to end (lot 0 + 2B) ([269c41c](https://github.com/EagleFox31/atelier2026/commit/269c41c2e0b4ccf418b1c825ea236e3936ad4908))
+* **sms:** enforce the SMS entitlement end to end and mark reminders only after delivery ([a7897d1](https://github.com/EagleFox31/atelier2026/commit/a7897d16bb6b4e268d9fbc84a77f95903afec819))
+* **sms:** relances bornées et jobId déterministe pour tous les SMS ([5875dd9](https://github.com/EagleFox31/atelier2026/commit/5875dd966c301e14a9236c6a0fd5479b50c7ad2b))
+* **sms:** verified operator prefixes, bounded retries, no phone numbers in logs ([8320b97](https://github.com/EagleFox31/atelier2026/commit/8320b97875f53ba2ec3a56e2fcd34fbdd101963c))
+* **stock:** process low-stock alerts and compare Decimal quantities correctly ([eede964](https://github.com/EagleFox31/atelier2026/commit/eede964b8ffc6c96c06c77da5c894141ac7c0ae1))
+* **stock:** process low-stock alerts and compare Decimal quantities correctly ([19edd32](https://github.com/EagleFox31/atelier2026/commit/19edd32562ecbb90aa0756e7e0f785a2f106567e))
+* **subscription:** lock tenant row when applying a confirmed payment ([fc24447](https://github.com/EagleFox31/atelier2026/commit/fc24447cfb1137ff7ed4ed50a997d07dfed48145))
+* **subscription:** lock tenant row when applying a confirmed payment ([391d554](https://github.com/EagleFox31/atelier2026/commit/391d55457b1016d5abdfa61fd91b0062ff6d268b))
+* **subscription:** map NotchPay transaction id and merchant reference correctly ([7134b43](https://github.com/EagleFox31/atelier2026/commit/7134b43dd01e9a88865bb42dcf2ebe268fc21240))
+* **subscription:** map NotchPay transaction id and merchant reference correctly ([2035147](https://github.com/EagleFox31/atelier2026/commit/2035147c754e8b5c3094e84ac27af472eea0cb9f))
+* **subscription:** use an existing payment return route ([4dc4e06](https://github.com/EagleFox31/atelier2026/commit/4dc4e06184196972b68c6e0c95e025a4f9f3934b))
+* **ux:** link login labels, clarify locked logo after pilot, one-row settings tabs ([559404d](https://github.com/EagleFox31/atelier2026/commit/559404da51275c09da6e5abc1a27104305530710))
+* **ux:** link login labels, clarify locked logo after pilot, one-row settings tabs ([5e4714e](https://github.com/EagleFox31/atelier2026/commit/5e4714e289df5550bcacca407a1a623be4555db7))
+* **ux:** restore clear pilot and audit labels ([bf21d83](https://github.com/EagleFox31/atelier2026/commit/bf21d83ba3d1f4d6457dc5abd247196bf8605881))
+* **workshop:** keep New OT open on inline customer creation + UX guardrails on PRs (lot 0B) ([1f5a280](https://github.com/EagleFox31/atelier2026/commit/1f5a280358e5cd54634b2093c28b1fa4e55ba0b2))
+* **workshop:** keep the New OT dialog open when creating a customer inline ([18fb122](https://github.com/EagleFox31/atelier2026/commit/18fb122afa59692b699c9ec8dfffeabde9b9946f))
+
 ## [1.9.0](https://github.com/EagleFox31/atelier2026/compare/v1.8.1...v1.9.0) (2026-10-01)
 
 
