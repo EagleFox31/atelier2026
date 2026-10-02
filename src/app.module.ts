@@ -28,16 +28,16 @@ import { SmsProcessor } from './workers/sms.processor';
 import { JwtAuthGuard, PermissionsGuard } from './guards/auth.guard';
 import { SubscriptionGuard } from './guards/subscription.guard';
 import { AppController } from './app.controller';
+import { ClientIpThrottlerGuard } from './shared/security/client-ip-throttler.guard';
+import { GLOBAL_RATE_LIMIT } from './shared/security/rate-limits';
 
 @Module({
   controllers: [AppController],
   imports: [
     // 1. Fondations
     SharedModule,
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
+    // Limite globale généreuse ; limites strictes par route via RATE_LIMITS.
+    ThrottlerModule.forRoot([{ name: 'default', ...GLOBAL_RATE_LIMIT }]),
     ScheduleModule.forRoot(),
     BullModule.forRoot({
       connection: {
@@ -79,7 +79,11 @@ import { AppController } from './app.controller';
   providers: [
     SchedulerService,
     SmsProcessor,
-    // Guards Globaux
+    // Guards Globaux — la limitation de débit passe en premier (avant toute requête en base).
+    {
+      provide: APP_GUARD,
+      useClass: ClientIpThrottlerGuard,
+    },
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,

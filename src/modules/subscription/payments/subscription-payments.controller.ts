@@ -8,6 +8,7 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { CurrentUser, Public, RequireRole } from '../../../decorators/auth.decorator';
 import { CreateSubscriptionCheckoutDto } from './dto/create-subscription-checkout.dto';
 import { SubscriptionPaymentsService } from './subscription-payments.service';
@@ -31,6 +32,7 @@ export class SubscriptionPaymentsController {
   }
 
   @Public()
+  @SkipThrottle() // le prestataire peut notifier en rafale ; requête authentifiée par signature
   @Post('webhooks/notchpay')
   @HttpCode(HttpStatus.OK)
   webhook(

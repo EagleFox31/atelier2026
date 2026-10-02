@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { RATE_LIMITS } from '../../shared/security/rate-limits';
 import { Public } from '../../decorators/auth.decorator';
 import { SignupDto } from './dto/signup.dto';
 import { SignupService } from './signup.service';
@@ -17,7 +18,7 @@ export class SignupController {
   @Public()
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle(RATE_LIMITS.signup)
   register(@Body() body: SignupDto) {
     return this.signup.register(body);
   }

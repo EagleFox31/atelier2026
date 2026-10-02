@@ -1,11 +1,10 @@
-import { Injectable } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { ExecutionContext, HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { ThrottlerGuard, type ThrottlerLimitDetail } from '@nestjs/throttler';
+import { isRateLimitEnabled } from './rate-limits';
 
 /**
- * ThrottlerGuard à appliquer explicitement (@UseGuards) sur les routes publiques sensibles.
- *
- * ThrottlerModule est configuré dans AppModule, mais aucun ThrottlerGuard n'est enregistré
- * globalement : un @Throttle seul n'a AUCUN effet. Ce garde l'active route par route.
+ * Garde GLOBALE de limitation de débit (APP_GUARD dans AppModule, LESSON-2026-009).
+ * Sans elle, les @Throttle n'avaient aucun effet. Limites : src/shared/security/rate-limits.ts.
  *
  * Derrière Caddy, req.ip est l'IP du proxy (même compteur pour tout le monde) : on suit
  * l'IP client transmise dans X-Forwarded-For. On prend l'entrée la plus à droite, celle
@@ -15,6 +14,26 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 export class ClientIpThrottlerGuard extends ThrottlerGuard {
   protected async getTracker(req: Record<string, any>): Promise<string> {
     return clientIpOf(req);
+  }
+
+  protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
+    if (!isRateLimitEnabled()) return true;
+    return super.shouldSkip(context);
+  }
+
+  /** 429 au format métier (errorCode RATE_LIMITED), Retry-After posé par ThrottlerGuard. */
+  protected async throwThrottlingException(
+    _context: ExecutionContext,
+    detail: ThrottlerLimitDetail,
+  ): Promise<void> {
+    throw new HttpException(
+      {
+        message: 'Trop de tentatives. Patientez un instant avant de réessayer.',
+        errorCode: 'RATE_LIMITED',
+        retryAfterSeconds: Math.max(1, Math.ceil(detail.timeToExpire / 1000)),
+      },
+      HttpStatus.TOO_MANY_REQUESTS,
+    );
   }
 }
 
