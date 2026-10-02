@@ -437,4 +437,68 @@ test.describe('Atelier Maître — garde-fous UX/UI/CX', () => {
     await expect(page.getByText('Email ou identifiant employé', { exact: true })).toBeVisible();
     await expect(page.getByText('Email ou code employé', { exact: true })).toHaveCount(0);
   });
+
+  test('les champs du login sont reliés à leur libellé (lecteurs d’écran)', async ({ page }) => {
+    await page.goto('/login');
+    await expect(page.getByLabel('Email ou identifiant employé')).toHaveAttribute('autocomplete', 'username');
+    await expect(page.getByLabel('Mot de passe', { exact: true })).toHaveAttribute('autocomplete', 'current-password');
+  });
+
+  // LESSON-2026-004 répétée (login) : contrôle générique plutôt qu'au cas par cas.
+  for (const path of ['/login', '/forgot-password', '/inscription']) {
+    test(`chaque champ de ${path} a un nom accessible`, async ({ page }) => {
+      await mockPublicSignup(page);
+      await page.goto(path);
+      await page.locator('input:visible').first().waitFor();
+      const unnamed = await page.locator('input:visible, select:visible, textarea:visible').evaluateAll((els) =>
+        els
+          .filter((el) => (el as HTMLInputElement).type !== 'hidden')
+          .filter((el) => {
+            const input = el as HTMLInputElement;
+            return !(input.labels?.length || el.getAttribute('aria-label') || el.getAttribute('aria-labelledby'));
+          })
+          .map((el) => `${el.tagName.toLowerCase()}[type=${(el as HTMLInputElement).type}] placeholder="${(el as HTMLInputElement).placeholder}"`),
+      );
+      expect(unnamed, `champs sans libellé relié sur ${path}`).toEqual([]);
+    });
+  }
+
+  test('après le pilote, le logo verrouillé ne parle plus du pilote en cours', async ({ page }) => {
+    await mockAuthenticatedApp(page, { trial: true });
+    await page.route('**/api/subscription/status', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: 'GRACE_PERIOD',
+          plan: 'pro',
+          trialStartedAt: '2026-09-01T08:00:00.000Z',
+          trialEndsAt: '2026-10-01T08:00:00.000Z',
+          graceEndsAt: '2026-10-08T08:00:00.000Z',
+          subscriptionStartedAt: null,
+          subscriptionEndsAt: null,
+          dataRetentionEndsAt: '2027-01-01T08:00:00.000Z',
+          daysRemaining: 3,
+          readOnly: true,
+          blocked: false,
+          features: { sms: false, branding: false },
+        }),
+      }),
+    );
+    await page.goto('/settings');
+
+    await expect(page.getByText('Logo verrouillé sans forfait actif')).toBeVisible();
+    await expect(page.getByText('Logo verrouillé pendant le pilote')).toHaveCount(0);
+  });
+
+  test('les onglets des paramètres tiennent sur une seule ligne', async ({ page }) => {
+    await mockAuthenticatedApp(page, { trial: true });
+    await page.goto('/settings');
+
+    const first = await page.getByRole('tab', { name: /Atelier/ }).boundingBox();
+    const subscription = page.getByRole('tab', { name: /Abonnement/ });
+    await subscription.scrollIntoViewIfNeeded();
+    const last = await subscription.boundingBox();
+    expect(first && last && Math.abs(first.y - last.y) < 4).toBe(true);
+  });
 });
