@@ -39,3 +39,9 @@ postman/newman-env.json
 deploy/.env.prod
 deploy/legacy/oracle/.env.prod
 atelier2026.tar.gz
+
+# Scripts ponctuels — sorties générées (rapports d'audit, captures d'état, journaux)
+/scripts/*.json
+/scripts/*.txt
+/scripts/archive/*.json
+/scripts/archive/*.txt
