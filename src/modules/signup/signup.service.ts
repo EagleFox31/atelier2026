@@ -12,6 +12,8 @@ import { DEFAULT_WORKSHOP_SETTINGS } from '../settings/settings.service';
 import { SignupDto } from './dto/signup.dto';
 import { SignupEmailService } from './signup-email.service';
 import { generateTempPassword } from '../../shared/security/temp-password';
+import { unusablePassword, type IssuedInvitation } from '../../shared/security/invitation-token';
+import { TeamInvitationService, type InvitationDelivery } from '../team/team-invitation.service';
 import type { WelcomeTeamMember } from './signup-welcome.email';
 
 const ALLOWED_TEAM_ROLES = new Set([
@@ -27,7 +29,10 @@ export type SignupTeamResult = {
   lastName: string;
   email: string | null;
   employeeCode: string;
-  tempPassword: string;
+  /** Membre sans e-mail : mot de passe temporaire affiché une seule fois. */
+  tempPassword?: string;
+  /** Membre avec e-mail : invitation envoyée (jamais de mot de passe). */
+  invitation?: InvitationDelivery;
 };
 
 /**
@@ -52,6 +57,7 @@ export class SignupService {
     private readonly jwtService: JwtService,
     private readonly jwtSecrets: JwtSecretsService,
     private readonly signupEmail: SignupEmailService,
+    private readonly invitations: TeamInvitationService,
   ) {}
 
   isPublicSignupEnabled(): boolean {
@@ -99,6 +105,12 @@ export class SignupService {
     const dataRetentionEndsAt = new Date(trialEndsAt.getTime() + 90 * 24 * 60 * 60 * 1000);
 
     const teamCreated: SignupTeamResult[] = [];
+    const pendingInvitations: Array<{
+      result: SignupTeamResult;
+      userId: string;
+      email: string;
+      invitation: IssuedInvitation;
+    }> = [];
 
     const admin = await this.prisma.$transaction(async (tx) => {
       // 1. Créer le tenant
@@ -182,8 +194,12 @@ export class SignupService {
         const role = await tx.role.findUnique({ where: { code: member.roleCode } });
         if (!role) continue;
 
-        const plainPassword = generateTempPassword();
-        const passwordHash = await bcrypt.hash(plainPassword, 10);
+        // Avec e-mail : invitation (l'employé choisit son mot de passe). Sans : mot de passe
+        // temporaire affiché une seule fois, changement imposé.
+        const memberEmail = member.email?.trim().toLowerCase() || null;
+        const invitation = memberEmail ? this.invitations.issue() : null;
+        const plainPassword = invitation ? null : generateTempPassword();
+        const passwordHash = await bcrypt.hash(plainPassword ?? unusablePassword(), 10);
         const employeeCode = await this.generateEmployeeCode(
           member.firstName,
           member.lastName,
@@ -197,10 +213,11 @@ export class SignupService {
             employeeCode,
             firstName: member.firstName.trim(),
             lastName: member.lastName.trim(),
-            email: member.email?.trim().toLowerCase() || null,
+            email: memberEmail,
             phone: member.phone?.trim() || null,
             passwordHash,
-            mustChangePassword: true,
+            mustChangePassword: !invitation,
+            ...(invitation ? invitation.data : {}),
           },
         });
 
@@ -208,14 +225,18 @@ export class SignupService {
           data: { userId: user.id, roleId: role.id, assignedBy: createdAdmin.id },
         });
 
-        teamCreated.push({
+        const result: SignupTeamResult = {
           roleCode: member.roleCode,
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
           employeeCode,
-          tempPassword: plainPassword,
-        });
+          ...(plainPassword ? { tempPassword: plainPassword } : {}),
+        };
+        teamCreated.push(result);
+        if (invitation && memberEmail) {
+          pendingInvitations.push({ result, userId: user.id, email: memberEmail, invitation });
+        }
       }
 
       return createdAdmin;
@@ -248,6 +269,37 @@ export class SignupService {
         team: toWelcomeTeam(teamCreated),
       });
     }
+
+    // Invitations envoyées après commit (un e-mail ne part jamais pour un compte annulé).
+    // deliver() ne lève pas : un échec est signalé au front, l'admin pourra renvoyer.
+    const shopName = dto.workshop.shopName.trim();
+    const inviter = `${admin.firstName} ${admin.lastName}`.trim();
+    await Promise.all(
+      pendingInvitations.map(async ({ result, userId, email, invitation }) => {
+        const emailStatus = await this.invitations.deliver(
+          {
+            userId,
+            email,
+            firstName: result.firstName,
+            roleCode: result.roleCode,
+            employeeCode: result.employeeCode,
+            workshopName: shopName,
+            invitedByName: inviter,
+          },
+          {
+            token: invitation.token,
+            expiresAt: invitation.data.inviteExpiresAt,
+            sentAt: invitation.data.inviteSentAt,
+          },
+        );
+        result.invitation = {
+          status: 'pending',
+          email,
+          expiresAt: invitation.data.inviteExpiresAt.toISOString(),
+          emailStatus,
+        };
+      }),
+    );
 
     return {
       access_token,

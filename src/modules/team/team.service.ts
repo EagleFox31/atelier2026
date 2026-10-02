@@ -1,12 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { generateTempPassword } from '../../shared/security/temp-password';
+import { invitationStatusOf, unusablePassword } from '../../shared/security/invitation-token';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { assertTeamMemberInGarage, garageWhere, requireGarageId } from '../../shared/garage/garage-scope';
+import { TeamInvitationService, type InvitationDelivery } from './team-invitation.service';
 
 @Injectable()
 export class TeamService {
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private invitations: TeamInvitationService,
+    ) { }
 
     async findAll(search?: string, roleId?: string, garageId?: string | null) {
         const where: any = { deletedAt: null, ...garageWhere(garageId) };
@@ -29,7 +34,7 @@ export class TeamService {
             };
         }
 
-        return this.prisma.user.findMany({
+        const members = await this.prisma.user.findMany({
             where,
             select: {
                 id: true,
@@ -52,9 +57,20 @@ export class TeamService {
                     select: { id: true, reference: true, status: true }
                 },
                 createdAt: true,
+                inviteTokenHash: true,
+                inviteExpiresAt: true,
+                inviteSentAt: true,
+                inviteAcceptedAt: true,
             },
             orderBy: { firstName: 'asc' },
         });
+
+        // Statut d'invitation dérivé ; l'empreinte du jeton ne quitte jamais l'API.
+        const now = new Date();
+        return members.map(({ inviteTokenHash, ...member }) => ({
+            ...member,
+            invitationStatus: invitationStatusOf({ ...member, inviteTokenHash }, now),
+        }));
     }
 
     async findOne(id: string, garageId?: string | null) {
@@ -90,13 +106,22 @@ export class TeamService {
         return user;
     }
 
-    async create(data: { firstName: string; lastName: string; email?: string; phone?: string; roleCode?: string; specialty?: string; password?: string; garageId?: string; tenantId?: string }) {
+    async create(data: {
+        firstName: string; lastName: string; email?: string; phone?: string; roleCode?: string;
+        specialty?: string; password?: string; garageId?: string; tenantId?: string;
+        invitedBy?: { firstName?: string | null; lastName?: string | null };
+    }) {
         const g = requireGarageId(data.garageId);
         const tenantId = data.tenantId;
-        // Mot de passe défini par un tiers (ADMIN ou généré) : jamais stocké en clair,
+        const email = data.email?.trim().toLowerCase() || undefined;
+        // Avec e-mail (et sans mot de passe imposé par l'appelant) : invitation, l'employé
+        // choisit lui-même son mot de passe. Le compte reçoit un mot de passe aléatoire
+        // jamais communiqué : aucune connexion possible avant l'acceptation.
+        const invitation = email && !data.password ? this.invitations.issue() : null;
+        // Sinon, mot de passe défini par un tiers (ADMIN ou généré) : jamais stocké en clair,
         // renvoyé une seule fois, changement imposé à la première connexion.
-        const plainPassword = data.password ?? generateTempPassword();
-        const passwordHash = await bcrypt.hash(plainPassword, 10);
+        const plainPassword = invitation ? null : (data.password ?? generateTempPassword());
+        const passwordHash = await bcrypt.hash(plainPassword ?? unusablePassword(), 10);
         const employeeCode = await this.generateEmployeeCode(data.firstName, data.lastName);
 
         const user = await this.prisma.user.create({
@@ -104,13 +129,14 @@ export class TeamService {
                 employeeCode,
                 firstName: data.firstName,
                 lastName: data.lastName,
-                email: data.email,
+                email,
                 phone: data.phone,
                 specialty: data.specialty,
                 passwordHash,
-                mustChangePassword: true,
+                mustChangePassword: !invitation,
                 garageId: g,
                 ...(tenantId ? { tenantId } : {}),
+                ...(invitation ? invitation.data : {}),
             },
             select: { id: true, employeeCode: true, firstName: true, lastName: true, email: true, phone: true, status: true, specialty: true },
         });
@@ -122,8 +148,36 @@ export class TeamService {
             }
         }
 
+        if (invitation && email) {
+            const garage = await this.prisma.garage.findFirst({ where: { id: g }, select: { name: true } });
+            const inviter = [data.invitedBy?.firstName, data.invitedBy?.lastName].filter(Boolean).join(' ') || null;
+            const emailStatus = await this.invitations.deliver(
+                {
+                    userId: user.id,
+                    email,
+                    firstName: data.firstName,
+                    roleCode: data.roleCode ?? null,
+                    employeeCode,
+                    workshopName: garage?.name ?? 'votre atelier',
+                    invitedByName: inviter,
+                },
+                {
+                    token: invitation.token,
+                    expiresAt: invitation.data.inviteExpiresAt,
+                    sentAt: invitation.data.inviteSentAt,
+                },
+            );
+            const delivery: InvitationDelivery = {
+                status: 'pending',
+                email,
+                expiresAt: invitation.data.inviteExpiresAt.toISOString(),
+                emailStatus,
+            };
+            return { ...user, invitation: delivery };
+        }
+
         // Affichage unique côté front (contrat de réponse « tempPassword » conservé).
-        return { ...user, tempPassword: plainPassword };
+        return { ...user, tempPassword: plainPassword as string };
     }
 
     async resetPassword(id: string, password?: string, garageId?: string | null) {
@@ -138,6 +192,9 @@ export class TeamService {
                 passwordResetRequestedAt: null,
                 // Les sessions ouvertes avec l'ancien mot de passe sont révoquées.
                 tokenVersion: { increment: 1 },
+                // Repli sur le mot de passe temporaire : un lien d'invitation en cours devient invalide.
+                inviteTokenHash: null,
+                inviteExpiresAt: null,
             },
             select: { id: true, employeeCode: true, firstName: true, lastName: true },
         });
@@ -165,7 +222,15 @@ export class TeamService {
     }
 
     async update(id: string, data: any, garageId?: string | null) {
-        await this.findOne(id, garageId);
+        const current = await this.findOne(id, garageId);
+        if (data?.email !== undefined && data.email !== current.email) {
+            // Adresse modifiée : le lien envoyé à l'ancienne adresse ne doit plus servir.
+            const now = new Date();
+            await this.prisma.user.updateMany({
+                where: { id, inviteAcceptedAt: null, inviteTokenHash: { not: null }, inviteExpiresAt: { gt: now } },
+                data: { inviteExpiresAt: now },
+            });
+        }
         return this.prisma.user.update({
             where: { id },
             data,

@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { teamApi } from "@/lib/api";
+import { teamApi, type InvitationDelivery } from "@/lib/api";
 import { OneTimeCredentials } from "@/components/team/OneTimeCredentials";
+import { InvitationSent } from "@/components/team/InvitationControls";
 import { useAuth } from "@/contexts/auth-context";
 import {
   ShieldCheck, Wrench, Settings, UserCheck,
@@ -164,8 +165,13 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
   const [step, setStep]               = useState(0);
   const [selectedRole, setRole]       = useState<RoleCode | null>(null);
   const [submitting, setSubmitting]   = useState(false);
-  // Mot de passe temporaire généré PAR LE SERVEUR, affiché une seule fois après création.
-  const [created, setCreated] = useState<{ name: string; employeeCode: string | null; tempPassword: string } | null>(null);
+  // Avec e-mail : invitation envoyée (aucun mot de passe). Sans : mot de passe temporaire
+  // généré PAR LE SERVEUR, affiché une seule fois après création.
+  const [created, setCreated] = useState<
+    | { kind: 'password'; name: string; employeeCode: string | null; tempPassword: string }
+    | { kind: 'invitation'; name: string; employeeCode: string | null; delivery: InvitationDelivery }
+    | null
+  >(null);
   const [duplicates, setDuplicates]   = useState<any[]>([]);
   const [checkingDup, setCheckingDup] = useState(false);
 
@@ -195,13 +201,14 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
         email:     info.email     || undefined,
         specialty: info.specialty || undefined,
         roleCode:  selectedRole,
-      }) as { employeeCode: string | null; tempPassword: string };
+      }) as { employeeCode: string | null; tempPassword?: string; invitation?: InvitationDelivery };
       toast.success('Compte créé');
-      setCreated({
-        name: `${info.firstName} ${info.lastName}`,
-        employeeCode: created.employeeCode,
-        tempPassword: created.tempPassword,
-      });
+      const name = `${info.firstName} ${info.lastName}`;
+      if (created.invitation) {
+        setCreated({ kind: 'invitation', name, employeeCode: created.employeeCode, delivery: created.invitation });
+      } else {
+        setCreated({ kind: 'password', name, employeeCode: created.employeeCode, tempPassword: created.tempPassword ?? '' });
+      }
     } catch {
       toast.error("Erreur lors de la création");
     } finally {
@@ -210,17 +217,25 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
   }
 
   if (created) {
-    return (
+    const done = () => {
+      setCreated(null);
+      infoForm.reset();
+      setStep(0); setRole(null);
+      onSuccess?.();
+    };
+    return created.kind === 'invitation' ? (
+      <InvitationSent
+        name={created.name}
+        employeeCode={created.employeeCode}
+        delivery={created.delivery}
+        onDone={done}
+      />
+    ) : (
       <OneTimeCredentials
         name={created.name}
         employeeCode={created.employeeCode}
         tempPassword={created.tempPassword}
-        onDone={() => {
-          setCreated(null);
-          infoForm.reset();
-          setStep(0); setRole(null);
-          onSuccess?.();
-        }}
+        onDone={done}
       />
     );
   }
@@ -362,6 +377,7 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
               { label: 'Nom complet', value: `${infoForm.getValues('firstName')} ${infoForm.getValues('lastName')}` },
               ...(infoForm.getValues('specialty') ? [{ label: 'Spécialité', value: infoForm.getValues('specialty')! }] : []),
               ...(infoForm.getValues('phone') ? [{ label: 'Téléphone', value: infoForm.getValues('phone')! }] : []),
+              ...(infoForm.getValues('email') ? [{ label: 'Email', value: infoForm.getValues('email')! }] : []),
               { label: 'Identifiant', value: previewCode ?? '' },
             ].map(({ label, value }) => (
               <div key={label} className="flex items-center justify-between px-4 py-2.5">
@@ -372,10 +388,18 @@ export function TeamMemberForm({ onSuccess }: TeamMemberFormProps) {
 
           </div>
 
-          <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 leading-relaxed">
-            Un mot de passe temporaire sera généré à la création et affiché <strong>une seule fois</strong>.
-            La personne devra choisir son propre mot de passe à sa première connexion.
-          </p>
+          {infoForm.getValues('email') ? (
+            <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 leading-relaxed">
+              Une invitation sera envoyée à <strong>{infoForm.getValues('email')}</strong> : la personne choisira
+              elle-même son mot de passe via un lien valable 72 heures. Aucun mot de passe ne vous sera affiché.
+            </p>
+          ) : (
+            <p className="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 leading-relaxed">
+              Un mot de passe temporaire sera généré à la création et affiché <strong>une seule fois</strong>.
+              La personne devra choisir son propre mot de passe à sa première connexion.
+              Ajoutez un e-mail pour lui envoyer plutôt une invitation.
+            </p>
+          )}
 
           {/* Alerte doublons */}
           {checkingDup && (

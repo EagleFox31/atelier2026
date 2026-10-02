@@ -2,6 +2,9 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { TeamController } from '../../modules/team/team.controller';
 import { TeamService } from '../../modules/team/team.service';
+import { TeamInvitationService } from '../../modules/team/team-invitation.service';
+import { AuthService } from '../../modules/auth/auth.service';
+import { TransactionalEmailService } from '../../shared/email/transactional-email.service';
 import {
   createTestApp,
   makeDbUser,
@@ -42,7 +45,9 @@ function makeTeamPrismaMock() {
       ...base.user,
       findMany: jest.fn().mockResolvedValue([]),
       create: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
+    garage:   { findFirst: jest.fn().mockResolvedValue({ name: 'Garage Test' }) },
     role:     { findUnique: jest.fn() },
     userRole: {
       create:     jest.fn(),
@@ -70,7 +75,12 @@ describe('Team — contrats de réponse HTTP', () => {
     prisma.user.findUnique.mockImplementation(mockUsers);
     ({ app } = await createTestApp({
       controllers: [TeamController],
-      extraProviders: [TeamService],
+      extraProviders: [
+        TeamService,
+        TeamInvitationService,
+        AuthService,
+        { provide: TransactionalEmailService, useValue: { send: jest.fn().mockResolvedValue('sent') } },
+      ],
       prismaOverride: prisma,
     }));
   });
@@ -207,6 +217,30 @@ describe('Team — contrats de réponse HTTP', () => {
       expect(res.body).not.toHaveProperty('passwordHash');
     });
 
+    it('201 — avec e-mail : invitation en attente, jamais de mot de passe ni d’empreinte de jeton', async () => {
+      prisma.user.create.mockResolvedValue({
+        id: MEMBER_ID, employeeCode: 'marie.nkolo',
+        firstName: 'Marie', lastName: 'Nkolo',
+        email: 'marie@atelier.cm', phone: null, status: 'ACTIVE',
+      });
+
+      const res = await request(app.getHttpServer())
+        .post('/api/team')
+        .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
+        .send({ firstName: 'Marie', lastName: 'Nkolo', email: 'marie@atelier.cm', roleCode: 'TECHNICIEN' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.invitation).toMatchObject({
+        status: 'pending',
+        email: 'marie@atelier.cm',
+        expiresAt: expect.any(String),
+        emailStatus: expect.stringMatching(/^(sent|skipped|failed)$/),
+      });
+      expect(res.body).not.toHaveProperty('tempPassword');
+      const written = prisma.user.create.mock.calls[0][0].data;
+      expect(JSON.stringify(res.body)).not.toContain(written.inviteTokenHash);
+    });
+
     it('400 validation — firstName manquant → message[] contient "firstName"', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/team')
@@ -217,6 +251,63 @@ describe('Team — contrats de réponse HTTP', () => {
       expect(res.body.errorCode).toBe('Bad Request');
       expect(Array.isArray(res.body.message)).toBe(true);
       expect(res.body.message.some((m: string) => m.includes('firstName'))).toBe(true);
+    });
+  });
+
+  // ── POST /api/team/:id/invite ──────────────────────────────────────────────
+
+  describe('POST /api/team/:id/invite', () => {
+    const invitable = {
+      id: MEMBER_ID, email: 'jean.tech@atelier.cm', firstName: 'Jean', employeeCode: 'jean.tech',
+      status: 'ACTIVE', inviteAcceptedAt: null, garage: { name: 'Garage Test' },
+      roles: [{ role: { code: 'TECHNICIEN' } }],
+    };
+
+    it('403 — CHEF_ATELIER ne peut pas renvoyer une invitation', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/api/team/${MEMBER_ID}/invite`)
+        .set('Authorization', `Bearer ${CHEF_TOKEN}`);
+
+      expect(res.status).toBe(403);
+    });
+
+    it('404 — membre d’un autre garage (IDOR masqué)', async () => {
+      prisma.user.findFirst.mockResolvedValue(null);
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/team/${MEMBER_ID}/invite`)
+        .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
+
+      expect(res.status).toBe(404);
+    });
+
+    it('201 — nouveau jeton (l’ancien est remplacé), aucun secret dans la réponse', async () => {
+      prisma.user.findFirst.mockResolvedValue(invitable);
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/team/${MEMBER_ID}/invite`)
+        .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
+
+      expect(res.status).toBe(201);
+      expect(res.body).toMatchObject({ status: 'pending', email: 'jean.tech@atelier.cm' });
+      const { data } = prisma.user.update.mock.calls.at(-1)![0];
+      expect(data.inviteTokenHash).toMatch(/^[0-9a-f]{64}$/);
+      expect(JSON.stringify(res.body)).not.toContain(data.inviteTokenHash);
+    });
+
+    it.each([
+      [{ email: null }, 400, 'INVITATION_NO_EMAIL'],
+      [{ inviteAcceptedAt: new Date() }, 409, 'INVITATION_ALREADY_ACCEPTED'],
+      [{ status: 'SUSPENDED' }, 409, 'INVITATION_USER_INACTIVE'],
+    ])('refus %o → %i %s (code métier dans le corps HTTP)', async (override, status, errorCode) => {
+      prisma.user.findFirst.mockResolvedValue({ ...invitable, ...override });
+
+      const res = await request(app.getHttpServer())
+        .post(`/api/team/${MEMBER_ID}/invite`)
+        .set('Authorization', `Bearer ${ADMIN_TOKEN}`);
+
+      expect(res.status).toBe(status);
+      expect(res.body.errorCode).toBe(errorCode);
     });
   });
 

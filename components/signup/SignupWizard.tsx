@@ -372,6 +372,8 @@ export function SignupWizard() {
   }
 
   if (step === 4 && teamCreated) {
+    const withPassword = teamCreated.filter((m) => m.tempPassword);
+    const invited = teamCreated.filter((m) => m.invitation);
     return (
       <div className="mx-auto max-w-lg space-y-6">
         <div className="text-center">
@@ -379,14 +381,24 @@ export function SignupWizard() {
             <CheckCircle2 className="h-8 w-8 text-[var(--afrique-forest)]" />
           </div>
           <h2 className="mt-4 text-2xl font-bold text-slate-800">Comptes équipe créés</h2>
-          <p className="mt-2 text-sm text-slate-600">
-            Communiquez ces identifiants à votre équipe (mot de passe temporaire).
-          </p>
-          <p className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-700">
-            Ces mots de passe ne sont <strong>affichés qu’une seule fois</strong> et ne sont envoyés nulle part.
-            Chaque membre devra choisir son propre mot de passe à sa première connexion. En cas d’oubli,
-            vous pourrez en générer un nouveau depuis Équipe.
-          </p>
+          {invited.length > 0 && (
+            <p className="mt-2 text-sm text-slate-600">
+              Les membres avec une adresse e-mail reçoivent une invitation pour choisir eux-mêmes leur mot de passe
+              (lien valable 72 heures).
+            </p>
+          )}
+          {withPassword.length > 0 && (
+            <>
+              <p className="mt-2 text-sm text-slate-600">
+                Communiquez ces identifiants aux membres sans e-mail (mot de passe temporaire).
+              </p>
+              <p className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-700">
+                Ces mots de passe ne sont <strong>affichés qu’une seule fois</strong> et ne sont envoyés nulle part.
+                Chaque membre devra choisir son propre mot de passe à sa première connexion. En cas d’oubli,
+                vous pourrez en générer un nouveau depuis Équipe.
+              </p>
+            </>
+          )}
         </div>
         <ul className="space-y-3">
           {teamCreated.map((m) => (
@@ -400,23 +412,41 @@ export function SignupWizard() {
                   ({SIGNUP_TEAM_ROLES.find((r) => r.code === m.roleCode)?.label})
                 </span>
               </p>
-              <p className="mt-1 font-mono text-xs text-slate-600">
-                Identifiant : {m.employeeCode} · Mot de passe temporaire : {m.tempPassword}
-              </p>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="mt-2 h-8 gap-1 text-brand"
-                onClick={() => {
-                  void navigator.clipboard.writeText(
-                    `${m.firstName} ${m.lastName}\nIdentifiant: ${m.employeeCode}\nMot de passe temporaire: ${m.tempPassword}`,
-                  );
-                  toast.success('Copié');
-                }}
-              >
-                <Copy className="h-3.5 w-3.5" /> Copier
-              </Button>
+              {m.invitation ? (
+                <p
+                  className={
+                    m.invitation.emailStatus === 'sent'
+                      ? 'mt-1 text-xs text-[var(--afrique-forest)]'
+                      : 'mt-1 text-xs text-amber-700'
+                  }
+                >
+                  <span className="font-mono text-slate-600">Identifiant : {m.employeeCode}</span>
+                  {' · '}
+                  {m.invitation.emailStatus === 'sent'
+                    ? `Invitation envoyée à ${m.invitation.email}`
+                    : `Invitation non envoyée à ${m.invitation.email} : renvoyez-la depuis Équipe ou générez un mot de passe temporaire.`}
+                </p>
+              ) : (
+                <>
+                  <p className="mt-1 font-mono text-xs text-slate-600">
+                    Identifiant : {m.employeeCode} · Mot de passe temporaire : {m.tempPassword}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 h-8 gap-1 text-brand"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(
+                        `${m.firstName} ${m.lastName}\nIdentifiant: ${m.employeeCode}\nMot de passe temporaire: ${m.tempPassword}`,
+                      );
+                      toast.success('Copié');
+                    }}
+                  >
+                    <Copy className="h-3.5 w-3.5" /> Copier
+                  </Button>
+                </>
+              )}
             </li>
           ))}
         </ul>

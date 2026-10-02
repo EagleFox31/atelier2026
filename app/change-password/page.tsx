@@ -2,68 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, KeyRound, Loader2, LogOut, ShieldCheck } from 'lucide-react';
+import { KeyRound, Loader2, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { PasswordStrengthIndicator } from '@/components/signup/PasswordStrengthIndicator';
+import { NewPasswordFields, PasswordField, isNewPasswordReady } from '@/components/auth/NewPasswordFields';
 import { useAuth } from '@/contexts/auth-context';
 import { ApiError, authApi, handleApiError } from '@/lib/api';
 import { getDefaultHomeRoute } from '@/lib/role-routing';
-import { cn } from '@/lib/utils';
-
-/** Mêmes règles que ChangePasswordDto côté API. */
-const RULES = [
-  { label: '10 caractères minimum', test: (p: string) => p.length >= 10 },
-  { label: 'Au moins une lettre', test: (p: string) => /[A-Za-zÀ-ÿ]/.test(p) },
-  { label: 'Au moins un chiffre', test: (p: string) => /\d/.test(p) },
-];
-
-function PasswordField({
-  id,
-  label,
-  value,
-  onChange,
-  autoComplete,
-  disabled,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  autoComplete: string;
-  disabled: boolean;
-}) {
-  const [visible, setVisible] = useState(false);
-  return (
-    <div className="space-y-1.5">
-      <label htmlFor={id} className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-        {label}
-      </label>
-      <div className="relative">
-        <Input
-          id={id}
-          type={visible ? 'text' : 'password'}
-          autoComplete={autoComplete}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={disabled}
-          className="h-11 bg-muted border-border focus-visible:ring-brand pr-11"
-          required
-        />
-        <button
-          type="button"
-          onClick={() => setVisible((v) => !v)}
-          aria-label={visible ? `Masquer : ${label}` : `Afficher : ${label}`}
-          className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-muted-foreground hover:text-foreground"
-        >
-          {visible ? <EyeOff size={18} /> : <Eye size={18} />}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default function ChangePasswordPage() {
   const router = useRouter();
@@ -75,9 +21,7 @@ export default function ChangePasswordPage() {
   const [confirm, setConfirm] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const rulesOk = RULES.every((r) => r.test(next));
-  const matches = next.length > 0 && next === confirm;
-  const canSubmit = current.length > 0 && rulesOk && matches && !submitting;
+  const canSubmit = current.length > 0 && isNewPasswordReady(next, confirm) && !submitting;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -142,42 +86,13 @@ export default function ChangePasswordPage() {
                 autoComplete="current-password"
                 disabled={submitting}
               />
-              <div className="space-y-2">
-                <PasswordField
-                  id="new-password"
-                  label="Nouveau mot de passe"
-                  value={next}
-                  onChange={setNext}
-                  autoComplete="new-password"
-                  disabled={submitting}
-                />
-                <PasswordStrengthIndicator password={next} />
-                <ul className="space-y-1 pt-1" aria-live="polite">
-                  {RULES.map((rule) => {
-                    const ok = rule.test(next);
-                    return (
-                      <li
-                        key={rule.label}
-                        className={cn('flex items-center gap-2 text-xs', ok ? 'text-green-600' : 'text-muted-foreground')}
-                      >
-                        <ShieldCheck size={14} className={ok ? 'opacity-100' : 'opacity-40'} aria-hidden />
-                        {rule.label}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-              <PasswordField
-                id="confirm-password"
-                label="Confirmer le nouveau mot de passe"
-                value={confirm}
-                onChange={setConfirm}
-                autoComplete="new-password"
+              <NewPasswordFields
+                value={next}
+                confirm={confirm}
+                onChange={setNext}
+                onConfirmChange={setConfirm}
                 disabled={submitting}
               />
-              {confirm.length > 0 && !matches && (
-                <p className="text-xs text-destructive" role="alert">Les deux mots de passe ne correspondent pas.</p>
-              )}
 
               <Button
                 type="submit"

@@ -2,6 +2,9 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { TeamController } from '../../modules/team/team.controller';
 import { TeamService } from '../../modules/team/team.service';
+import { TeamInvitationService } from '../../modules/team/team-invitation.service';
+import { AuthService } from '../../modules/auth/auth.service';
+import { TransactionalEmailService } from '../../shared/email/transactional-email.service';
 import {
   createTestApp,
   makeDbUser,
@@ -55,7 +58,12 @@ describe('Team — intégration HTTP', () => {
 
     ({ app } = await createTestApp({
       controllers: [TeamController],
-      extraProviders: [TeamService],
+      extraProviders: [
+        TeamService,
+        TeamInvitationService,
+        AuthService,
+        { provide: TransactionalEmailService, useValue: { send: jest.fn().mockResolvedValue('sent') } },
+      ],
       prismaOverride: prisma,
     }));
   });

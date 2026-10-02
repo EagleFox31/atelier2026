@@ -1,6 +1,7 @@
 const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
 import { NotFoundException } from '@nestjs/common';
 import { TeamService } from '../team.service';
+import { issueInvitation } from '../../../shared/security/invitation-token';
 
 jest.mock('bcrypt', () => ({ hash: jest.fn().mockResolvedValue('hashed-password') }));
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -14,7 +15,9 @@ function makeDeps() {
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
+    garage: { findFirst: jest.fn().mockResolvedValue({ name: 'Garage Akwa' }) },
     role: { findUnique: jest.fn() },
     userRole: {
       create: jest.fn(),
@@ -22,8 +25,12 @@ function makeDeps() {
     },
     $queryRaw: jest.fn(),
   };
-  const service = new TeamService(prismaMock as any);
-  return { service, prismaMock };
+  const invitationsMock = {
+    issue: jest.fn(() => issueInvitation(new Date('2026-10-02T09:00:00.000Z'))),
+    deliver: jest.fn().mockResolvedValue('sent'),
+  };
+  const service = new TeamService(prismaMock as any, invitationsMock as any);
+  return { service, prismaMock, invitationsMock };
 }
 
 describe('TeamService', () => {
@@ -218,7 +225,7 @@ describe('TeamService', () => {
       const data = prismaMock.user.create.mock.calls[0][0].data;
       expect(data).not.toHaveProperty('tempPassword');
       expect(data.mustChangePassword).toBe(true);
-      expect(result.tempPassword).toBe(hashed); // affichage unique côté front
+      expect((result as { tempPassword?: string }).tempPassword).toBe(hashed); // affichage unique côté front
     });
 
     it('réinitialisation : rien en clair, changement imposé, sessions révoquées, mot de passe renvoyé une fois', async () => {
@@ -278,6 +285,96 @@ describe('TeamService', () => {
       expect(call.select.email).toBe(true);
       expect(call.select.phone).toBe(true);
       expect(call.select.status).toBe(true);
+    });
+  });
+
+  describe('invitations (#15)', () => {
+    it('avec e-mail : invitation envoyée, aucun mot de passe renvoyé, compte inutilisable avant acceptation', async () => {
+      const { service, prismaMock, invitationsMock } = makeDeps();
+      prismaMock.user.findUnique.mockResolvedValue(null);
+      prismaMock.user.create.mockResolvedValue({ id: 'u-1', employeeCode: 'marie.nkolo' });
+
+      const result = await service.create({
+        firstName: 'Marie', lastName: 'Nkolo', email: '  Marie@Garage.CM ', roleCode: 'TECHNICIEN',
+        garageId: TEST_GARAGE_ID, invitedBy: { firstName: 'Jennifer', lastName: 'Admin' },
+      });
+
+      const data = prismaMock.user.create.mock.calls[0][0].data;
+      expect(data.email).toBe('marie@garage.cm');
+      expect(data.mustChangePassword).toBe(false);
+      expect(data.inviteTokenHash).toMatch(/^[0-9a-f]{64}$/);
+      expect(data.inviteExpiresAt.getTime() - data.inviteSentAt.getTime()).toBe(72 * 3600 * 1000);
+      expect(data).not.toHaveProperty('tempPassword');
+      // Mot de passe de remplissage aléatoire (43 car. base64url), jamais renvoyé.
+      expect(bcrypt.hash.mock.calls[bcrypt.hash.mock.calls.length - 1][0]).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      expect(result).not.toHaveProperty('tempPassword');
+      expect(result).toMatchObject({ invitation: { status: 'pending', email: 'marie@garage.cm', emailStatus: 'sent' } });
+      expect(JSON.stringify(result)).not.toContain(data.inviteTokenHash);
+
+      const [recipient, sent] = invitationsMock.deliver.mock.calls[0];
+      expect(recipient).toMatchObject({ userId: 'u-1', email: 'marie@garage.cm', workshopName: 'Garage Akwa', invitedByName: 'Jennifer Admin', roleCode: 'TECHNICIEN' });
+      expect(sent.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    });
+
+    it('sans e-mail : repli sur le mot de passe temporaire affiché une fois', async () => {
+      const { service, prismaMock, invitationsMock } = makeDeps();
+      prismaMock.user.findUnique.mockResolvedValue(null);
+      prismaMock.user.create.mockResolvedValue({ id: 'u-1' });
+
+      const result = await service.create({ firstName: 'Paul', lastName: 'Tech', email: '', garageId: TEST_GARAGE_ID });
+
+      expect(invitationsMock.issue).not.toHaveBeenCalled();
+      expect(invitationsMock.deliver).not.toHaveBeenCalled();
+      expect(prismaMock.user.create.mock.calls[0][0].data).toMatchObject({ mustChangePassword: true, email: undefined });
+      expect(result).toHaveProperty('tempPassword');
+    });
+
+    it('findAll expose invitationStatus dérivé et jamais l’empreinte du jeton', async () => {
+      const { service, prismaMock } = makeDeps();
+      const future = new Date(Date.now() + 3600_000);
+      const past = new Date(Date.now() - 3600_000);
+      prismaMock.user.findMany.mockResolvedValue([
+        { id: 'a', inviteTokenHash: null, inviteExpiresAt: null, inviteAcceptedAt: null },
+        { id: 'b', inviteTokenHash: 'h1', inviteExpiresAt: future, inviteAcceptedAt: null },
+        { id: 'c', inviteTokenHash: 'h2', inviteExpiresAt: past, inviteAcceptedAt: null },
+        { id: 'd', inviteTokenHash: 'h3', inviteExpiresAt: past, inviteAcceptedAt: past },
+      ]);
+
+      const members = await service.findAll(undefined, undefined, TEST_GARAGE_ID);
+
+      expect(members.map((m: any) => m.invitationStatus)).toEqual(['none', 'pending', 'expired', 'accepted']);
+      members.forEach((m: any) => expect(m).not.toHaveProperty('inviteTokenHash'));
+    });
+
+    it('réinitialisation du mot de passe : le lien d’invitation en cours devient invalide', async () => {
+      const { service, prismaMock } = makeDeps();
+      prismaMock.user.update.mockResolvedValue({ id: 'u-1' });
+
+      await service.resetPassword('u-1', undefined, TEST_GARAGE_ID);
+
+      expect(prismaMock.user.update.mock.calls[0][0].data).toMatchObject({ inviteTokenHash: null, inviteExpiresAt: null });
+    });
+
+    it('changement d’e-mail : l’invitation envoyée à l’ancienne adresse expire', async () => {
+      const { service, prismaMock } = makeDeps();
+      prismaMock.user.findFirst.mockResolvedValue({ id: 'u-1', email: 'old@garage.cm' });
+      prismaMock.user.update.mockResolvedValue({ id: 'u-1' });
+
+      await service.update('u-1', { email: 'new@garage.cm' }, TEST_GARAGE_ID);
+
+      const { where, data } = prismaMock.user.updateMany.mock.calls[0][0];
+      expect(where).toMatchObject({ id: 'u-1', inviteAcceptedAt: null });
+      expect(data.inviteExpiresAt).toBeInstanceOf(Date);
+    });
+
+    it('e-mail inchangé : aucune invalidation', async () => {
+      const { service, prismaMock } = makeDeps();
+      prismaMock.user.findFirst.mockResolvedValue({ id: 'u-1', email: 'same@garage.cm' });
+      prismaMock.user.update.mockResolvedValue({ id: 'u-1' });
+
+      await service.update('u-1', { email: 'same@garage.cm', phone: '699' }, TEST_GARAGE_ID);
+
+      expect(prismaMock.user.updateMany).not.toHaveBeenCalled();
     });
   });
 

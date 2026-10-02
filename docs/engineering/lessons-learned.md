@@ -282,3 +282,31 @@ Un secret ne se stocke jamais réversiblement « pour le revoir plus tard » : o
 
 **Principe dérivé / changement de standard**
 Règle n° 23 (CLAUDE.md). Suite logique : invitations par lien à usage unique (issue #15), qui supprimeront aussi l'affichage du mot de passe temporaire.
+
+### LESSON-2026-009 — `@Throttle` sans `ThrottlerGuard` : aucune limitation de débit
+
+- **Date** : 2026-10-02
+- **Catégorie** : `security` · `testing`
+- **Statut** : prevention-added
+- **Lié à** : issue #15 (branche `feat/issue-15-team-invitations`)
+
+**Contexte**
+`ThrottlerModule.forRoot` est configuré dans `AppModule` et l'inscription publique porte `@Throttle({ limit: 5 })` ; on pensait le throttler « global ».
+
+**Échec / near miss**
+En ajoutant les routes publiques d'invitation, constat qu'aucun `ThrottlerGuard` n'est enregistré (ni `APP_GUARD`, ni `@UseGuards`) : les `@Throttle` ne font rien. L'inscription publique n'a donc jamais été limitée. Un test HTTP (6 tentatives → 429) échoue bien sans le garde (contre-épreuve faite).
+
+**Cause racine**
+Le décorateur ne fait que poser des métadonnées ; c'est le garde qui applique la limite. Aucun test ne vérifiait un 429.
+
+**Résolution**
+`ClientIpThrottlerGuard` (`src/shared/security/`), appliqué par `@UseGuards` sur `/public/invitations`. Il suit l'IP client transmise par Caddy (`X-Forwarded-For`, entrée la plus à droite) : sans cela, derrière le proxy, tous les utilisateurs partageraient le même compteur.
+
+**Prévention**
+Test de contrat `invitations.contract.spec.ts` : la 6e tentative par IP reçoit 429, une autre IP non. Note dans CLAUDE.md (multi-tenant & abonnement).
+
+**Leçon généralisée**
+Un mécanisme de sécurité déclaratif (décorateur, annotation) se prouve par un test de son effet observable, pas par sa présence dans le code.
+
+**Principe dérivé / changement de standard**
+Toute route publique sensible porte `@UseGuards(ClientIpThrottlerGuard)` + `@Throttle`, avec un test 429. À faire hors #15 : appliquer le garde à `/public/signup` (et `/auth/login`, `/auth/forgot-password`) après vérification de l'impact sur la QA.

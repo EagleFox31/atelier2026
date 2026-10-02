@@ -127,7 +127,7 @@ describe('SignupEmailService', () => {
   ])('ne lève jamais (%s) et ne journalise pas la clé', async (_label, arrange) => {
     arrange();
     const service = new SignupEmailService();
-    const warn = jest.spyOn((service as any).logger, 'warn').mockImplementation(() => undefined);
+    const warn = jest.spyOn((service as any).transport.logger, 'warn').mockImplementation(() => undefined);
 
     await expect(service.sendWelcome('tenant-1', input)).resolves.toBe('failed');
     expect(warn.mock.calls.flat().join(' ')).not.toContain('re_test_secret');
