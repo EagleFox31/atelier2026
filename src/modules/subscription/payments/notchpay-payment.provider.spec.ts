@@ -1,5 +1,23 @@
 import { createHmac } from 'crypto';
+import { SubscriptionStatus } from '@prisma/client';
 import { NotchPayPaymentProvider, normalizeNotchPayStatus } from './notchpay-payment.provider';
+import { SubscriptionPaymentsService } from './subscription-payments.service';
+
+// Réponse réelle de la sandbox NotchPay (POST /payments, 2026-10-02) : pas de champ `id`,
+// `reference` = identifiant NotchPay (trx.…), notre référence dans merchant_reference/trxref.
+const SANDBOX_TRANSACTION = {
+  amount: 45_000,
+  callback: null,
+  currency: 'XAF',
+  customer: 'cus.test_eFXEE5EqAhrikdvz',
+  description: 'Atelier Maitre Pro - mensuel',
+  locked_currency: 'XAF',
+  merchant_reference: 'sub_e144fcbc2ade4a548f811670463b0894',
+  reference: 'trx.test_00eZRSp5Bx037lwQlXcDo8yA',
+  sandbox: true,
+  status: 'pending',
+  trxref: 'sub_e144fcbc2ade4a548f811670463b0894',
+};
 
 describe('NotchPayPaymentProvider', () => {
   const previousPublicKey = process.env.NOTCHPAY_PUBLIC_KEY;
@@ -142,5 +160,108 @@ describe('NotchPayPaymentProvider', () => {
     ['unexpected', 'UNKNOWN'],
   ] as const)('normalizes provider status %s to %s', (providerStatus, expected) => {
     expect(normalizeNotchPayStatus(providerStatus)).toBe(expected);
+  });
+
+  describe('real sandbox payload shape (trx.… reference + merchant_reference)', () => {
+    it('stores the NotchPay transaction id from initialize, not our reference', async () => {
+      (globalThis.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue({
+          status: 'Accepted',
+          code: 201,
+          transaction: SANDBOX_TRANSACTION,
+          authorization_url: 'https://pay.notchpay.co/test.abc',
+        }),
+      });
+
+      const result = await new NotchPayPaymentProvider().initializePayment({
+        amount: 45_000, currency: 'XAF', email: 'qa@example.com', customerName: 'QA',
+        description: 'Atelier Maitre Pro - mensuel', reference: SANDBOX_TRANSACTION.merchant_reference,
+      });
+
+      expect(result.providerTransactionId).toBe('trx.test_00eZRSp5Bx037lwQlXcDo8yA');
+    });
+
+    it('parses a webhook built on the transaction object', () => {
+      expect(
+        new NotchPayPaymentProvider().parseWebhook({
+          type: 'payment.complete',
+          data: { ...SANDBOX_TRANSACTION, status: 'complete' },
+        }),
+      ).toEqual({
+        type: 'payment.complete',
+        status: 'COMPLETE',
+        providerTransactionId: 'trx.test_00eZRSp5Bx037lwQlXcDo8yA',
+        reference: 'sub_e144fcbc2ade4a548f811670463b0894',
+      });
+    });
+
+    it('accepts the event name under "event" as well as "type"', () => {
+      expect(
+        new NotchPayPaymentProvider().parseWebhook({ event: 'payment.complete', data: SANDBOX_TRANSACTION }).type,
+      ).toBe('payment.complete');
+    });
+
+    it('retrieves a payment by its NotchPay id and returns our reference', async () => {
+      (globalThis.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ code: 200, transaction: { ...SANDBOX_TRANSACTION, status: 'complete' } }),
+      });
+
+      const verified = await new NotchPayPaymentProvider().retrievePayment('trx.test_00eZRSp5Bx037lwQlXcDo8yA');
+
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        'https://api.notchpay.co/payments/trx.test_00eZRSp5Bx037lwQlXcDo8yA',
+        expect.anything(),
+      );
+      expect(verified).toMatchObject({
+        providerTransactionId: 'trx.test_00eZRSp5Bx037lwQlXcDo8yA',
+        reference: 'sub_e144fcbc2ade4a548f811670463b0894',
+        amount: 45_000,
+        currency: 'XAF',
+        status: 'COMPLETE',
+      });
+    });
+
+    it('activates the subscription end to end (real provider + service)', async () => {
+      (globalThis.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ transaction: { ...SANDBOX_TRANSACTION, status: 'complete' } }),
+      });
+      const stored = {
+        id: 'payment-1', tenantId: 'tenant-1', provider: 'notchpay',
+        providerTransactionId: 'trx.test_00eZRSp5Bx037lwQlXcDo8yA',
+        reference: 'sub_e144fcbc2ade4a548f811670463b0894',
+        amountXaf: 45_000, currency: 'XAF', plan: 'pro', billingCycle: 'monthly', status: 'PENDING',
+      };
+      const tx = {
+        subscriptionPayment: {
+          findFirst: jest.fn(async ({ where }: { where: { OR: Array<Record<string, string>> } }) =>
+            where.OR.some((c) => c.providerTransactionId === stored.providerTransactionId || c.reference === stored.reference)
+              ? stored
+              : null),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        },
+        subscriptionPaymentEvent: { create: jest.fn().mockResolvedValue({}) },
+        $queryRaw: jest.fn().mockResolvedValue([]),
+        tenant: {
+          findUniqueOrThrow: jest.fn().mockResolvedValue({
+            subscriptionStatus: SubscriptionStatus.TRIAL, subscriptionStartedAt: null, subscriptionEndsAt: null,
+          }),
+          update: jest.fn().mockResolvedValue({}),
+        },
+      };
+      const prisma = { $transaction: jest.fn((callback: (t: unknown) => unknown) => callback(tx)) };
+      const service = new SubscriptionPaymentsService(prisma as never, new NotchPayPaymentProvider());
+      const body = Buffer.from(JSON.stringify({ type: 'payment.complete', data: { ...SANDBOX_TRANSACTION, status: 'complete' } }));
+      const signature = createHmac('sha256', 'test_hash_example').update(body).digest('hex');
+
+      const result = await service.handleWebhook(body, signature, JSON.parse(body.toString()));
+
+      expect(result).toMatchObject({ received: true, activated: true });
+      expect(tx.tenant.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ subscriptionStatus: SubscriptionStatus.ACTIVE }) }),
+      );
+    });
   });
 });
