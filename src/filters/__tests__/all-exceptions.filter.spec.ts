@@ -1,4 +1,4 @@
-import { ArgumentsHost, ForbiddenException, HttpException, HttpStatus } from '@nestjs/common';
+import { ArgumentsHost, ForbiddenException, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AllExceptionsFilter } from '../all-exceptions.filter';
 
@@ -185,6 +185,41 @@ describe('AllExceptionsFilter', () => {
       filter.catch(err, host);
       expect(statusFn).toHaveBeenCalledWith(400);
       expect(getBody(json).errorCode).toBe('DB_VALIDATION_ERROR');
+    });
+  });
+
+  describe('journalisation sans données personnelles', () => {
+    let warnSpy: jest.SpyInstance;
+    beforeEach(() => {
+      warnSpy = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    });
+    afterEach(() => warnSpy.mockRestore());
+
+    const logged = () => warnSpy.mock.calls.map((call) => String(call[0])).join('\n');
+
+    it('ne journalise pas la query string (ex. ?phone= de l’historique SMS)', () => {
+      const { host } = makeHost('GET', '/api/notifications/sms/history?phone=699123456');
+      filter.catch(new HttpException('Refusé', HttpStatus.BAD_REQUEST), host);
+      expect(logged()).toContain('[GET /api/notifications/sms/history] 400');
+      expect(logged()).not.toContain('699123456');
+    });
+
+    it('ne journalise que le motif d’une PrismaClientValidationError, pas les arguments', () => {
+      const { host } = makeHost();
+      const message = [
+        'Invalid `prisma.sMSNotification.create()` invocation in',
+        '/app/src/modules/notifications/notifications.service.ts:54:3',
+        '',
+        '→ 54 prisma.sMSNotification.create({',
+        '       data: { phoneTo: "+237699123456", messageBody: "Bonjour Awa, votre véhicule est prêt" }',
+        '     })',
+        '',
+        'Argument `garage` is missing.',
+      ].join('\n');
+      filter.catch(new Prisma.PrismaClientValidationError(message, { clientVersion: '7.7.0' }), host);
+      expect(logged()).toContain('Argument `garage` is missing.');
+      expect(logged()).not.toContain('699123456');
+      expect(logged()).not.toContain('Bonjour Awa');
     });
   });
 
