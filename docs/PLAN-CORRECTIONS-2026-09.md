@@ -13,6 +13,7 @@ Chaque lot correspond à une PR, dans l'ordre d'exécution.
 | 4 | Nettoyage : dépendances, code mort, `.env.example` | Basse | 1 h | Anciens déploiements ✅ |
 | 5 | Déploiements sans gêne pour les ateliers | Moyenne | ½ j | Points 1-2 ✅ |
 | 6 | **Sécurité des mots de passe** (en clair, faibles, jamais renouvelés) | **Critique** | 1 j | ✅ `fix/password-security` · suite : invitations par lien (issue #15) · #15 ✅ `feat/issue-15-team-invitations` : invitation par e-mail (jeton haché, 72 h, usage unique), page `/invitation/[token]`, renvoi depuis Équipe ; repli mot de passe temporaire sans e-mail |
+| 7 | Adoption AppFactory (Impact-Aware CI, Project automation, modèle de PR) | Moyenne | ½ j | Branche `ci/adopt-appfactory-impact-and-project` (non mergée) · mise en service du Project à faire une fois : [appfactory.md](engineering/appfactory.md) |
 
 ## Règles produit
 

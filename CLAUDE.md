@@ -202,20 +202,43 @@ Source de vérité : `ROLE_PERMISSIONS` dans `prisma/seed.ts` + `src/shared/rbac
 
 ---
 
-## CI/CD & Versioning (mis à jour 2026-10-01)
+## CI/CD & Versioning (mis à jour 2026-10-02)
 
 ### Pipeline GitHub Actions
 
 ```
-git push main → CI (type-check + Jest) → Deploy AWS (CloudFormation → build GHCR → SSM pull + up → /api/health)
+git push main → CI (analyse d'impact → gates requis seulement) → Deploy AWS (CloudFormation → build GHCR → SSM pull + up → /api/health)
              → Release (AppFactory / Release Please : met à jour la PR de release)
+PR → CI + UX guardrails (mêmes gates) ; Issue/PR → Project automation (board GitHub)
 ```
 
-- **CI** (`.github/workflows/ci.yml`) : type-check back + front, Jest (droits en lecture seule)
+- **CI** (`.github/workflows/ci.yml`) : job `impact` (Impact-Aware CI AppFactory) puis seulement les gates requis — `Type-check & Tests` (type-check back + front ; Jest seulement si gate `unit-tests`), `Lint des workflows` (actionlint + shellcheck). **`CI result`** agrège : vert si chaque gate a réussi ou a été sauté hors périmètre. Lancement manuel = validation complète (mode `all`), sans redéploiement
+- **UX guardrails** (`.github/workflows/ux-guardrails.yml`) : sur chaque PR vers `main`, Playwright `test:ux` seulement si le gate `ux-guardrails` est requis (plus de filtre `paths:`)
 - **Release** (`.github/workflows/release.yml`) : appelle le workflow partagé AppFactory `reusable-release.yml@v1` (voir Versioning)
-- **Deploy** (`.github/workflows/deploy.yml`) : déclenché par la réussite de la CI sur `main` (ou manuellement). Détecte les fichiers modifiés → met à jour la pile CloudFormation seulement si l'infra change → build/push seulement les images API/Web modifiées → déploiement via **SSM** (pas de SSH)
+- **Deploy** (`.github/workflows/deploy.yml`) : déclenché par la réussite de la CI sur `main` issue d'un push (ou manuellement). Détecte les fichiers modifiés (`git diff HEAD^1 HEAD`, **pas** l'analyse d'impact — exception RAIDER, voir `docs/engineering/appfactory.md`) → met à jour la pile CloudFormation seulement si l'infra change → build/push seulement les images API/Web modifiées → déploiement via **SSM** (pas de SSH)
 - **QA UX** (`.github/workflows/qa-ux.yml`) : `npm run test:qa` contre la prod, du lundi au vendredi à 5 h UTC, ou lancé à la main (`base_url`, `allow_mutations`). Secrets `QA_EMAIL` / `QA_PASSWORD` (compte QA dédié)
+- **Project automation** (`.github/workflows/project-automation.yml` + `.github/project-config.json`) : Issues/PR synchronisées sur le GitHub Project « Atelier Maître Product Development » (auth `broker-user`, zéro PAT). Mise en service unique : `docs/engineering/appfactory.md`
+- **Modèle de PR** (`.github/pull_request_template.md`) : section « RAIDER review » du Project Registry
 - **Cache Docker** (GitHub Actions Cache) : seules les layers modifiées sont reconstruites
+
+### Impact-Aware CI (AppFactory)
+
+Politique unique dans **`.github/appfactory-impact.json`** : fichiers modifiés → surfaces → gates. Fallback `all` : un chemin non classé (ou une plage introuvable) déclenche tout.
+
+| Surface | Chemins (résumé) | Gates |
+|---------|------------------|-------|
+| `api` | `src/**`, `server.ts`, `scripts/**`, `tsconfig.server*.json`, config Jest/Stryker, `Dockerfile.api`, `api-entrypoint.sh` | `typecheck`, `unit-tests` |
+| `web` | `app/`, `components/`, `lib/`, `contexts/`, `hooks/`, `public/`, `styles/`, `src/shared/fiscal/**`, configs Next/Tailwind/PostCSS, `tsconfig.json`, `version.txt`, `Dockerfile.web` | `typecheck` |
+| `ux-guardrails` | `e2e-ux/**`, `playwright.ux.config.ts`, son workflow ; dépend de `web` | `typecheck`, `ux-guardrails` |
+| `e2e` | `e2e/**`, `e2e-qa/**`, `playwright(.qa).config.ts` | `typecheck` |
+| `dependencies` / `prisma` / `ci-config` | `package*.json` / `prisma/**`, `prisma.config.ts` / `ci.yml`, carte d'impact | aucun en propre : **fan-out** vers `api`, `web` (+ `e2e` sauf prisma) |
+| `workflows` | `.github/workflows/**` | `workflow-lint` |
+| `deploy-runtime` | compose AWS, Caddyfile, `maintenance/`, `deploy/scripts/`, `infra/`, `.dockerignore` | aucun (déployé par `deploy.yml`) |
+| ignorés | `*.md` racine, `docs/`, `onboarding/`, `deploy/legacy/`, `postman/`, `.vscode/`, `.env.example`… | aucun |
+
+- Lire le résultat : résumé « AppFactory change impact » du job `Analyse d'impact` (surfaces, gates, fallback). Un job gardé « skipped » = hors périmètre, pas un échec.
+- Ajouter un dossier/fichier racine ⇒ le classer dans la carte d'impact, sinon chaque changement le touchant déclenche tout. Garder `deploy.yml` (regex de « Detect changed paths ») aligné.
+- Runtimes AppFactory **épinglés par SHA** (tag en commentaire) : impact `20c6b99` (pas encore de tag), Project `b1deb7b`. `release.yml` reste sur `@v1`, comme le recommande AppFactory pour les workflows de release.
 
 ### Configuration GitHub Actions requise
 

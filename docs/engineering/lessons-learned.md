@@ -312,3 +312,31 @@ Un mécanisme de sécurité déclaratif (décorateur, annotation) se prouve par 
 
 **Principe dérivé / changement de standard**
 Toute route publique sensible porte `@UseGuards(ClientIpThrottlerGuard)` + `@Throttle`, avec un test 429. À faire hors #15 : appliquer le garde à `/public/signup` (et `/auth/login`, `/auth/forgot-password`) après vérification de l'impact sur la QA.
+
+### LESSON-2026-010 — Un analyseur d'impact partagé ne voit pas l'événement `workflow_run` (near miss)
+
+- **Date** : 2026-10-02
+- **Catégorie** : `ci-cd` · `release-deployment`
+- **Statut** : prevention-added
+- **Lié à** : branche `ci/adopt-appfactory-impact-and-project`, [docs/engineering/appfactory.md](appfactory.md), LESSON-2026-001
+
+**Contexte**
+Adoption de l'Impact-Aware CI AppFactory. Il paraissait naturel de brancher aussi `deploy.yml` sur la même analyse pour n'avoir qu'une politique de chemins.
+
+**Échec / near miss**
+Le code de l'analyseur (`resolveRange`) ne lit que les payloads `pull_request` et `push`. Sur `workflow_run`, qui déclenche `deploy.yml`, il ne trouve pas de plage et applique le fallback `all`. Un payload simulé l'a confirmé avant tout changement. Branché tel quel, chaque succès de CI, même pour un commit de docs, aurait reconstruit les deux images et redéployé la prod (30 à 60 s de coupure).
+
+**Cause racine**
+Une brique partagée était supposée correcte pour notre type d'événement sans que son contrat d'entrée ait été vérifié. C'est le même angle mort que LESSON-2026-001, avec la conséquence inverse (tout déployer au lieu de ne rien déployer).
+
+**Résolution**
+`deploy.yml` garde sa détection explicite (`git diff HEAD^1 HEAD`), et l'exception est documentée. L'Impact-Aware CI ne pilote que `ci.yml` et `ux-guardrails.yml` (événements `push` et `pull_request`, que l'analyseur gère).
+
+**Prévention**
+Avant de brancher une analyse de changements sur un workflow, l'exécuter localement avec un payload de l'événement réel et sur des commits merge, squash et docs seules (tableau dans `appfactory.md`). Le commentaire dans `deploy.yml` rappelle l'exception.
+
+**Leçon généralisée**
+Une brique partagée de détection de changements doit être validée pour **chaque type d'événement** qui l'appelle, pas seulement pour la stratégie de fusion.
+
+**Principe dérivé / changement de standard**
+Proposition pour AppFactory : prendre en charge `workflow_run` (ou une plage explicite documentée), et échouer au lieu de tout déclencher quand l'appelant exige une plage.
