@@ -1,0 +1,59 @@
+{
+  "project": {
+    "owner": "EagleFox31",
+    "title": "Atelier Maître Product Development",
+    "bootstrap": true,
+    "template": "appfactory-product",
+    "linkRepository": true,
+    "importOpenIssues": true,
+    "createBoardView": true
+  },
+  "bootstrap": {
+    "boardViewName": "AppFactory Board",
+    "phases": [
+      "Fondations",
+      "Pilote SaaS",
+      "Monétisation",
+      "Messagerie client",
+      "Espaces multi-garages",
+      "Qualité",
+      "Exploitation"
+    ]
+  },
+  "workTypeByTitlePrefix": {
+    "feat(": "Feature",
+    "feat:": "Feature",
+    "feat!": "Feature",
+    "fix(": "Bug",
+    "fix:": "Bug",
+    "test(": "Quality",
+    "test:": "Quality",
+    "docs(": "Documentation",
+    "docs:": "Documentation",
+    "ops(": "Engineering",
+    "ops:": "Engineering",
+    "ci(": "Engineering",
+    "ci:": "Engineering",
+    "chore(": "Engineering",
+    "chore:": "Engineering",
+    "refactor(": "Engineering",
+    "refactor:": "Engineering",
+    "perf(": "Engineering",
+    "perf:": "Engineering",
+    "security(": "Security",
+    "security:": "Security",
+    "ux(": "UX",
+    "ux:": "UX"
+  },
+  "issueOverrides": {
+    "7": { "phase": "Monétisation" },
+    "12": { "phase": "Espaces multi-garages" },
+    "16": { "phase": "Espaces multi-garages" },
+    "17": { "phase": "Qualité" },
+    "19": { "phase": "Messagerie client" },
+    "20": { "phase": "Messagerie client" },
+    "21": { "phase": "Messagerie client" },
+    "22": { "phase": "Messagerie client" },
+    "23": { "phase": "Monétisation" }
+  }
+}
