@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "fallback": "all",
+  "ignorePaths": [
+    "*.md",
+    "LICENSE",
+    "docs/**",
+    "onboarding/**",
+    "deploy/legacy/**",
+    "deploy/legacy/**/.*",
+    "postman/**",
+    ".vscode/**",
+    ".gitignore",
+    ".gitattributes",
+    ".env.example",
+    ".eslintrc.json",
+    ".github/pull_request_template.md",
+    ".github/project-config.json"
+  ],
+  "surfaces": {
+    "dependencies": {
+      "paths": [
+        "package.json",
+        "package-lock.json"
+      ],
+      "gates": []
+    },
+    "prisma": {
+      "paths": [
+        "prisma/**",
+        "prisma.config.ts"
+      ],
+      "gates": []
+    },
+    "ci-config": {
+      "paths": [
+        ".github/appfactory-impact.json",
+        ".github/workflows/ci.yml"
+      ],
+      "gates": []
+    },
+    "workflows": {
+      "paths": [
+        ".github/workflows/**"
+      ],
+      "gates": [
+        "workflow-lint"
+      ]
+    },
+    "api": {
+      "paths": [
+        "src/**",
+        "server.ts",
+        "scripts/**",
+        "tsconfig.server*.json",
+        "tsconfig.test.json",
+        "jest.config.ts",
+        "jest.stryker.config.ts",
+        "stryker.config.ts",
+        "deploy/docker/Dockerfile.api",
+        "deploy/docker/api-entrypoint.sh"
+      ],
+      "gates": [
+        "typecheck",
+        "unit-tests"
+      ],
+      "dependsOn": [
+        "dependencies",
+        "prisma",
+        "ci-config"
+      ]
+    },
+    "web": {
+      "paths": [
+        "app/**",
+        "components/**",
+        "lib/**",
+        "contexts/**",
+        "hooks/**",
+        "public/**",
+        "styles/**",
+        "src/shared/fiscal/**",
+        "next.config.*",
+        "tailwind.config.*",
+        "postcss.config.*",
+        "next-env.d.ts",
+        "tsconfig.json",
+        "components.json",
+        "version.txt",
+        "deploy/docker/Dockerfile.web"
+      ],
+      "gates": [
+        "typecheck"
+      ],
+      "dependsOn": [
+        "dependencies",
+        "prisma",
+        "ci-config"
+      ]
+    },
+    "ux-guardrails": {
+      "paths": [
+        "e2e-ux/**",
+        "playwright.ux.config.ts",
+        ".github/workflows/ux-guardrails.yml"
+      ],
+      "gates": [
+        "typecheck",
+        "ux-guardrails"
+      ],
+      "dependsOn": [
+        "web"
+      ]
+    },
+    "e2e": {
+      "paths": [
+        "e2e/**",
+        "e2e-qa/**",
+        "playwright.config.ts",
+        "playwright.qa.config.ts"
+      ],
+      "gates": [
+        "typecheck"
+      ],
+      "dependsOn": [
+        "dependencies",
+        "ci-config"
+      ]
+    },
+    "deploy-runtime": {
+      "paths": [
+        "deploy/docker/docker-compose.aws.yml",
+        "deploy/docker/Caddyfile",
+        "deploy/docker/maintenance/**",
+        "deploy/scripts/**",
+        "infra/**",
+        ".dockerignore"
+      ],
+      "gates": []
+    }
+  }
+}

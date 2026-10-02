@@ -1,14 +1,48 @@
 name: CI
 
+# Impact-Aware CI (AppFactory, RAIDER — change-scoped execution) :
+#   fichiers modifiés → surfaces impactées → gates requis → jobs exécutés.
+# La politique « chemin → surface → gate » vit dans .github/appfactory-impact.json
+# (source unique, aussi lue par ux-guardrails.yml). Un changement de docs seules
+# ne réveille aucun job ; package.json, prisma/, ce workflow ou la carte d'impact
+# déclenchent toutes les surfaces dépendantes ; un chemin non classé déclenche
+# tout (fallback « all »).
+#
+# Le job « CI result » est le seul à rendre obligatoire dans une protection de
+# branche : il réussit quand chaque gate a réussi ou a été sauté parce que hors
+# périmètre, et échoue si l'analyse d'impact ou un gate échoue.
+#
+# Deploy AWS (deploy.yml) se déclenche sur la réussite de ce workflow sur main et
+# garde sa propre détection explicite (voir docs/engineering/appfactory.md).
+
 on:
   push:
     branches: [main, master, develop]
   pull_request:
     branches: [main, master]
+  workflow_dispatch: # validation complète manuelle (mode « all ») ; ne redéploie pas
+
+permissions:
+  contents: read
 
 jobs:
+  impact:
+    name: Analyse d'impact
+    # AppFactory main @ 20c6b99 (« feat: add reusable impact-aware CI », #70).
+    # Pas encore de tag : la v1.3.0 (247ee8c) ne contient pas cette capacité.
+    # Épinglé par SHA relu ; passer au tag de release dès qu'elle est publiée.
+    uses: EagleFox31/appfactory-project-automation/.github/workflows/reusable-impact-analysis.yml@20c6b99e8dd063a1cac72a5fc2cfa38829a1b899
+    with:
+      appfactory_ref: 20c6b99e8dd063a1cac72a5fc2cfa38829a1b899
+      config_path: .github/appfactory-impact.json
+      mode: ${{ github.event_name == 'workflow_dispatch' && 'all' || 'auto' }}
+
   test:
     name: Type-check & Tests
+    needs: impact
+    if: >-
+      contains(fromJSON(needs.impact.outputs.gates), 'typecheck') ||
+      contains(fromJSON(needs.impact.outputs.gates), 'unit-tests')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -28,16 +62,80 @@ jobs:
       - name: Generate Prisma client
         run: npx prisma generate
 
+      # tsconfig.json inclut tout le dépôt (**/*.ts) : les deux type-checks
+      # tournent ensemble dès que le gate « typecheck » est requis.
       - name: Type-check backend
         run: npx tsc --noEmit -p tsconfig.server.json
 
       - name: Type-check frontend
         run: npx tsc --noEmit
 
+      # Jest ne couvre que src/ (rootDir) : inutile pour un changement front seul.
       - name: Unit tests
+        if: ${{ contains(fromJSON(needs.impact.outputs.gates), 'unit-tests') }}
         run: npm test -- --ci --passWithNoTests
         env:
           DATABASE_URL: postgresql://fake:fake@localhost:5432/fake
           REDIS_HOST: localhost
           REDIS_PORT: 6379
 
+  workflow-lint:
+    name: Lint des workflows
+    needs: impact
+    if: ${{ contains(fromJSON(needs.impact.outputs.gates), 'workflow-lint') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      ACTIONLINT_VERSION: 1.7.12
+      # SHA-256 de actionlint_1.7.12_linux_amd64.tar.gz (checksums.txt de la release).
+      ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Install actionlint (version et somme de contrôle épinglées)
+        run: |
+          set -euo pipefail
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl -fsSLo "$archive" "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${archive}"
+          echo "${ACTIONLINT_SHA256}  ${archive}" | sha256sum --check --strict
+          tar -xzf "$archive" actionlint
+          rm -f "$archive"
+
+      # shellcheck est préinstallé sur ubuntu-latest : actionlint l'utilise
+      # pour vérifier aussi les scripts « run: ».
+      - name: Run actionlint
+        run: ./actionlint -color
+
+  ci-result:
+    name: CI result
+    needs: [impact, test, workflow-lint]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Vérifier les gates requis
+        env:
+          IMPACT: ${{ needs.impact.result }}
+          TEST: ${{ needs.test.result }}
+          WORKFLOW_LINT: ${{ needs['workflow-lint'].result }}
+          GATES: ${{ needs.impact.outputs.gates }}
+        run: |
+          set -euo pipefail
+          echo "Gates requis : ${GATES:-<aucun>}"
+          echo "impact=$IMPACT test=$TEST workflow-lint=$WORKFLOW_LINT"
+          if [ "$IMPACT" != "success" ]; then
+            echo "::error title=Analyse d'impact::L'analyse d'impact n'a pas réussi ($IMPACT) : aucun gate n'a pu être évalué."
+            exit 1
+          fi
+          for result in "$TEST" "$WORKFLOW_LINT"; do
+            case "$result" in
+              success|skipped) ;;
+              *)
+                echo "::error title=Gate en échec::Au moins un gate requis a échoué ou a été annulé ($result)."
+                exit 1
+                ;;
+            esac
+          done

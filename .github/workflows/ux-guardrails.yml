@@ -1,28 +1,19 @@
 name: UX guardrails
 
 # Garde-fous UX/UI/CX AVANT merge : Playwright sur un build de production local,
-# API entièrement simulée (e2e-ux/). Ne tourne que si la PR touche le front ou
-# ces tests (RAIDER — change-scoped execution). Le smoke test quotidien contre
-# la prod reste qa-ux.yml (e2e-qa/).
+# API entièrement simulée (e2e-ux/). Le smoke test quotidien contre la prod reste
+# qa-ux.yml (e2e-qa/).
+#
+# RAIDER — change-scoped execution : le workflow démarre sur chaque PR, mais le
+# job Playwright ne tourne que si l'analyse d'impact AppFactory requiert le gate
+# « ux-guardrails » (front, e2e-ux/, dépendances, prisma, ce workflow… — voir
+# .github/appfactory-impact.json). Sinon il est « skipped », ce qui ne bloque pas
+# une PR même si ce check devient obligatoire (contrairement à un filtre paths:
+# qui laisserait le check en attente).
 
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'app/**'
-      - 'components/**'
-      - 'contexts/**'
-      - 'hooks/**'
-      - 'lib/**'
-      - 'public/**'
-      - 'styles/**'
-      - 'next.config.*'
-      - 'postcss.config.*'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'e2e-ux/**'
-      - 'playwright.ux.config.ts'
-      - '.github/workflows/ux-guardrails.yml'
   workflow_dispatch:
 
 concurrency:
@@ -33,8 +24,19 @@ permissions:
   contents: read
 
 jobs:
+  impact:
+    name: Analyse d'impact
+    # Même runtime AppFactory épinglé que ci.yml (main @ 20c6b99, pas encore de tag).
+    uses: EagleFox31/appfactory-project-automation/.github/workflows/reusable-impact-analysis.yml@20c6b99e8dd063a1cac72a5fc2cfa38829a1b899
+    with:
+      appfactory_ref: 20c6b99e8dd063a1cac72a5fc2cfa38829a1b899
+      config_path: .github/appfactory-impact.json
+      mode: ${{ github.event_name == 'workflow_dispatch' && 'all' || 'auto' }}
+
   playwright-ux:
     name: Playwright UX guardrails
+    needs: impact
+    if: ${{ contains(fromJSON(needs.impact.outputs.gates), 'ux-guardrails') }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
