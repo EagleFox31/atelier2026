@@ -143,7 +143,7 @@ Guards globaux (ordre) : `ClientIpThrottlerGuard` → `JwtAuthGuard` → `Subscr
 - Codes d'erreur front : `TRIAL_READ_ONLY`, `TRIAL_EXPIRED`, `SUBSCRIPTION_SUSPENDED` → `SubscriptionBlockedScreen` / `TrialStatusBanner`.
 - `PASSWORD_CHANGE_REQUIRED` (403, `JwtAuthGuard`) → redirection `/change-password` (`lib/api.ts` + `AppLayout`).
 - Invitations : `INVITATION_INVALID` (404), `INVITATION_EXPIRED` (410), `INVITATION_USED` (409) → écrans de `app/invitation/[token]/page.tsx` (page publique par préfixe dans `AppLayout`).
-- Limitation de débit : aucun `ThrottlerGuard` global — un `@Throttle` seul est sans effet ; ajouter `@UseGuards(ClientIpThrottlerGuard)` (LESSON-2026-009).
+- Limitation de débit : `ClientIpThrottlerGuard` est la **première garde globale** (`APP_GUARD`) ; une nouvelle route sensible prend sa limite dans `rate-limits.ts` + un test 429 (un `@Throttle` sans garde ne fait rien — LESSON-2026-009).
 
 ---
 
