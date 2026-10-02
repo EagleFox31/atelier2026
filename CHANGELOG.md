@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.11.0](https://github.com/EagleFox31/atelier2026/compare/v1.10.0...v1.11.0) (2026-10-02)
+
+
+### Features
+
+* **subscription:** reconcile pending payments with NotchPay without relying on webhooks ([251de8d](https://github.com/EagleFox31/atelier2026/commit/251de8d7f0930f4ef75df749cb14d819d7c39e75))
+* **subscription:** reconcile pending payments with NotchPay without relying on webhooks ([3b2a714](https://github.com/EagleFox31/atelier2026/commit/3b2a7146b4cfc04e5674fbf672d2e6872f7d3c09))
+
 ## [1.10.0](https://github.com/EagleFox31/atelier2026/compare/v1.9.0...v1.10.0) (2026-10-02)
 
 
