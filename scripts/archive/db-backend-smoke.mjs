@@ -1,6 +1,6 @@
 /**
  * Backend ↔ DB smoke test via Prisma (same client as NestJS).
- * Run: node scripts/db-backend-smoke.mjs
+ * Run: node scripts/archive/db-backend-smoke.mjs
  */
 import 'dotenv/config';
 import pg from 'pg';

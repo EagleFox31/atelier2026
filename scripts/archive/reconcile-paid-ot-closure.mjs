@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Rattrapage : factures PAID dont l'OT est encore READY ou INVOICED → CLOSED.
- * Usage: node scripts/reconcile-paid-ot-closure.mjs
+ * Usage: node scripts/archive/reconcile-paid-ot-closure.mjs
  */
 import 'dotenv/config';
 import pg from 'pg';
