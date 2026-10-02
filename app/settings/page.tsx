@@ -25,6 +25,7 @@ import {
   Check,
   X,
   LockKeyhole,
+  CreditCard,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -33,6 +34,7 @@ import { handleApiError, settingsApi, reportsApi, type MonthlyTargetRow } from '
 import type { WorkshopSettings } from '@/lib/workshop-settings';
 import { toast } from 'sonner';
 import { useTrialStatus } from '@/hooks/use-trial-status';
+import { SubscriptionCheckoutButton } from '@/components/subscription/SubscriptionCheckoutButton';
 
 type GeneralForm = Pick<
   WorkshopSettings,
@@ -44,6 +46,7 @@ type BusinessForm = Pick<WorkshopSettings, 'defaultLaborRateXaf' | 'taxRatePct'>
 export default function SettingsPage() {
   const { hasRole, user } = useAuth();
   const canEdit = hasRole('ADMIN') || hasRole('SUPER_ADMIN');
+  const canManageSubscription = hasRole('ADMIN') && Boolean(user?.tenantId);
   const { data: subscription } = useTrialStatus(Boolean(user?.tenantId));
   const isFreePilot = subscription?.status === 'TRIAL' || subscription?.status === 'GRACE_PERIOD';
   const smsLocked =
@@ -254,7 +257,7 @@ export default function SettingsPage() {
           </div>
         ) : (
           <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="bg-slate-100 p-1">
+            <TabsList className="h-auto flex-wrap bg-slate-100 p-1">
               <TabsTrigger value="general" className="gap-2">
                 <Building2 size={16} />
                 Atelier
@@ -271,6 +274,12 @@ export default function SettingsPage() {
                 <ShieldCheck size={16} />
                 Sécurité
               </TabsTrigger>
+              {canManageSubscription && (
+                <TabsTrigger value="subscription" className="gap-2">
+                  <CreditCard size={16} />
+                  Abonnement
+                </TabsTrigger>
+              )}
               {canEdit && (
                 <TabsTrigger value="objectifs" className="gap-2">
                   <Target size={16} />
@@ -542,6 +551,49 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            {canManageSubscription && (
+              <TabsContent value="subscription">
+                <Card className="border-none shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CreditCard size={18} className="text-brand" />
+                      Abonnement Atelier Maître
+                    </CardTitle>
+                    <CardDescription>
+                      Gérez l’activation ou le renouvellement du forfait Pro de votre atelier.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-xl border border-border bg-muted/30 p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Statut</p>
+                        <p className="mt-1 font-semibold text-foreground">
+                          {subscription?.status === 'ACTIVE' ? 'Actif' : 'À activer'}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-border bg-muted/30 p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Mensuel</p>
+                        <p className="mt-1 font-semibold text-foreground">45 000 FCFA</p>
+                      </div>
+                      <div className="rounded-xl border border-brand/30 bg-[var(--afrique-brand-soft)] p-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-brand">Annuel</p>
+                        <p className="mt-1 font-semibold text-foreground">450 000 FCFA</p>
+                        <p className="mt-1 text-xs text-brand">2 mois économisés</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Un garage est inclus. Le tarif des garages actifs supplémentaires est calculé
+                      automatiquement avant la redirection vers NotchPay.
+                    </p>
+                    <SubscriptionCheckoutButton
+                      label={subscription?.status === 'ACTIVE' ? 'Renouveler le forfait Pro' : 'Activer le forfait Pro'}
+                      className="h-10 rounded-xl px-5"
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
 
             {/* Objectifs mensuels */}
             {canEdit && (

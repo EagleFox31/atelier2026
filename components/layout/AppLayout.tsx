@@ -38,6 +38,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const {
     data: subscription,
     isLoading: subscriptionLoading,
+    refresh: refreshSubscription,
   } = useTrialStatus(shouldLoadSubscription);
 
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -66,6 +67,50 @@ export function AppLayout({ children }: AppLayoutProps) {
     if (!user) return;
     setShowOnboarding(!user.onboardingCompletedAt && !user.mustChangePassword);
   }, [user]);
+
+  // Au retour du checkout, le webhook peut arriver quelques secondes après la
+  // redirection du navigateur. On réinterroge donc le statut sans demander à
+  // l'utilisateur de rafraîchir manuellement la page.
+  useEffect(() => {
+    if (!shouldLoadSubscription || typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('payment') !== 'return') return;
+
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let attempt = 0;
+    const toastId = 'subscription-payment-return';
+    toast.loading('Vérification du paiement NotchPay…', { id: toastId });
+
+    const verifyPayment = async () => {
+      const current = await refreshSubscription();
+      if (cancelled) return;
+
+      if (current?.status === 'ACTIVE') {
+        toast.success('Abonnement Pro activé.', { id: toastId });
+        const url = new URL(window.location.href);
+        url.searchParams.delete('payment');
+        window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+        return;
+      }
+
+      attempt += 1;
+      if (attempt < 10) {
+        timeoutId = setTimeout(() => void verifyPayment(), 3_000);
+        return;
+      }
+
+      toast.info('Paiement en cours de confirmation. Actualisez la page dans quelques instants.', {
+        id: toastId,
+      });
+    };
+
+    void verifyPayment();
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [refreshSubscription, shouldLoadSubscription]);
 
   async function closeOnboarding() {
     setShowOnboarding(false);
@@ -135,6 +180,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     return (
       <SubscriptionBlockedScreen
         subscription={subscription}
+        canManageSubscription={hasRole('ADMIN')}
         onLogout={async () => {
           await logout();
           router.replace('/');
@@ -212,7 +258,12 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
         </header>
 
-        {subscription && <TrialStatusBanner subscription={subscription} />}
+        {subscription && (
+          <TrialStatusBanner
+            subscription={subscription}
+            canManageSubscription={hasRole('ADMIN')}
+          />
+        )}
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8">

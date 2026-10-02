@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { AlertTriangle, CalendarClock, LockKeyhole } from 'lucide-react';
 import type { SubscriptionSummary } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { SubscriptionCheckoutButton } from './SubscriptionCheckoutButton';
 
 function formatDate(value: string | null) {
   if (!value) return null;
@@ -16,8 +16,10 @@ function formatDate(value: string | null) {
 
 export function TrialStatusBanner({
   subscription,
+  canManageSubscription,
 }: {
   subscription: SubscriptionSummary;
+  canManageSubscription: boolean;
 }) {
   if (subscription.status === 'ACTIVE') return null;
 
@@ -48,10 +50,11 @@ export function TrialStatusBanner({
               {endDate ? ` · jusqu’au ${endDate}` : ''}
             </span>
           </div>
-          {endingSoon && (
-            <Link href="/#tarifs" className="font-semibold underline underline-offset-4">
-              Voir les offres
-            </Link>
+          {endingSoon && canManageSubscription && (
+            <SubscriptionCheckoutButton
+              label="Activer Pro"
+              className="h-8 rounded-lg px-3 text-xs"
+            />
           )}
         </div>
       </div>
@@ -73,12 +76,14 @@ export function TrialStatusBanner({
               </p>
             </div>
           </div>
-          <Link
-            href="/#tarifs"
-            className="rounded-lg bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white"
-          >
-            Choisir une offre
-          </Link>
+          {canManageSubscription ? (
+            <SubscriptionCheckoutButton
+              label="Activer Pro"
+              className="h-8 rounded-lg bg-amber-900 px-3 text-xs hover:bg-amber-800"
+            />
+          ) : (
+            <span className="text-xs font-medium">Contactez un administrateur.</span>
+          )}
         </div>
       </div>
     );

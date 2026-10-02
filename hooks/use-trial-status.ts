@@ -14,7 +14,7 @@ export function useTrialStatus(enabled = true) {
   const refresh = useCallback(async () => {
     if (!enabled) {
       setIsLoading(false);
-      return;
+      return null;
     }
 
     setIsLoading(true);
@@ -22,8 +22,10 @@ export function useTrialStatus(enabled = true) {
       const status = await subscriptionApi.status();
       setData(status);
       setError(null);
+      return status;
     } catch (err) {
       setError(err);
+      return null;
     } finally {
       setIsLoading(false);
     }

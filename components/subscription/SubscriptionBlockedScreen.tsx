@@ -1,10 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { LockKeyhole, ShieldCheck } from 'lucide-react';
 import type { SubscriptionSummary } from '@/lib/api';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { SubscriptionCheckoutButton } from './SubscriptionCheckoutButton';
 
 function formatDate(value: string | null) {
   if (!value) return null;
@@ -17,9 +16,11 @@ function formatDate(value: string | null) {
 
 export function SubscriptionBlockedScreen({
   subscription,
+  canManageSubscription,
   onLogout,
 }: {
   subscription: SubscriptionSummary;
+  canManageSubscription: boolean;
   onLogout: () => void | Promise<void>;
 }) {
   const retentionEnd = formatDate(subscription.dataRetentionEndsAt);
@@ -58,19 +59,21 @@ export function SubscriptionBlockedScreen({
           )}
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Link
-              href="/#tarifs"
-              className={cn(
-                buttonVariants(),
-                'landing-auth-btn-primary h-11 rounded-xl px-6',
-              )}
-            >
-              Voir les offres
-            </Link>
+            {!suspended && canManageSubscription && (
+              <SubscriptionCheckoutButton
+                label="Activer Atelier Maître Pro"
+                className="h-11 rounded-xl px-6"
+              />
+            )}
             <Button variant="outline" className="h-11 rounded-xl px-6" onClick={() => void onLogout()}>
               Se déconnecter
             </Button>
           </div>
+          {!suspended && !canManageSubscription && (
+            <p className="mt-4 text-xs text-[var(--afrique-earth-muted)]">
+              Demandez à un administrateur de l’atelier d’activer l’abonnement.
+            </p>
+          )}
         </div>
       </div>
     </div>
