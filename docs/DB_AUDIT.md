@@ -4,7 +4,7 @@
 **Instance** : PostgreSQL 17.6 (Supabase, eu-west-1)  
 **Méthode** : connexion directe `DIRECT_URL` (port 5432), requêtes lecture seule  
 **Scripts** : `scripts/db-audit-full.mjs`, `scripts/db-audit-supplement.mjs`  
-**Données brutes** : `scripts/db-audit-report.json`
+**Données brutes** : `scripts/db-audit-report.json` (régénéré par `db-audit-full.mjs`, non versionné ; la version de mai reste dans l’historique git)
 
 ---
 

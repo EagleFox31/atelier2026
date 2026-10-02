@@ -11,6 +11,7 @@ import compression from 'compression';
 import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
+import { apiHelmetOptions } from './shared/security/http-security';
 
 let isBootstrapped = false;
 
@@ -40,11 +41,8 @@ async function bootstrap() {
   }));
   app.use(urlencoded({ limit: '1mb', extended: true }));
 
-  // Sécurité et Performance (Point 2)
-  app.use(helmet({
-    crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: false, // Nécessaire pour l'iframe AI Studio
-  }));
+  // Sécurité et Performance (Point 2) — CSP Helmet active, compatible Swagger UI
+  app.use(helmet(apiHelmetOptions()));
   app.use(compression());
 
   // CORS — restreint à l'origine du frontend en production

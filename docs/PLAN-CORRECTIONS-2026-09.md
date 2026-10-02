@@ -10,7 +10,7 @@ Chaque lot correspond à une PR, dans l'ordre d'exécution.
 | 1 | Suspension de tenant sans toucher au statut des utilisateurs | Haute (bug) | ½ j | ✅ Fait (`fix/tenant-suspension`) |
 | 2 | Droits par forfait (logo, SMS) centralisés + guard sans requête supplémentaire | Haute | 1 j | 2A ✅ logo · 2B ✅ SMS (`fix/lot0-sms-entitlements`) · 2C ✅ garde sans requête + `features` au front (`feat/lot2c-entitlements-features`) |
 | 3 | Redis : worker `stock-alerts` manquant + SSE multi-instance | Moyenne / différé | ½ j + ½ j | 3a ✅ (`fix/stock-alerts-worker`), 3b différé |
-| 4 | Nettoyage : dépendances, code mort, `.env.example` | Basse | 1 h | Anciens déploiements ✅ |
+| 4 | Nettoyage : dépendances, code mort, `.env.example` | Basse | 1 h | ✅ (`chore/lot4-cleanup`) · reste : CSP web à passer en bloquant |
 | 5 | Déploiements sans gêne pour les ateliers | Moyenne | ½ j | Points 1-2 ✅ |
 | 6 | **Sécurité des mots de passe** (en clair, faibles, jamais renouvelés) | **Critique** | 1 j | ✅ `fix/password-security` · suite : invitations par lien (issue #15) · #15 ✅ `feat/issue-15-team-invitations` : invitation par e-mail (jeton haché, 72 h, usage unique), page `/invitation/[token]`, renvoi depuis Équipe ; repli mot de passe temporaire sans e-mail |
 | 7 | Adoption AppFactory (Impact-Aware CI, Project automation, modèle de PR) | Moyenne | ½ j | Branche `ci/adopt-appfactory-impact-and-project` (non mergée) · mise en service du Project à faire une fois : [appfactory.md](engineering/appfactory.md) |
@@ -168,12 +168,12 @@ Redis **n'est pas** nécessaire pour le lot 2 : le guard y lit l'abonnement dans
 | Élément | Action | État |
 |---------|--------|------|
 | Anciens déploiements (Oracle, Fly, Railway) | Déplacés dans `deploy/legacy/` (+ README), `.gitignore`/`.dockerignore` et docs mis à jour | ✅ Fait |
-| `@google/genai` | Aucun import → `npm uninstall @google/genai` | À faire |
-| `lib/mock-data.ts` | Plus importé → supprimer | À faire |
-| `app/api/dashboard/stats/route.ts` | Stub non appelé (JSON avec statut 301 sans `Location`) → supprimer | À faire |
-| `.env.example` | `ALLOWED_ORIGINS=http://localhost:3005` → port 3000 ; retirer les commentaires Railway ; ajouter `APP_DOMAIN`, `ACME_EMAIL` et les variables d'e-mail du lot 0 | À faire |
-| `main.ts` — Helmet | CSP désactivée « pour l'iframe AI Studio » → la réactiver, d'abord en `reportOnly` | À faire |
-| `scripts/` | Scripts `db-*` ponctuels (audit de juin) → `scripts/archive/` ; retirer du suivi git les sorties `*.json`/`*.txt` | À faire |
+| `@google/genai` | Aucun import → `npm uninstall @google/genai` | ✅ Fait |
+| `lib/mock-data.ts` | Plus importé → supprimer | ✅ Fait |
+| `app/api/dashboard/stats/route.ts` | Stub non appelé (JSON avec statut 301 sans `Location`) → supprimer | ✅ Fait |
+| `.env.example` | `ALLOWED_ORIGINS=http://localhost:3005` → port 3000 ; retirer les commentaires Railway ; ajouter `APP_DOMAIN`, `ACME_EMAIL` et les variables d'e-mail du lot 0 | ✅ Fait (variables d'e-mail déjà présentes) |
+| `main.ts` — Helmet | CSP désactivée « pour l'iframe AI Studio » → la réactiver, d'abord en `reportOnly` | ✅ API : CSP Helmet par défaut **bloquante** (JSON + Swagger UI vérifié, sans `upgrade-insecure-requests`), `src/shared/security/http-security.ts` + test · Web : `Content-Security-Policy-Report-Only` dans `next.config.ts` · **À faire** : passer la CSP web en bloquant (nonces, `report-to`). Seul rapport observé sur la suite `test:ux` (build de prod) : la sonde `Function("")` de Zod v4 (sans effet, `z.config({ jitless: true })` la supprime) |
+| `scripts/` | Scripts `db-*` ponctuels (audit de juin) → `scripts/archive/` ; retirer du suivi git les sorties `*.json`/`*.txt` | ✅ 20 scripts non référencés archivés ; sorties retirées du suivi et ignorées. Restent en place car documentés : `db-audit*.mjs` (`docs/DB_AUDIT.md`), `audit-quote-ot-status.mjs` |
 
 Critère de sortie : `npm run type:check`, `npm test` et `npm run build` passent.
 

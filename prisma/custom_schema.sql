@@ -215,7 +215,7 @@ $$ LANGUAGE plpgsql;
 
 -- ─── Vue : Dashboard OT actifs ───────────────────────────────────────────────
 -- Liste tous les OT non clôturés avec infos véhicule, client, avancement travaux
--- et immobilisation en cours. Utilisée par le dashboard NestJS /api/dashboard/stats.
+-- et immobilisation en cours. Utilisée par le dashboard NestJS /api/reports/dashboard-stats.
 -- IMPORTANT : works_done utilise 'COMPLETED' (enum work_item_status_t), pas 'DONE'.
 CREATE OR REPLACE VIEW v_active_ot_dashboard AS
 SELECT

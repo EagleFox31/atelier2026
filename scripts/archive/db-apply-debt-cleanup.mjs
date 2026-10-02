@@ -11,7 +11,7 @@ const pool = new pg.Pool({
 });
 
 const sql = fs.readFileSync(
-  path.join(__dirname, '..', 'prisma', 'migrations', '20260524_prod_debt_cleanup', 'migration.sql'),
+  path.join(__dirname, '..', '..', 'prisma', 'migrations', '20260524_prod_debt_cleanup', 'migration.sql'),
   'utf8',
 );
 
