@@ -24,6 +24,7 @@ function makeController(status: SubscriptionStatus | null, plan = 'pro') {
   };
   const subscriptions = {
     getSummary: jest.fn().mockResolvedValue({ status, plan }),
+    statusFromLoadedTenant: jest.fn().mockReturnValue(null),
   };
   const controller = new SettingsController(settingsService as never, subscriptions as never);
   const user = status === null

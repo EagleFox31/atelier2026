@@ -349,6 +349,8 @@ export interface SubscriptionSummary {
   daysRemaining: number | null;
   readOnly: boolean;
   blocked: boolean;
+  /** Droits du forfait, calculés côté API — source unique pour griser l'UI. */
+  features: { sms: boolean; branding: boolean };
 }
 
 export type SubscriptionBillingCycle = 'monthly' | 'annual';

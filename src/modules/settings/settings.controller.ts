@@ -18,6 +18,9 @@ export class SettingsController {
    */
   private async entitlementContext(user: any): Promise<EntitlementContext | null> {
     if (!user?.tenantId) return null;
+    // Tenant déjà chargé par JwtAuthGuard : pas de requête ; sinon repli sur getSummary().
+    const loaded = this.subscriptions.statusFromLoadedTenant(user.tenant);
+    if (loaded) return loaded;
     const { status, plan } = await this.subscriptions.getSummary(user.tenantId);
     return { status, plan };
   }

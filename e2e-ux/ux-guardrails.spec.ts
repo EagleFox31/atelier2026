@@ -106,6 +106,7 @@ async function mockAuthenticatedApp(
           daysRemaining: 30,
           readOnly: false,
           blocked: false,
+          features: options.trial === false ? { sms: true, branding: true } : { sms: false, branding: false },
         }),
       });
     }
@@ -301,6 +302,17 @@ test.describe('Atelier Maître — garde-fous UX/UI/CX', () => {
     await expect(buttons).toHaveCount(2);
     await expect(buttons.nth(0)).toBeDisabled();
     await expect(buttons.nth(1)).toBeDisabled();
+  });
+
+  test('les droits renvoyés par l’API (features) déverrouillent les SMS d’un forfait actif', async ({ page }) => {
+    await mockAuthenticatedApp(page, { trial: false });
+    await page.goto('/settings');
+    await page.getByRole('tab', { name: /Notifications/i }).click();
+
+    const buttons = page.getByRole('button', { name: 'Configurer le template' });
+    await expect(buttons).toHaveCount(2);
+    await expect(buttons.nth(0)).toBeEnabled();
+    await expect(buttons.nth(1)).toBeEnabled();
   });
 
 

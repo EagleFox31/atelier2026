@@ -48,11 +48,9 @@ export default function SettingsPage() {
   const canEdit = hasRole('ADMIN') || hasRole('SUPER_ADMIN');
   const canManageSubscription = hasRole('ADMIN') && Boolean(user?.tenantId);
   const { data: subscription } = useTrialStatus(Boolean(user?.tenantId));
-  const isFreePilot = subscription?.status === 'TRIAL' || subscription?.status === 'GRACE_PERIOD';
-  const smsLocked =
-    Boolean(user?.tenantId) &&
-    (subscription?.status !== 'ACTIVE' ||
-      !['pro', 'business'].includes(subscription?.plan.toLowerCase() ?? ''));
+  // Droits calculés par l'API (entitlements.ts) : aucune règle de forfait dupliquée ici.
+  const brandingLocked = Boolean(user?.tenantId) && subscription?.features?.branding === false;
+  const smsLocked = Boolean(user?.tenantId) && subscription?.features?.sms !== true;
   const smsLockMessage = !subscription
     ? 'Vérification de votre abonnement en cours.'
     : subscription.status === 'TRIAL'
@@ -145,7 +143,7 @@ export default function SettingsPage() {
 
   // ── Logo ─────────────────────────────────────────────────────────────────
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    if (isFreePilot) {
+    if (brandingLocked) {
       toast.info('Le logo personnalisé est disponible après activation d’un forfait payant.');
       e.target.value = '';
       return;
@@ -298,11 +296,11 @@ export default function SettingsPage() {
                         <CardTitle className="text-base flex items-center gap-2">
                           Logo de l&apos;atelier
                           <span className="text-[10px] font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-                            {isFreePilot ? 'Disponible après activation' : 'Personnalisation'}
+                            {brandingLocked ? 'Disponible après activation' : 'Personnalisation'}
                           </span>
                         </CardTitle>
                         <CardDescription className="text-xs mt-0.5">
-                          {isFreePilot
+                          {brandingLocked
                             ? 'Le pilote gratuit utilise l’identité Atelier Maître. Votre logo sera disponible après activation.'
                             : 'Affiché sur vos devis et factures · PNG, JPG ou SVG · max 500 KB'}
                         </CardDescription>
@@ -322,10 +320,10 @@ export default function SettingsPage() {
                       <div className="flex flex-col gap-2">
                         <label className={`cursor-pointer inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors ${savingLogo ? 'opacity-50 pointer-events-none' : ''}`}>
                           {savingLogo ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                          {isFreePilot ? 'Logo verrouillé pendant le pilote' : logoUrl ? 'Changer le logo' : 'Importer un logo'}
-                          <input type="file" accept="image/*" className="sr-only" onChange={handleLogoUpload} disabled={savingLogo || isFreePilot} />
+                          {brandingLocked ? 'Logo verrouillé pendant le pilote' : logoUrl ? 'Changer le logo' : 'Importer un logo'}
+                          <input type="file" accept="image/*" className="sr-only" onChange={handleLogoUpload} disabled={savingLogo || brandingLocked} />
                         </label>
-                        {logoUrl && !isFreePilot && (
+                        {logoUrl && !brandingLocked && (
                           <button onClick={removeLogo} disabled={savingLogo} className="text-xs text-red-500 hover:text-red-700 text-left disabled:opacity-50">
                             Supprimer le logo
                           </button>

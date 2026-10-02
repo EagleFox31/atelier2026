@@ -46,7 +46,13 @@ export class JwtAuthGuard implements CanActivate {
         where: { id: payload.sub },
         include: {
           garage: { select: { id: true, name: true, slug: true } },
-          tenant: { select: { id: true, name: true, slug: true } },
+          // Champs d'abonnement : SubscriptionGuard calcule le statut sans requête supplémentaire.
+          tenant: {
+            select: {
+              id: true, name: true, slug: true,
+              plan: true, subscriptionStatus: true, trialEndsAt: true, graceEndsAt: true,
+            },
+          },
           roles: {
             include: {
               role: {

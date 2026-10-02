@@ -30,7 +30,55 @@ export type SubscriptionSummary = {
   daysRemaining: number | null;
   readOnly: boolean;
   blocked: boolean;
+  /** Droits du forfait (table unique entitlements.ts) — le front ne recode aucune règle. */
+  features: Record<Feature, boolean>;
 };
+
+/** Champs d'abonnement chargés avec l'utilisateur par JwtAuthGuard (aucune requête de plus). */
+export type TenantSubscriptionFields = {
+  plan: string;
+  subscriptionStatus: SubscriptionStatus;
+  trialEndsAt: Date | null;
+  graceEndsAt: Date | null;
+};
+
+/**
+ * Statut effectif à l'instant `now` — fonction pure, sans I/O.
+ * La persistance des transitions reste assurée par le cron (TrialSchedulerService)
+ * et par GET /subscription/status ; le calcul en mémoire coupe l'accès à la seconde près.
+ */
+export function resolveSubscriptionStatus(
+  tenant: Pick<TenantSubscriptionFields, 'subscriptionStatus' | 'trialEndsAt' | 'graceEndsAt'>,
+  now: Date,
+): SubscriptionStatus {
+  if (
+    tenant.subscriptionStatus === SubscriptionStatus.ACTIVE ||
+    tenant.subscriptionStatus === SubscriptionStatus.SUSPENDED ||
+    tenant.subscriptionStatus === SubscriptionStatus.EXPIRED
+  ) {
+    return tenant.subscriptionStatus;
+  }
+
+  // Un ancien tenant sans dates ne doit jamais être coupé par erreur.
+  if (!tenant.trialEndsAt) return SubscriptionStatus.ACTIVE;
+
+  if (now.getTime() < tenant.trialEndsAt.getTime()) {
+    return SubscriptionStatus.TRIAL;
+  }
+
+  if (tenant.graceEndsAt && now.getTime() < tenant.graceEndsAt.getTime()) {
+    return SubscriptionStatus.GRACE_PERIOD;
+  }
+
+  return SubscriptionStatus.EXPIRED;
+}
+
+export function subscriptionFeatures(status: SubscriptionStatus, plan: string): Record<Feature, boolean> {
+  return {
+    sms: hasFeature({ status, plan }, 'sms'),
+    branding: hasFeature({ status, plan }, 'branding'),
+  };
+}
 
 @Injectable()
 export class SubscriptionService {
@@ -112,32 +160,29 @@ export class SubscriptionService {
   }
 
   private resolveStatus(
-    tenant: Pick<
-      TenantSubscriptionRow,
-      'subscriptionStatus' | 'trialEndsAt' | 'graceEndsAt'
-    >,
+    tenant: Pick<TenantSubscriptionRow, 'subscriptionStatus' | 'trialEndsAt' | 'graceEndsAt'>,
     now: Date,
   ): SubscriptionStatus {
-    if (
-      tenant.subscriptionStatus === SubscriptionStatus.ACTIVE ||
-      tenant.subscriptionStatus === SubscriptionStatus.SUSPENDED ||
-      tenant.subscriptionStatus === SubscriptionStatus.EXPIRED
-    ) {
-      return tenant.subscriptionStatus;
-    }
+    return resolveSubscriptionStatus(tenant, now);
+  }
 
-    // Un ancien tenant sans dates ne doit jamais être coupé par erreur.
-    if (!tenant.trialEndsAt) return SubscriptionStatus.ACTIVE;
-
-    if (now.getTime() < tenant.trialEndsAt.getTime()) {
-      return SubscriptionStatus.TRIAL;
-    }
-
-    if (tenant.graceEndsAt && now.getTime() < tenant.graceEndsAt.getTime()) {
-      return SubscriptionStatus.GRACE_PERIOD;
-    }
-
-    return SubscriptionStatus.EXPIRED;
+  /**
+   * Statut + forfait depuis les champs déjà chargés par JwtAuthGuard : aucune requête.
+   * null si ces champs sont absents (appel hors requête HTTP) → l'appelant retombe sur getSummary().
+   */
+  statusFromLoadedTenant(
+    tenant: Partial<TenantSubscriptionFields> | null | undefined,
+  ): { status: SubscriptionStatus; plan: string } | null {
+    if (!tenant?.subscriptionStatus || typeof tenant.plan !== 'string') return null;
+    const status = resolveSubscriptionStatus(
+      {
+        subscriptionStatus: tenant.subscriptionStatus,
+        trialEndsAt: tenant.trialEndsAt ?? null,
+        graceEndsAt: tenant.graceEndsAt ?? null,
+      },
+      this.clock.now(),
+    );
+    return { status, plan: tenant.plan };
   }
 
   private toSummary(tenant: TenantSubscriptionRow, now: Date): SubscriptionSummary {
@@ -160,6 +205,7 @@ export class SubscriptionService {
       blocked:
         tenant.subscriptionStatus === SubscriptionStatus.EXPIRED ||
         tenant.subscriptionStatus === SubscriptionStatus.SUSPENDED,
+      features: subscriptionFeatures(tenant.subscriptionStatus, tenant.plan),
     };
   }
 }
