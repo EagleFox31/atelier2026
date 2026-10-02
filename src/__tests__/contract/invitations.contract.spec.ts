@@ -1,6 +1,8 @@
 import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { ClientIpThrottlerGuard } from '../../shared/security/client-ip-throttler.guard';
 import { PublicInvitationController } from '../../modules/team/public-invitation.controller';
 import { TeamInvitationService } from '../../modules/team/team-invitation.service';
 import { AuthService } from '../../modules/auth/auth.service';
@@ -26,9 +28,11 @@ function makePrisma() {
 async function makeApp(prisma: ReturnType<typeof makePrisma>, limit = 1000) {
   return createTestApp({
     // Limite globale haute : seuls les @Throttle des routes publiques s'appliquent.
-    moduleImports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit }])],
+    moduleImports: [ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit }])],
     controllers: [PublicInvitationController],
     extraProviders: [
+      // Comme en production : garde de limitation de débit enregistrée globalement.
+      { provide: APP_GUARD, useClass: ClientIpThrottlerGuard },
       TeamInvitationService,
       AuthService,
       { provide: TransactionalEmailService, useValue: { send: jest.fn() } },

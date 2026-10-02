@@ -2,6 +2,8 @@ import { Controller, Post, Get, Patch, Body, HttpCode, HttpStatus } from '@nestj
 import { AuthService } from './auth.service';
 import { AllowPendingPasswordChange, Public, CurrentUser } from '../../decorators/auth.decorator';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { Throttle } from '@nestjs/throttler';
+import { RATE_LIMITS } from '../../shared/security/rate-limits';
 
 type AuthUser = {
   id: string;
@@ -57,6 +59,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @Throttle(RATE_LIMITS.login)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() body: { identifier: string; passwordHash: string; password?: string }) {
@@ -86,6 +89,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle(RATE_LIMITS.forgotPassword)
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() body: { identifier: string }) {

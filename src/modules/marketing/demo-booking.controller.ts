@@ -1,5 +1,6 @@
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { RATE_LIMITS } from '../../shared/security/rate-limits';
 import { Public } from '../../decorators/auth.decorator';
 import { DemoBookingDto } from './dto/demo-booking.dto';
 import { DemoBookingService } from './demo-booking.service';
@@ -11,7 +12,7 @@ export class DemoBookingController {
   @Public()
   @Post('demo-booking')
   @HttpCode(201)
-  @Throttle({ default: { limit: 6, ttl: 60_000 } })
+  @Throttle(RATE_LIMITS.demoBooking)
   submit(@Body() body: DemoBookingDto) {
     return this.demoBooking.submit(body);
   }
