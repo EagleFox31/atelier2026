@@ -340,3 +340,31 @@ Une brique partagée de détection de changements doit être validée pour **cha
 
 **Principe dérivé / changement de standard**
 Proposition pour AppFactory : prendre en charge `workflow_run` (ou une plage explicite documentée), et échouer au lieu de tout déclencher quand l'appelant exige une plage.
+
+### LESSON-2026-011 — Un déploiement en file d'attente peut être évincé et ne jamais partir (near miss)
+
+- **Date** : 2026-10-02
+- **Catégorie** : `ci-cd` · `release-deployment`
+- **Statut** : prevention-added
+- **Lié à** : `.github/workflows/deploy.yml`, LESSON-2026-001, LESSON-2026-010
+
+**Contexte**
+`deploy.yml` se déclenchait après chaque CI verte sur `main`, avec `concurrency: atelier-maitre-production` (`cancel-in-progress: false`) et une détection des images à reconstruire limitée au dernier commit (`git diff HEAD^1 HEAD`). Trois PR mergées en quelques minutes = deux coupures de prod.
+
+**Échec / near miss**
+En analysant la contrainte « une coupure par merge », constat que GitHub ne garde **qu'un seul run en attente** par groupe de concurrence : un run plus récent remplace le run en attente. Si un merge touchant l'API attend pendant un déploiement et qu'un merge de docs arrive, le run de l'API est évincé ; celui des docs ne voit que son propre commit et ne déploie rien. Workflow vert, prod en retard — le symptôme de LESSON-2026-001. Aucun cas observé en prod.
+
+**Cause racine**
+Décision « quoi déployer » prise sur un commit isolé, alors que la file d'attente ne garantit pas que chaque commit aura son run.
+
+**Résolution**
+Déploiement à la release : le job `Release gate` ne laisse passer que le commit de release (`version.txt` modifié) ou un Run workflow, et le déploiement reconstruit **tout** (plus de regex de chemins, donc plus de fichiers oubliés). Les runs ordinaires prennent un groupe de concurrence à eux : ils ne peuvent pas évincer un déploiement de release en attente.
+
+**Prévention**
+Le groupe de concurrence de `deploy.yml` est dynamique (commentaire en tête du fichier) ; gate rejoué sur des commits réels (release 1.9.0 → déploie ; merges #45 et #47 → ne déploient pas). Résumé « Release gate » explicite dans chaque run, pour qu'un « rien déployé » ne passe jamais pour un succès silencieux.
+
+**Leçon généralisée**
+Avec une file de concurrence GitHub, un run en attente n'est pas garanti : ne jamais faire dépendre ce qui est livré du seul commit du run. Soit on livre l'état complet de la cible, soit on compare au dernier état réellement livré.
+
+**Principe dérivé / changement de standard**
+Les déploiements de prod sont déclenchés par une release (version explicite), pas par chaque merge.

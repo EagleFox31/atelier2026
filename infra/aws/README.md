@@ -67,15 +67,15 @@ L'instance peut lire uniquement les paramètres sous `/atelier-maitre/prod/`. Le
 
 ## 4. Lancer le déploiement
 
-Une fois le bootstrap et les paramètres prêts, fusionner la PR dans `main`. Le workflow :
+Une fois le bootstrap et les paramètres prêts, la production est déployée **à chaque release** : merger la PR de release AppFactory (« chore(main): release X.Y.Z »). Un merge ordinaire sur `main` ne déploie rien (job « Release gate »). Le workflow :
 
-1. attend que la CI réussisse ;
+1. attend que la CI réussisse sur le commit de release ;
 2. crée ou met à jour la pile `atelier-maitre-prod` ;
-3. construit les images modifiées et les publie dans GHCR ;
+3. construit les deux images et les publie dans GHCR (cache : une image inchangée reste identique) ;
 4. demande à Systems Manager de déployer le commit exact ;
 5. vérifie `http://127.0.0.1/api/health` sur le serveur.
 
-Le workflow peut aussi être relancé avec **Actions → Deploy AWS → Run workflow**.
+Correctif urgent sans release : **Actions → Deploy AWS → Run workflow** déploie `main` tel quel (complet). Un déploiement de release en échec se relance avec « Re-run jobs ».
 
 ## Exploitation
 

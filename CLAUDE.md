@@ -208,15 +208,17 @@ Source de vérité : `ROLE_PERMISSIONS` dans `prisma/seed.ts` + `src/shared/rbac
 ### Pipeline GitHub Actions
 
 ```
-git push main → CI (analyse d'impact → gates requis seulement) → Deploy AWS (CloudFormation → build GHCR → SSM pull + up → /api/health)
+git push main → CI (analyse d'impact → gates requis seulement) → Deploy AWS : « Release gate » → rien (commit ordinaire)
              → Release (AppFactory / Release Please : met à jour la PR de release)
+merge PR de release → CI → Deploy AWS complet (CloudFormation → build GHCR → SSM pull + up → /api/health)
 PR → CI + UX guardrails (mêmes gates) ; Issue/PR → Project automation (board GitHub)
 ```
 
 - **CI** (`.github/workflows/ci.yml`) : job `impact` (Impact-Aware CI AppFactory) puis seulement les gates requis — `Type-check & Tests` (type-check back + front ; Jest seulement si gate `unit-tests`), `Lint des workflows` (actionlint + shellcheck). **`CI result`** agrège : vert si chaque gate a réussi ou a été sauté hors périmètre. Lancement manuel = validation complète (mode `all`), sans redéploiement
 - **UX guardrails** (`.github/workflows/ux-guardrails.yml`) : sur chaque PR vers `main`, Playwright `test:ux` seulement si le gate `ux-guardrails` est requis (plus de filtre `paths:`)
 - **Release** (`.github/workflows/release.yml`) : appelle le workflow partagé AppFactory `reusable-release.yml@v1` (voir Versioning)
-- **Deploy** (`.github/workflows/deploy.yml`) : déclenché par la réussite de la CI sur `main` issue d'un push (ou manuellement). Détecte les fichiers modifiés (`git diff HEAD^1 HEAD`, **pas** l'analyse d'impact — exception RAIDER, voir `docs/engineering/appfactory.md`) → met à jour la pile CloudFormation seulement si l'infra change → build/push seulement les images API/Web modifiées → déploiement via **SSM** (pas de SSH)
+- **Deploy** (`.github/workflows/deploy.yml`) : **à la release, pas à chaque merge** (une seule coupure, au moment choisi). Après chaque CI verte sur `main`, le job `Release gate` vérifie si le commit modifie `version.txt` (= merge de la PR de release). Sinon : arrêt, rien n'est déployé (résumé explicite). Si oui, ou via **Run workflow** (correctif urgent, déploie `main`) : déploiement **complet** — pile CloudFormation, les deux images GHCR (le cache Docker garde une image inchangée identique, son conteneur n'est pas recréé), puis **SSM** (pas de SSH). Plus de détection de chemins par regex (LESSON-2026-011)
+- **Conséquence** : la prod suit la **dernière release**, pas `main`. Un correctif mergé n'est en ligne qu'après le merge de la PR de release (ou un Run workflow) ; la QA quotidienne contre la prod teste donc la dernière release
 - **QA UX** (`.github/workflows/qa-ux.yml`) : `npm run test:qa` contre la prod, du lundi au vendredi à 5 h UTC, ou lancé à la main (`base_url`, `allow_mutations`). Secrets `QA_EMAIL` / `QA_PASSWORD` (compte QA dédié)
 - **Project automation** (`.github/workflows/project-automation.yml` + `.github/project-config.json`) : Issues/PR synchronisées sur le GitHub Project « Atelier Maître Product Development » (auth `broker-user`, zéro PAT). Mise en service unique : `docs/engineering/appfactory.md`
 - **Modèle de PR** (`.github/pull_request_template.md`) : section « RAIDER review » du Project Registry
@@ -238,7 +240,7 @@ Politique unique dans **`.github/appfactory-impact.json`** : fichiers modifiés 
 | ignorés | `*.md` racine, `docs/`, `onboarding/`, `deploy/legacy/`, `postman/`, `.vscode/`, `.env.example`… | aucun |
 
 - Lire le résultat : résumé « AppFactory change impact » du job `Analyse d'impact` (surfaces, gates, fallback). Un job gardé « skipped » = hors périmètre, pas un échec.
-- Ajouter un dossier/fichier racine ⇒ le classer dans la carte d'impact, sinon chaque changement le touchant déclenche tout. Garder `deploy.yml` (regex de « Detect changed paths ») aligné.
+- Ajouter un dossier/fichier racine ⇒ le classer dans la carte d'impact, sinon chaque changement le touchant déclenche tout. (`deploy.yml` n'a plus de liste de chemins : il déploie tout à la release.)
 - Runtimes AppFactory **épinglés par SHA** (tag en commentaire) : impact `20c6b99` (pas encore de tag), Project `b1deb7b`. `release.yml` reste sur `@v1`, comme le recommande AppFactory pour les workflows de release.
 
 ### Configuration GitHub Actions requise
@@ -258,7 +260,7 @@ Workflow partagé : [EagleFox31/appfactory-project-automation](https://github.co
 
 1. Chaque push sur `main` met à jour une **PR de release** « chore(main): release X.Y.Z » (`version.txt` + `CHANGELOG.md`, calculés depuis les Conventional Commits).
 2. **Merger cette PR publie la version** : tag `vX.Y.Z` + GitHub Release. On publie donc quand on veut, pas à chaque merge.
-3. Le merge déclenche CI → Deploy ; `version.txt` faisant partie des fichiers « web », le site est reconstruit avec la nouvelle version.
+3. Le merge déclenche CI → **Deploy** : c'est le **seul** merge qui met la prod à jour (commit de release = `version.txt` modifié). Le site est reconstruit avec la nouvelle version.
 
 | Commit | Bump semver |
 |--------|-------------|

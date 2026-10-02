@@ -4,8 +4,8 @@ name: Release
 # - chaque push sur main met à jour une PR de release « chore(main): release X.Y.Z »
 #   (version.txt + CHANGELOG.md, calculés depuis les Conventional Commits) ;
 # - merger cette PR crée le tag vX.Y.Z et la GitHub Release ;
-# - le merge déclenche ensuite CI → Deploy AWS, qui reconstruit le site avec la
-#   nouvelle version (version.txt est surveillé par deploy.yml).
+# - ce merge est le SEUL qui déploie la prod : CI → Deploy AWS, dont le job
+#   « Release gate » reconnaît le commit de release (version.txt modifié).
 # Pas de token requis : GITHUB_TOKEN suffit (réglage dépôt « Allow GitHub Actions
 # to create and approve pull requests »). Un secret APPFACTORY_RELEASE_TOKEN,
 # optionnel, permettrait en plus à la CI de tourner sur la PR de release.
