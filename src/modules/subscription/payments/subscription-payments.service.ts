@@ -183,6 +183,69 @@ export class SubscriptionPaymentsService {
     }
   }
 
+  /**
+   * Réconciliation « pull » : interroge le prestataire pour les paiements encore PENDING
+   * et applique le statut final, par le même chemin transactionnel que le webhook.
+   * Le webhook n'est plus un point de défaillance unique (LESSON-2026-013) : appelée au
+   * retour du client (checkout) et périodiquement (PaymentReconciliationScheduler).
+   * Idempotent : empreinte `reconcile:<paiement>:<statut>` + mise à jour conditionnelle,
+   * donc sûr face à un webhook qui arrive en même temps.
+   */
+  async reconcilePendingPayments(
+    options: { tenantId?: string; maxAgeHours?: number; limit?: number } = {},
+  ) {
+    const since = new Date(Date.now() - (options.maxAgeHours ?? 48) * 3_600_000);
+    const pending = await this.prisma.subscriptionPayment.findMany({
+      where: {
+        provider: this.provider.name,
+        status: 'PENDING',
+        providerTransactionId: { not: null },
+        createdAt: { gte: since },
+        ...(options.tenantId ? { tenantId: options.tenantId } : {}),
+      },
+      orderBy: { createdAt: 'asc' },
+      take: options.limit ?? 50,
+      select: { id: true, providerTransactionId: true, reference: true },
+    });
+
+    const summary = { checked: pending.length, activated: 0, closed: 0, stillPending: 0, failed: 0 };
+    for (const payment of pending) {
+      try {
+        const verified = await this.provider.retrievePayment(payment.providerTransactionId!);
+        if (verified.status === 'PENDING' || verified.status === 'UNKNOWN') {
+          summary.stillPending += 1;
+          continue;
+        }
+        const event: PaymentWebhookEvent = {
+          type: 'payment.reconcile',
+          status: verified.status,
+          providerTransactionId: payment.providerTransactionId,
+          reference: payment.reference,
+        };
+        const result = await this.applyWebhookEvent(
+          `reconcile:${payment.id}:${verified.status}`,
+          event,
+          verified.status === 'COMPLETE' ? verified : null,
+        );
+        if ('activated' in result && result.activated) summary.activated += 1;
+        else summary.closed += 1;
+        this.logger.log(`Paiement réconcilié (${this.describe(event)}) : ${JSON.stringify(result)}`);
+      } catch (error) {
+        if (this.isUniqueConstraintError(error)) {
+          summary.closed += 1; // déjà appliqué (webhook ou réconciliation concurrente)
+          continue;
+        }
+        summary.failed += 1;
+        const errorCode =
+          error instanceof HttpException
+            ? ((error.getResponse() as { errorCode?: string }).errorCode ?? error.getStatus())
+            : 'UNEXPECTED';
+        this.logger.warn(`Réconciliation impossible pour le paiement ${payment.reference} (${errorCode})`);
+      }
+    }
+    return summary;
+  }
+
   private describe(event: PaymentWebhookEvent): string {
     return `transaction=${event.providerTransactionId ?? '-'} référence=${event.reference ?? '-'} statut=${event.status}`;
   }

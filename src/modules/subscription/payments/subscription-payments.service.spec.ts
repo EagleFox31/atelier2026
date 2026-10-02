@@ -331,4 +331,100 @@ describe('SubscriptionPaymentsService', () => {
 
     expect(row.subscriptionEndsAt.toISOString()).toBe('2027-01-01T00:00:00.000Z');
   });
+
+  describe('reconcilePendingPayments (pull, sans dépendre du webhook)', () => {
+    const pendingRow = (id: string) => ({ id, providerTransactionId: `trx.test_${id}`, reference: `sub_${id}` });
+    const storedPayment = (id: string) => ({
+      id, tenantId: 'tenant-1', provider: 'notchpay', providerTransactionId: `trx.test_${id}`,
+      reference: `sub_${id}`, amountXaf: 45_000, currency: 'XAF', plan: 'pro', billingCycle: 'monthly', status: 'PENDING',
+    });
+    const verified = (id: string, status: 'COMPLETE' | 'PENDING' | 'FAILED') => ({
+      providerTransactionId: `trx.test_${id}`, reference: `sub_${id}`, amount: 45_000, currency: 'XAF', status, providerStatus: status.toLowerCase(),
+    });
+
+    function setup(rows: Array<ReturnType<typeof pendingRow>>) {
+      const tx = {
+        subscriptionPayment: {
+          findFirst: jest.fn(async ({ where }: { where: { OR: Array<{ providerTransactionId?: string }> } }) =>
+            storedPayment(where.OR[0].providerTransactionId!.replace('trx.test_', ''))),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        },
+        subscriptionPaymentEvent: { create: jest.fn().mockResolvedValue({}) },
+        $queryRaw: jest.fn().mockResolvedValue([]),
+        tenant: {
+          findUniqueOrThrow: jest.fn().mockResolvedValue({
+            subscriptionStatus: SubscriptionStatus.TRIAL, subscriptionStartedAt: null, subscriptionEndsAt: null,
+          }),
+          update: jest.fn().mockResolvedValue({}),
+        },
+      };
+      const prisma = {
+        subscriptionPayment: { findMany: jest.fn().mockResolvedValue(rows) },
+        $transaction: jest.fn((callback: (t: unknown) => unknown) => callback(tx)),
+      };
+      const provider = makeProvider();
+      const service = new SubscriptionPaymentsService(prisma as never, provider);
+      return { tx, prisma, provider, service };
+    }
+
+    it('activates a payment confirmed by NotchPay even if no webhook ever arrived', async () => {
+      const { tx, prisma, provider, service } = setup([pendingRow('a')]);
+      provider.retrievePayment.mockResolvedValue(verified('a', 'COMPLETE'));
+
+      const summary = await service.reconcilePendingPayments({ tenantId: 'tenant-1' });
+
+      expect(summary).toEqual({ checked: 1, activated: 1, closed: 0, stillPending: 0, failed: 0 });
+      expect(provider.retrievePayment).toHaveBeenCalledWith('trx.test_a');
+      expect(prisma.subscriptionPayment.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ tenantId: 'tenant-1', status: 'PENDING' }) }),
+      );
+      expect(tx.subscriptionPaymentEvent.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ fingerprint: 'reconcile:a:COMPLETE', eventType: 'payment.reconcile' }),
+      });
+      expect(tx.tenant.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ subscriptionStatus: SubscriptionStatus.ACTIVE }) }),
+      );
+    });
+
+    it('leaves a payment still pending at NotchPay untouched', async () => {
+      const { tx, provider, service } = setup([pendingRow('a')]);
+      provider.retrievePayment.mockResolvedValue(verified('a', 'PENDING'));
+
+      const summary = await service.reconcilePendingPayments();
+
+      expect(summary).toMatchObject({ checked: 1, stillPending: 1, activated: 0 });
+      expect(tx.subscriptionPaymentEvent.create).not.toHaveBeenCalled();
+    });
+
+    it('closes a failed payment without unlocking access', async () => {
+      const { tx, provider, service } = setup([pendingRow('a')]);
+      provider.retrievePayment.mockResolvedValue(verified('a', 'FAILED'));
+
+      const summary = await service.reconcilePendingPayments();
+
+      expect(summary).toMatchObject({ closed: 1, activated: 0 });
+      expect(tx.subscriptionPayment.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { status: 'FAILED', providerStatus: 'FAILED' } }),
+      );
+      expect(tx.tenant.update).not.toHaveBeenCalled();
+    });
+
+    it('treats an already applied payment (webhook won the race) as closed', async () => {
+      const { prisma, provider, service } = setup([pendingRow('a')]);
+      provider.retrievePayment.mockResolvedValue(verified('a', 'COMPLETE'));
+      (prisma.$transaction as jest.Mock).mockRejectedValueOnce({ code: 'P2002' });
+
+      await expect(service.reconcilePendingPayments()).resolves.toMatchObject({ closed: 1, failed: 0 });
+    });
+
+    it('keeps going when one payment cannot be checked', async () => {
+      const { provider, service } = setup([pendingRow('a'), pendingRow('b')]);
+      provider.retrievePayment
+        .mockRejectedValueOnce(new Error('NotchPay down'))
+        .mockResolvedValueOnce(verified('b', 'COMPLETE'));
+
+      await expect(service.reconcilePendingPayments()).resolves.toMatchObject({ checked: 2, failed: 1, activated: 1 });
+    });
+  });
 });
+

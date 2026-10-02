@@ -369,6 +369,12 @@ export const subscriptionApi = {
   status: () => get<SubscriptionSummary>('/subscription/status'),
   createCheckout: (billingCycle: SubscriptionBillingCycle) =>
     post<SubscriptionCheckout>('/subscription/checkout', { billingCycle }),
+  /** Fait vérifier par l'API les paiements en attente auprès de NotchPay (retour du checkout). */
+  reconcilePayments: () =>
+    post<{ checked: number; activated: number; closed: number; stillPending: number; failed: number }>(
+      '/subscription/payments/reconcile',
+      {},
+    ),
 };
 
 // ─── Types ─────────────────────────────────────────────────────────────────

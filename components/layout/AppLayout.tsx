@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { CommandPalette } from './CommandPalette';
 import { useAuth } from '@/contexts/auth-context';
-import { authApi, PASSWORD_CHANGE_PATH } from '@/lib/api';
+import { authApi, PASSWORD_CHANGE_PATH, subscriptionApi } from '@/lib/api';
 import { OnboardingModal } from '@/components/onboarding/OnboardingModal';
 import { GuideMenu } from '@/components/onboarding/GuideMenu';
 import { GettingStartedNav } from '@/components/onboarding/GettingStartedNav';
@@ -77,9 +77,9 @@ export function AppLayout({ children }: AppLayoutProps) {
     setShowOnboarding(!user.onboardingCompletedAt && !user.mustChangePassword);
   }, [user]);
 
-  // Au retour du checkout, le webhook peut arriver quelques secondes après la
-  // redirection du navigateur. On réinterroge donc le statut sans demander à
-  // l'utilisateur de rafraîchir manuellement la page.
+  // Au retour du checkout, on demande à l'API de vérifier le paiement directement
+  // auprès de NotchPay (sans attendre le webhook, qui peut tarder ou se perdre),
+  // puis on réinterroge le statut, sans demander de rafraîchir la page.
   useEffect(() => {
     if (!shouldLoadSubscription || typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
@@ -92,6 +92,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     toast.loading('Vérification du paiement NotchPay…', { id: toastId });
 
     const verifyPayment = async () => {
+      await subscriptionApi.reconcilePayments().catch(() => undefined);
       const current = await refreshSubscription();
       if (cancelled) return;
 

@@ -141,6 +141,7 @@ Guards globaux (ordre) : `ClientIpThrottlerGuard` → `JwtAuthGuard` → `Subscr
 - Le statut est recalculé **en mémoire** à chaque requête (`resolveSubscriptionStatus`, à partir des champs tenant déjà chargés par `JwtAuthGuard` — aucune requête en plus ; repli `getSummary` hors HTTP) et persisté par `TrialSchedulerService` (cron horaire).
 - **Droits par forfait** : `entitlements.ts` est la seule source. `/subscription/status` renvoie `features` (`sms`, `branding`) ; le front grise l'UI à partir de ce champ, sans règle de forfait dupliquée.
 - Un tenant sans `trialEndsAt` (antérieur au pilote) est toujours considéré `ACTIVE`.
+- **Paiements (NotchPay)** : checkout hébergé (`/subscription/checkout`). Activation par le webhook **ou** par la réconciliation « pull » (retour client `?payment=return` → `POST /subscription/payments/reconcile`, + cron 5 min) : ne jamais dépendre du seul webhook. NotchPay : `reference` = son id (`trx.…`), notre référence = `merchant_reference` (LESSON-2026-013). Garage de test QA en sandbox pour rejouer un paiement réel.
 - Codes d'erreur front : `TRIAL_READ_ONLY`, `TRIAL_EXPIRED`, `SUBSCRIPTION_SUSPENDED` → `SubscriptionBlockedScreen` / `TrialStatusBanner`.
 - `PASSWORD_CHANGE_REQUIRED` (403, `JwtAuthGuard`) → redirection `/change-password` (`lib/api.ts` + `AppLayout`).
 - Invitations : `INVITATION_INVALID` (404), `INVITATION_EXPIRED` (410), `INVITATION_USED` (409) → écrans de `app/invitation/[token]/page.tsx` (page publique par préfixe dans `AppLayout`).

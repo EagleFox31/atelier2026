@@ -7,6 +7,7 @@ import { PAYMENT_PROVIDER } from './payments/payment-provider';
 import { NotchPayPaymentProvider } from './payments/notchpay-payment.provider';
 import { SubscriptionPaymentsController } from './payments/subscription-payments.controller';
 import { SubscriptionPaymentsService } from './payments/subscription-payments.service';
+import { PaymentReconciliationScheduler } from './payments/payment-reconciliation.scheduler';
 
 @Module({
   controllers: [SubscriptionController, SubscriptionPaymentsController],
@@ -15,6 +16,7 @@ import { SubscriptionPaymentsService } from './payments/subscription-payments.se
     SubscriptionService,
     TrialSchedulerService,
     SubscriptionPaymentsService,
+    PaymentReconciliationScheduler,
     { provide: PAYMENT_PROVIDER, useClass: NotchPayPaymentProvider },
   ],
   exports: [SubscriptionService],

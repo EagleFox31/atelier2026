@@ -491,6 +491,20 @@ test.describe('Atelier Maître — garde-fous UX/UI/CX', () => {
     await expect(page.getByText('Logo verrouillé pendant le pilote')).toHaveCount(0);
   });
 
+  test('au retour de NotchPay, l’app fait vérifier le paiement sans attendre le webhook', async ({ page }) => {
+    await mockAuthenticatedApp(page, { trial: true });
+    const reconcileCalls: string[] = [];
+    page.on('request', (request) => {
+      const url = new URL(request.url());
+      if (url.pathname === '/api/subscription/payments/reconcile') reconcileCalls.push(request.method());
+    });
+
+    await page.goto('/settings?payment=return');
+
+    await expect.poll(() => reconcileCalls.length).toBeGreaterThan(0);
+    expect(reconcileCalls[0]).toBe('POST');
+  });
+
   test('les onglets des paramètres tiennent sur une seule ligne', async ({ page }) => {
     await mockAuthenticatedApp(page, { trial: true });
     await page.goto('/settings');

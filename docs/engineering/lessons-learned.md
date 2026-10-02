@@ -422,6 +422,8 @@ L'intégration a été écrite d'après une doc simplifiée (`id` = transaction,
 **Prévention**
 Tests construits sur la **réponse réelle de la sandbox** (fixture `SANDBOX_TRANSACTION`), dont un test de bout en bout fournisseur réel + service qui active l'abonnement ; contre-épreuve faite (4 tests rouges sans le correctif). Garage de test QA permanent pour rejouer un paiement sandbox après chaque changement de l'intégration.
 
+**Suite (même jour)** : après le correctif, l'abonnement ne s'activait toujours pas, et NotchPay n'expose aucun historique de livraison des webhooks (diagnostic impossible côté prestataire). Le webhook n'est donc plus un point de défaillance unique : **réconciliation « pull »** (`reconcilePendingPayments`) au retour du client (`POST /subscription/payments/reconcile`, appelé par `AppLayout` sur `?payment=return`) et toutes les 5 minutes (`PaymentReconciliationScheduler`), par le même chemin transactionnel et idempotent que le webhook.
+
 **Leçon généralisée**
 Une intégration de paiement se valide sur une **charge réelle** du prestataire (sandbox), pas sur la doc ; et un événement de paiement non appliqué ne doit jamais renvoyer un succès silencieux sans trace.
 
