@@ -102,6 +102,7 @@ Règles prod :
 | `RESEND_API_KEY` | Clé Resend « Sending access » (domaine `trigenys.com`) — e-mail de bienvenue ; absente = aucun envoi |
 | `SIGNUP_EMAIL_FROM` / `SIGNUP_EMAIL_REPLY_TO` | Expéditeur (`Atelier Maître <ateliermaitre@trigenys.com>`) / réponse facultative |
 | `APP_PUBLIC_URL` | URL publique pour les liens et le logo des e-mails (sinon `https://APP_DOMAIN`) |
+| `TEAM_INVITE_EMAIL_FROM` | Expéditeur des invitations d'équipe (facultatif, défaut `SIGNUP_EMAIL_FROM`) |
 
 ---
 
@@ -115,7 +116,7 @@ Règles prod :
 | VehiclesModule | `/vehicles/*` | CRUD + soft delete + `/makes` + `/models` |
 | StockModule | `/stock/*` | BullMQ alertes stock |
 | BillingModule | `/billing/*` | TVA 19.25%, timbre, idempotence paiements |
-| TeamModule | `/team/*` | Utilisateurs/techniciens |
+| TeamModule | `/team/*`, `/public/invitations/:token` | Utilisateurs/techniciens ; invitations par e-mail (jeton haché SHA-256, 72 h, usage unique) — `POST /team/:id/invite` (ADMIN) |
 | PlanningModule | `/planning/appointments/*` | Hard delete (pas de deletedAt) |
 | NotificationsModule | `/notifications/sms/*` | Simulation Orange/MTN CM |
 | ReportsModule | `/reports/*` | Revenus + performance + `/reports/dashboard-stats` (dashboard) |
@@ -138,6 +139,8 @@ Guards globaux (ordre) : `JwtAuthGuard` → `SubscriptionGuard` → `Permissions
 - Un tenant sans `trialEndsAt` (antérieur au pilote) est toujours considéré `ACTIVE`.
 - Codes d'erreur front : `TRIAL_READ_ONLY`, `TRIAL_EXPIRED`, `SUBSCRIPTION_SUSPENDED` → `SubscriptionBlockedScreen` / `TrialStatusBanner`.
 - `PASSWORD_CHANGE_REQUIRED` (403, `JwtAuthGuard`) → redirection `/change-password` (`lib/api.ts` + `AppLayout`).
+- Invitations : `INVITATION_INVALID` (404), `INVITATION_EXPIRED` (410), `INVITATION_USED` (409) → écrans de `app/invitation/[token]/page.tsx` (page publique par préfixe dans `AppLayout`).
+- Limitation de débit : aucun `ThrottlerGuard` global — un `@Throttle` seul est sans effet ; ajouter `@UseGuards(ClientIpThrottlerGuard)` (LESSON-2026-009).
 
 ---
 
