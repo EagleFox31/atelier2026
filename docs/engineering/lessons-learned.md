@@ -171,6 +171,9 @@ Même piège dans la suite `e2e-ux/` portée depuis la #11 : `getByPlaceholder('
 **Principe dérivé / changement de standard**
 Convention de test renforcée : pour `getByLabel` / `getByPlaceholder` / `getByText` sur un libellé court ou contenu dans un autre (« Nom », « Email », « Ville »…), **toujours `{ exact: true }`** ou un rôle accessible (`getByRole(..., { name, exact: true })`). La suite `e2e-ux/` tourne désormais sur chaque PR front (`ux-guardrails.yml`), ce qui détecte ces régressions avant merge.
 
+**Récidive 2 (2026-10-02)**
+`/login` et `/forgot-password` avaient eux aussi des `<label>` sans `htmlFor` : la correction de 2026-10-01 ne visait que `Field` de l'inscription. Repéré par un script Playwright contre la prod (`getByLabel` en timeout). **Contrôle renforcé** (erreur répétée) : test générique `chaque champ de <page> a un nom accessible` dans `e2e-ux/` (`/login`, `/forgot-password`, `/inscription`) qui échoue pour tout champ visible sans `label` relié, `aria-label` ni `aria-labelledby`. Il a trouvé `/forgot-password` tout seul (contre-épreuve). Ajouter toute nouvelle page publique à formulaire à cette liste.
+
 ### LESSON-2026-005 — Réactiver un atelier réactivait des employés suspendus
 
 - **Date** : 2026-10-01

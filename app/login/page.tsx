@@ -90,10 +90,11 @@ export default function LoginPage() {
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-[var(--afrique-earth)]">
+                  <label htmlFor="login-identifier" className="text-sm font-semibold text-[var(--afrique-earth)]">
                     Email ou identifiant employé
                   </label>
                   <Input
+                    id="login-identifier"
                     type="text"
                     placeholder="admin@atelier.cm ou jean.dupont"
                     value={identifier}
@@ -106,7 +107,7 @@ export default function LoginPage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-semibold text-[var(--afrique-earth)]">Mot de passe</label>
+                    <label htmlFor="login-password" className="text-sm font-semibold text-[var(--afrique-earth)]">Mot de passe</label>
                     <Link
                       href="/forgot-password"
                       className="text-sm font-medium text-[var(--afrique-earth-muted)] hover:text-brand hover:underline"
@@ -116,6 +117,7 @@ export default function LoginPage() {
                   </div>
                   <div className="relative">
                     <Input
+                      id="login-password"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="••••••••"
                       value={password}
@@ -127,7 +129,7 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? 'Masquer' : 'Afficher'}
+                      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                       className="absolute right-0 top-0 flex h-full items-center px-4 text-[var(--afrique-earth-muted)] hover:text-brand"
                       disabled={loading}
                     >

@@ -51,19 +51,21 @@ export default function ForgotPasswordPage() {
               <CardHeader className="pb-4">
                 <CardTitle className="text-lg font-bold text-foreground">Mot de passe oublié ?</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
-                  Entrez votre email ou votre code employé pour réinitialiser votre mot de passe.
+                  Entrez votre email ou votre identifiant employé pour réinitialiser votre mot de passe.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Email ou code employé
+                    <label htmlFor="forgot-identifier" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Email ou identifiant employé
                     </label>
                     <div className="relative">
                       <Input
+                        id="forgot-identifier"
                         type="text"
-                        placeholder="Ex: admin@atelier.cm ou EMP-001"
+                        autoComplete="username"
+                        placeholder="Ex: admin@atelier.cm ou jean.dupont"
                         value={identifier}
                         onChange={e => setIdentifier(e.target.value)}
                         className="h-10 bg-muted border-border focus-visible:ring-brand pl-10"

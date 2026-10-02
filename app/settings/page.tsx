@@ -51,6 +51,8 @@ export default function SettingsPage() {
   // Droits calculés par l'API (entitlements.ts) : aucune règle de forfait dupliquée ici.
   const brandingLocked = Boolean(user?.tenantId) && subscription?.features?.branding === false;
   const smsLocked = Boolean(user?.tenantId) && subscription?.features?.sms !== true;
+  // Pendant le pilote vs après (grâce, expiré…) : le verrou est le même, pas le message.
+  const inPilot = subscription?.status === 'TRIAL';
   const smsLockMessage = !subscription
     ? 'Vérification de votre abonnement en cours.'
     : subscription.status === 'TRIAL'
@@ -255,7 +257,8 @@ export default function SettingsPage() {
           </div>
         ) : (
           <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="h-auto flex-wrap bg-slate-100 p-1">
+            {/* Mobile : une seule ligne défilante (pas d'onglets sur deux rangées) ; desktop : retour à la ligne. */}
+            <TabsList className="h-auto w-full max-w-full justify-start overflow-x-auto flex-nowrap bg-slate-100 p-1 [scrollbar-width:none] md:w-auto md:flex-wrap [&>*]:shrink-0">
               <TabsTrigger value="general" className="gap-2">
                 <Building2 size={16} />
                 Atelier
@@ -301,7 +304,9 @@ export default function SettingsPage() {
                         </CardTitle>
                         <CardDescription className="text-xs mt-0.5">
                           {brandingLocked
-                            ? 'Le pilote gratuit utilise l’identité Atelier Maître. Votre logo sera disponible après activation.'
+                            ? inPilot
+                              ? 'Le pilote gratuit utilise l’identité Atelier Maître. Votre logo sera disponible après activation.'
+                              : 'L’identité Atelier Maître reste affichée tant qu’aucun forfait payant n’est actif. Votre logo sera disponible après activation.'
                             : 'Affiché sur vos devis et factures · PNG, JPG ou SVG · max 500 KB'}
                         </CardDescription>
                       </div>
@@ -320,7 +325,9 @@ export default function SettingsPage() {
                       <div className="flex flex-col gap-2">
                         <label className={`cursor-pointer inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors ${savingLogo ? 'opacity-50 pointer-events-none' : ''}`}>
                           {savingLogo ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                          {brandingLocked ? 'Logo verrouillé pendant le pilote' : logoUrl ? 'Changer le logo' : 'Importer un logo'}
+                          {brandingLocked
+                            ? inPilot ? 'Logo verrouillé pendant le pilote' : 'Logo verrouillé sans forfait actif'
+                            : logoUrl ? 'Changer le logo' : 'Importer un logo'}
                           <input type="file" accept="image/*" className="sr-only" onChange={handleLogoUpload} disabled={savingLogo || brandingLocked} />
                         </label>
                         {logoUrl && !brandingLocked && (
