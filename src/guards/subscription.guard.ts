@@ -43,6 +43,8 @@ export class SubscriptionGuard implements CanActivate {
     if (
       path.endsWith('/subscription/status') ||
       path.endsWith('/subscription/checkout') ||
+      // Un atelier expiré qui vient de payer doit pouvoir déclencher son activation.
+      path.endsWith('/subscription/payments/reconcile') ||
       path.endsWith('/auth/profile') ||
       path.endsWith('/auth/logout') ||
       // Un atelier en lecture seule (grâce) doit pouvoir changer un mot de passe imposé.

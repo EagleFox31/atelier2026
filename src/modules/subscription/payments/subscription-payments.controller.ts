@@ -31,6 +31,20 @@ export class SubscriptionPaymentsController {
     return this.payments.createCheckout(user.tenantId, body.billingCycle);
   }
 
+  /**
+   * Vérifie auprès de NotchPay les paiements en attente de l'atelier (retour du
+   * checkout) : l'activation ne dépend pas de l'arrivée du webhook.
+   */
+  @Post('payments/reconcile')
+  @RequireRole('ADMIN')
+  @HttpCode(HttpStatus.OK)
+  reconcile(@CurrentUser() user: { tenantId: string | null }) {
+    if (!user.tenantId) {
+      throw new BadRequestException('Aucun tenant associe a ce compte.');
+    }
+    return this.payments.reconcilePendingPayments({ tenantId: user.tenantId, limit: 10 });
+  }
+
   @Public()
   @SkipThrottle() // le prestataire peut notifier en rafale ; requête authentifiée par signature
   @Post('webhooks/notchpay')

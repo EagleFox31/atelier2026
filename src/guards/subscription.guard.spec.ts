@@ -123,6 +123,15 @@ describe('SubscriptionGuard', () => {
     expect(subscriptions.getSummary).not.toHaveBeenCalled();
   });
 
+  it('allows an expired tenant that just paid to trigger payment reconciliation', async () => {
+    subscriptions.getSummary.mockResolvedValue({ status: SubscriptionStatus.EXPIRED });
+
+    await expect(
+      guard.canActivate(context('POST', '/api/subscription/payments/reconcile')),
+    ).resolves.toBe(true);
+    expect(subscriptions.getSummary).not.toHaveBeenCalled();
+  });
+
   it('bypasses subscription checks for SUPER_ADMIN', async () => {
     await expect(
       guard.canActivate(context('POST', '/api/workshop/ot', ['SUPER_ADMIN'])),
