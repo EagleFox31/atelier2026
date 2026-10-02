@@ -7,6 +7,8 @@ import { PartsFlowService } from '../stock/parts-flow.service';
 import type { PartReconciliationItem } from '../stock/parts-flow.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { maskPhone } from '../messaging';
+import { smsJobOptions } from '../../workers/sms-job.options';
 import { OTStatus, PartStatus } from '@prisma/client';
 import {
   CreateServiceOrderDto,
@@ -643,14 +645,20 @@ export class WorkshopService {
         const nom = [customer.firstName, customer.lastName].filter(Boolean).join(' ');
         setImmediate(async () => {
           try {
-            await this.smsQueue.add('vehicle_ready', {
-              phone: customer.phonePrimary,
-              message: `Bonjour ${nom}, votre véhicule est prêt. Vous pouvez venir le récupérer à l'atelier. Merci pour votre confiance.`,
-              customerId: customer.id,
-              serviceOrderId: otId,
-              lang: customer.lang ?? 'fr',
-            });
-            this.logger.log(`SMS "véhicule prêt" envoyé à ${customer.phonePrimary}`);
+            await this.smsQueue.add(
+              'vehicle_ready',
+              {
+                phone: customer.phonePrimary,
+                message: `Bonjour ${nom}, votre véhicule est prêt. Vous pouvez venir le récupérer à l'atelier. Merci pour votre confiance.`,
+                customerId: customer.id,
+                serviceOrderId: otId,
+                lang: customer.lang ?? 'fr',
+              },
+              // Une transition READY = une version d'OT (verrou optimiste) → jobId unique
+              // par passage en READY, stable si la mise en file est rejouée.
+              smsJobOptions(`vehicle-ready_${otId}_v${ot.version + 1}`),
+            );
+            this.logger.log(`SMS "véhicule prêt" mis en file pour ${maskPhone(customer.phonePrimary)} (OT ${otId})`);
           } catch (err) {
             this.logger.error(`Échec SMS véhicule prêt pour OT ${otId}`, err);
           }

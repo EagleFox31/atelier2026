@@ -63,7 +63,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
             status = HttpStatus.BAD_REQUEST;
             message = 'Données invalides envoyées à la base de données.';
             code = 'DB_VALIDATION_ERROR';
-            this.logger.warn(exception.message);
+            // Le message Prisma complet recopie les arguments de la requête (téléphones,
+            // corps de SMS…) : on ne journalise que le motif, sans les valeurs.
+            this.logger.warn(prismaValidationReason(exception.message));
         }
         // Timeout ou crash Base de Données
         else if (exception instanceof Prisma.PrismaClientInitializationError) {
@@ -78,11 +80,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
             message = exception.message; // DEBUG TEMP — voir l'erreur réelle
         }
 
-        // Logger la route qui a planté
+        // Logger la route qui a planté — sans query string (ex. `?phone=…` de l'historique SMS).
+        const route = `[${request.method} ${pathWithoutQuery(request.url)}]`;
         if (status >= 500) {
-            this.logger.error(`[${request.method} ${request.url}] ${status} - ${Array.isArray(message) ? message.join(', ') : message}`);
+            this.logger.error(`${route} ${status} - ${Array.isArray(message) ? message.join(', ') : message}`);
         } else {
-            this.logger.warn(`[${request.method} ${request.url}] ${status} - ${Array.isArray(message) ? message.join(', ') : message}`);
+            this.logger.warn(`${route} ${status} - ${Array.isArray(message) ? message.join(', ') : message}`);
         }
 
         // Réponse au format prévisible pour le Frontend
@@ -95,4 +98,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
             path: request.url,
         });
     }
+}
+
+/** Chemin de la requête sans query string : les paramètres peuvent porter des données personnelles. */
+export function pathWithoutQuery(url: unknown): string {
+    return typeof url === 'string' ? url.split('?')[0] : String(url);
+}
+
+/**
+ * Motif d'une `PrismaClientValidationError` sans les valeurs : Prisma termine son
+ * message par la cause (« Argument `x` is missing. »…) après avoir recopié l'appel
+ * avec ses arguments ; seule cette dernière ligne est conservée, tronquée.
+ */
+export function prismaValidationReason(message: string): string {
+    const lines = message.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    const reason = lines[lines.length - 1] ?? 'Erreur de validation Prisma';
+    return `Validation Prisma : ${reason.length > 200 ? `${reason.slice(0, 200)}…` : reason}`;
 }

@@ -67,7 +67,13 @@ describe('SchedulerService', () => {
           invoiceReminder: 1,
           message: expect.stringContaining('Bonjour Ngono'),
         }),
-        expect.objectContaining({ jobId: 'invoice-reminder-j7_inv-1', attempts: 3 }),
+        {
+          jobId: 'invoice-reminder-j7_inv-1',
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 60_000 },
+          removeOnComplete: { age: 7 * 24 * 60 * 60 },
+          removeOnFail: { age: 20 * 60 * 60 },
+        },
       );
       expect(prismaMock.invoice.update).not.toHaveBeenCalled();
     });

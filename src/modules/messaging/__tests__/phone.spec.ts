@@ -52,6 +52,60 @@ describe('detectCameroonOperator — comportement historique conservé', () => {
   });
 });
 
+/**
+ * Plan vérifié (sources dans `shared/phone.ts`) : chaque préfixe à 3 chiffres
+ * 600–699 est testé, bornes comprises. Toute tranche absente vaut UNKNOWN.
+ */
+describe('detectCameroonOperator — plan de numérotation vérifié', () => {
+  const RANGES: Array<[from: number, to: number, operator: string]> = [
+    [650, 654, 'MTN_CM'],
+    [655, 659, 'ORANGE_CM'],
+    [660, 669, 'NEXTTEL'],
+    [670, 679, 'MTN_CM'],
+    [680, 683, 'MTN_CM'],
+    [690, 699, 'ORANGE_CM'],
+  ];
+  const expectedFor = (prefix: number) =>
+    RANGES.find(([from, to]) => prefix >= from && prefix <= to)?.[2] ?? 'UNKNOWN';
+  const mobileCases = Array.from({ length: 100 }, (_, i) => 600 + i).map(
+    (prefix) => [`+237${prefix}123456`, expectedFor(prefix)] as const,
+  );
+
+  it.each(mobileCases)('%s → %s', (input, expected) => {
+    expect(detectCameroonOperator(input)).toBe(expected);
+  });
+
+  it.each([
+    // 684–689 : plus classés MTN (aucune source) ; 686–689 = Orange selon une source unique.
+    ['+237684000001', 'UNKNOWN'],
+    ['+237689999999', 'UNKNOWN'],
+    // 64x (Orange selon une source unique) et 62x (Camtel Blue, non vérifié).
+    ['+237640000001', 'UNKNOWN'],
+    ['+237621000001', 'UNKNOWN'],
+  ])('tranche non vérifiée %s → %s', (input, expected) => {
+    expect(detectCameroonOperator(input)).toBe(expected);
+  });
+
+  it.each([
+    ['+237222123456', 'CAMTEL'],
+    ['+237233123456', 'CAMTEL'],
+    ['+237242123456', 'CAMTEL'],
+    ['+237243123456', 'CAMTEL'],
+    ['+237221123456', 'UNKNOWN'],
+    ['+237223123456', 'UNKNOWN'],
+    ['+237232123456', 'UNKNOWN'],
+    ['+237244123456', 'UNKNOWN'],
+  ])('fixe %s → %s', (input, expected) => {
+    expect(detectCameroonOperator(input)).toBe(expected);
+  });
+
+  it('formats locaux équivalents → même opérateur', () => {
+    expect(detectCameroonOperator('660 12 34 56')).toBe('NEXTTEL');
+    expect(detectCameroonOperator('00237 683 12 34 56')).toBe('MTN_CM');
+    expect(detectCameroonOperator('659123456')).toBe('ORANGE_CM');
+  });
+});
+
 describe('maskPhone', () => {
   it('ne garde que l’indicatif et les 2 derniers chiffres', () => {
     expect(maskPhone('+237699000001')).toBe('+2376******01');

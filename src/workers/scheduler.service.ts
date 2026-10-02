@@ -3,10 +3,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../shared/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bullmq';
-import { JobsOptions, Queue } from 'bullmq';
+import { Queue } from 'bullmq';
 import { SubscriptionService } from '../modules/subscription/subscription.service';
 import { hasFeature } from '../modules/subscription/entitlements';
 import type { SmsJobData } from './sms.processor';
+import { smsJobOptions } from './sms-job.options';
 
 /**
  * Relances SMS planifiées. Les drapeaux reminder1SentAt / reminder2SentAt sont
@@ -15,12 +16,10 @@ import type { SmsJobData } from './sms.processor';
  * Le jobId déduplique tant que le job existe (terminé : 7 j ; échoué : 20 h, pour
  * qu'un nouvel essai ait lieu le lendemain, par ex. après passage au forfait Pro).
  */
-const SCHEDULED_SMS_OPTIONS: JobsOptions = {
-  attempts: 3,
-  backoff: { type: 'exponential', delay: 60_000 },
+const SCHEDULED_SMS_RETENTION = {
   removeOnComplete: { age: 7 * 24 * 60 * 60 },
   removeOnFail: { age: 20 * 60 * 60 },
-};
+} as const;
 
 type SmsTarget = { tenantId: string; garageId: string };
 
@@ -110,10 +109,11 @@ export class SchedulerService {
         invoiceId: inv.id,
         invoiceReminder: level,
       };
-      await this.smsQueue.add(level === 1 ? 'reminder_j7' : 'reminder_j15', data, {
-        ...SCHEDULED_SMS_OPTIONS,
-        jobId: `invoice-reminder-j${level === 1 ? 7 : 15}_${inv.id}`,
-      });
+      await this.smsQueue.add(
+        level === 1 ? 'reminder_j7' : 'reminder_j15',
+        data,
+        smsJobOptions(`invoice-reminder-j${level === 1 ? 7 : 15}_${inv.id}`, SCHEDULED_SMS_RETENTION),
+      );
       queued++;
     }
     return { queued, skipped };
@@ -205,10 +205,11 @@ export class SchedulerService {
         customerId: apt.customer.id,
         lang: apt.customer.lang ?? 'fr',
       };
-      await this.smsQueue.add('appointment_reminder', data, {
-        ...SCHEDULED_SMS_OPTIONS,
-        jobId: `appointment-reminder_${apt.id}`,
-      });
+      await this.smsQueue.add(
+        'appointment_reminder',
+        data,
+        smsJobOptions(`appointment-reminder_${apt.id}`, SCHEDULED_SMS_RETENTION),
+      );
       queued++;
     }
 

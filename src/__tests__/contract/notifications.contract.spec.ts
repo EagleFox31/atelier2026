@@ -201,6 +201,7 @@ describe('Notifications — contrats de réponse HTTP', () => {
           phone: '+237699000001',
           notificationId: 'sms-new',
         }),
+        expect.objectContaining({ jobId: 'sms-notification_sms-new', attempts: 3 }),
       );
     });
 

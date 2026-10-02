@@ -6,6 +6,8 @@ import { SendSmsDto } from './dto/notifications.dto';
 import { resolveSmsMessage } from './sms-templates';
 import { EventsService } from '../events/events.service';
 import { assertCustomerInGarage, garageWhere, requireGarageId } from '../../shared/garage/garage-scope';
+import type { SmsJobData } from '../../workers/sms.processor';
+import { smsJobOptions } from '../../workers/sms-job.options';
 
 @Injectable()
 export class NotificationsService {
@@ -63,14 +65,16 @@ export class NotificationsService {
       },
     });
 
-    await this.smsQueue.add(data.templateCode, {
+    const job: SmsJobData = {
       tenantId,
       phone: data.phoneTo,
       message,
       customerId: data.customerId,
       lang,
       notificationId: notification.id,
-    });
+    };
+    // jobId dérivé de la notification : un double enqueue de la même notification est ignoré.
+    await this.smsQueue.add(data.templateCode, job, smsJobOptions(`sms-notification_${notification.id}`));
 
     return notification;
   }
