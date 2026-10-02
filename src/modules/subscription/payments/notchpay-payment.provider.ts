@@ -15,6 +15,7 @@ import type {
 } from './payment-provider';
 
 type JsonObject = Record<string, unknown>;
+type NotchPayMode = 'test' | 'live';
 
 function asObject(value: unknown): JsonObject | null {
   return value != null && typeof value === 'object' && !Array.isArray(value)
@@ -44,6 +45,30 @@ export function normalizeNotchPayStatus(value: unknown): ProviderPaymentStatus {
   if (status === 'expired') return 'EXPIRED';
   if (['pending', 'processing', 'created', 'initialized'].includes(status)) return 'PENDING';
   return 'UNKNOWN';
+}
+
+function notchPayMode(): NotchPayMode {
+  const mode = process.env.NOTCHPAY_MODE?.trim().toLowerCase() || 'test';
+  if (mode !== 'test' && mode !== 'live') {
+    throw new ServiceUnavailableException({
+      message: 'NOTCHPAY_MODE doit valoir test ou live.',
+      errorCode: 'PAYMENT_PROVIDER_NOT_CONFIGURED',
+    });
+  }
+  return mode;
+}
+
+function credentialForMode(kind: 'PUBLIC_KEY' | 'WEBHOOK_HASH'): string | undefined {
+  const mode = notchPayMode();
+  const dedicated = process.env[`NOTCHPAY_${mode.toUpperCase()}_${kind}`]?.trim();
+  if (dedicated) return dedicated;
+
+  // Compatibilite avec la premiere configuration, sans jamais melanger
+  // silencieusement une cle live et un environnement de test (ou inversement).
+  const legacyName = kind === 'PUBLIC_KEY' ? 'NOTCHPAY_PUBLIC_KEY' : 'NOTCHPAY_WEBHOOK_HASH';
+  const legacy = process.env[legacyName]?.trim();
+  const expectedPrefix = kind === 'PUBLIC_KEY' ? `pk_${mode}_` : `hsk_${mode}_`;
+  return legacy?.startsWith(expectedPrefix) ? legacy : undefined;
 }
 
 @Injectable()
@@ -110,7 +135,7 @@ export class NotchPayPaymentProvider implements PaymentProvider {
   }
 
   verifyWebhookSignature(rawPayload: Buffer, signature: string | undefined): boolean {
-    const hash = process.env.NOTCHPAY_WEBHOOK_HASH?.trim();
+    const hash = credentialForMode('WEBHOOK_HASH');
     if (!hash) {
       throw new ServiceUnavailableException({
         message: 'La verification des webhooks NotchPay n\'est pas configuree.',
@@ -156,7 +181,7 @@ export class NotchPayPaymentProvider implements PaymentProvider {
   }
 
   private async request(path: string, init: RequestInit): Promise<JsonObject> {
-    const publicKey = process.env.NOTCHPAY_PUBLIC_KEY?.trim();
+    const publicKey = credentialForMode('PUBLIC_KEY');
     if (!publicKey) {
       throw new ServiceUnavailableException({
         message: 'NotchPay n\'est pas configure.',
