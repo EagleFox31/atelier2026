@@ -5,12 +5,14 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Req,
 } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
 import { CurrentUser, Public, RequireRole } from '../../../decorators/auth.decorator';
 import { CreateSubscriptionCheckoutDto } from './dto/create-subscription-checkout.dto';
+import type { WebhookHeaders } from './payment-provider';
 import { SubscriptionPaymentsService } from './subscription-payments.service';
 
 type RawBodyRequest = { rawBody?: Buffer };
@@ -32,7 +34,7 @@ export class SubscriptionPaymentsController {
   }
 
   /**
-   * Vérifie auprès de NotchPay les paiements en attente de l'atelier (retour du
+   * Vérifie auprès du prestataire les paiements en attente de l'atelier (retour du
    * checkout) : l'activation ne dépend pas de l'arrivée du webhook.
    */
   @Post('payments/reconcile')
@@ -47,11 +49,12 @@ export class SubscriptionPaymentsController {
 
   @Public()
   @SkipThrottle() // le prestataire peut notifier en rafale ; requête authentifiée par signature
-  @Post('webhooks/notchpay')
+  @Post('webhooks/:provider') // ex. webhooks/notchpay ; prestataire inconnu → 404
   @HttpCode(HttpStatus.OK)
   webhook(
+    @Param('provider') provider: string,
     @Req() request: RawBodyRequest,
-    @Headers('x-notch-signature') signature: string | undefined,
+    @Headers() headers: WebhookHeaders,
     @Body() body: unknown,
   ) {
     if (!Buffer.isBuffer(request.rawBody)) {
@@ -60,6 +63,6 @@ export class SubscriptionPaymentsController {
         errorCode: 'INVALID_PAYMENT_WEBHOOK',
       });
     }
-    return this.payments.handleWebhook(request.rawBody, signature, body);
+    return this.payments.handleWebhook(provider, request.rawBody, headers, body);
   }
 }

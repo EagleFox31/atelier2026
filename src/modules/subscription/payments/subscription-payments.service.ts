@@ -3,20 +3,20 @@ import {
   ConflictException,
   ForbiddenException,
   HttpException,
-  Inject,
   Injectable,
   Logger,
 } from '@nestjs/common';
 import { SubscriptionStatus } from '@prisma/client';
 import { createHash, randomUUID } from 'crypto';
 import { PrismaService } from '../../../shared/prisma/prisma.service';
-import {
-  PAYMENT_PROVIDER,
-  type BillingCycle,
-  type PaymentProvider,
-  type PaymentWebhookEvent,
-  type RetrievedPayment,
+import type {
+  BillingCycle,
+  PaymentProvider,
+  PaymentWebhookEvent,
+  RetrievedPayment,
+  WebhookHeaders,
 } from './payment-provider';
+import { PaymentProviderRegistry } from './payment-provider.registry';
 
 const PRO_MONTHLY_XAF = 45_000;
 const PRO_ANNUAL_XAF = 450_000;
@@ -56,7 +56,7 @@ export class SubscriptionPaymentsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(PAYMENT_PROVIDER) private readonly provider: PaymentProvider,
+    private readonly providers: PaymentProviderRegistry,
   ) {}
 
   async createCheckout(tenantId: string, billingCycle: BillingCycle) {
@@ -81,11 +81,12 @@ export class SubscriptionPaymentsService {
       await this.prisma.garage.count({ where: { tenantId, status: 'active' } }),
     );
     const amountXaf = calculateProPrice(billingCycle, garageCount);
+    const provider = this.providers.active();
     const reference = `sub_${randomUUID().replace(/-/g, '')}`;
     const payment = await this.prisma.subscriptionPayment.create({
       data: {
         tenantId,
-        provider: this.provider.name,
+        provider: provider.name,
         reference,
         plan: 'pro',
         billingCycle,
@@ -97,7 +98,7 @@ export class SubscriptionPaymentsService {
     });
 
     try {
-      const initialized = await this.provider.initializePayment({
+      const initialized = await provider.initializePayment({
         amount: amountXaf,
         currency: 'XAF',
         email: tenant.email,
@@ -139,27 +140,33 @@ export class SubscriptionPaymentsService {
    * corps ni un secret) : un paiement non appliqué ne doit jamais être silencieux
    * (LESSON-2026-013).
    */
-  async handleWebhook(rawBody: Buffer, signature: string | undefined, payload: unknown) {
-    if (!this.provider.verifyWebhookSignature(rawBody, signature)) {
-      this.logger.warn(`Webhook ${this.provider.name} refusé : signature invalide ou absente`);
+  async handleWebhook(
+    providerName: string,
+    rawBody: Buffer,
+    headers: WebhookHeaders,
+    payload: unknown,
+  ) {
+    const provider = this.providers.get(providerName);
+    if (!provider.verifyWebhook(rawBody, headers)) {
+      this.logger.warn(`Webhook ${provider.name} refusé : signature invalide ou absente`);
       throw new ForbiddenException({
-        message: 'Signature webhook NotchPay invalide.',
+        message: `Signature webhook ${provider.name} invalide.`,
         errorCode: 'INVALID_PAYMENT_WEBHOOK_SIGNATURE',
       });
     }
 
     let event: PaymentWebhookEvent | undefined;
     try {
-      event = this.provider.parseWebhook(payload);
+      event = provider.parseWebhook(payload);
       const fingerprint = createHash('sha256').update(rawBody).digest('hex');
       const verifiedPayment =
         event.status === 'COMPLETE'
-          ? await this.provider.retrievePayment(
+          ? await provider.retrievePayment(
               event.providerTransactionId ?? event.reference ?? '',
             )
           : null;
 
-      const result = await this.applyWebhookEvent(fingerprint, event, verifiedPayment);
+      const result = await this.applyWebhookEvent(provider, fingerprint, event, verifiedPayment);
       if ('ignored' in result && result.ignored) {
         this.logger.warn(
           `Webhook ${event.type} ignoré : aucun paiement pour ${this.describe(event)}`,
@@ -184,36 +191,53 @@ export class SubscriptionPaymentsService {
   }
 
   /**
-   * Réconciliation « pull » : interroge le prestataire pour les paiements encore PENDING
+   * Réconciliation « pull » : interroge le prestataire de CHAQUE paiement encore PENDING
    * et applique le statut final, par le même chemin transactionnel que le webhook.
    * Le webhook n'est plus un point de défaillance unique (LESSON-2026-013) : appelée au
    * retour du client (checkout) et périodiquement (PaymentReconciliationScheduler).
    * Idempotent : empreinte `reconcile:<paiement>:<statut>` + mise à jour conditionnelle,
    * donc sûr face à un webhook qui arrive en même temps.
+   *
+   * Un paiement encore PENDING après `maxAgeHours` (checkout abandonné) est clos en
+   * EXPIRED localement : sans cela il resterait PENDING à vie. Un webhook « complete »
+   * tardif reste applicable (la mise à jour ne protège que l'état COMPLETE).
    */
   async reconcilePendingPayments(
     options: { tenantId?: string; maxAgeHours?: number; limit?: number } = {},
   ) {
-    const since = new Date(Date.now() - (options.maxAgeHours ?? 48) * 3_600_000);
+    const expiresBefore = Date.now() - (options.maxAgeHours ?? 48) * 3_600_000;
     const pending = await this.prisma.subscriptionPayment.findMany({
       where: {
-        provider: this.provider.name,
         status: 'PENDING',
-        providerTransactionId: { not: null },
-        createdAt: { gte: since },
         ...(options.tenantId ? { tenantId: options.tenantId } : {}),
       },
       orderBy: { createdAt: 'asc' },
       take: options.limit ?? 50,
-      select: { id: true, providerTransactionId: true, reference: true },
+      select: { id: true, provider: true, providerTransactionId: true, reference: true, createdAt: true },
     });
 
-    const summary = { checked: pending.length, activated: 0, closed: 0, stillPending: 0, failed: 0 };
+    const summary = { checked: pending.length, activated: 0, closed: 0, stillPending: 0, expired: 0, failed: 0 };
     for (const payment of pending) {
+      const stale = payment.createdAt.getTime() < expiresBefore;
       try {
-        const verified = await this.provider.retrievePayment(payment.providerTransactionId!);
-        if (verified.status === 'PENDING' || verified.status === 'UNKNOWN') {
-          summary.stillPending += 1;
+        const provider = this.providers.find(payment.provider);
+        if (!provider) {
+          summary.failed += 1;
+          this.logger.warn(
+            `Réconciliation impossible pour le paiement ${payment.reference} : prestataire « ${payment.provider} » non enregistré`,
+          );
+          continue;
+        }
+        const verified = payment.providerTransactionId
+          ? await provider.retrievePayment(payment.providerTransactionId)
+          : null;
+        if (!verified || verified.status === 'PENDING' || verified.status === 'UNKNOWN') {
+          if (stale && (await this.expireStalePayment(payment.id))) {
+            summary.expired += 1;
+            this.logger.log(`Paiement ${payment.reference} clos (EXPIRED) : toujours en attente après le délai`);
+          } else {
+            summary.stillPending += 1;
+          }
           continue;
         }
         const event: PaymentWebhookEvent = {
@@ -223,6 +247,7 @@ export class SubscriptionPaymentsService {
           reference: payment.reference,
         };
         const result = await this.applyWebhookEvent(
+          provider,
           `reconcile:${payment.id}:${verified.status}`,
           event,
           verified.status === 'COMPLETE' ? verified : null,
@@ -246,11 +271,20 @@ export class SubscriptionPaymentsService {
     return summary;
   }
 
+  private async expireStalePayment(paymentId: string): Promise<boolean> {
+    const { count } = await this.prisma.subscriptionPayment.updateMany({
+      where: { id: paymentId, status: 'PENDING' },
+      data: { status: 'EXPIRED', providerStatus: 'EXPIRED_UNCONFIRMED' },
+    });
+    return count > 0;
+  }
+
   private describe(event: PaymentWebhookEvent): string {
     return `transaction=${event.providerTransactionId ?? '-'} référence=${event.reference ?? '-'} statut=${event.status}`;
   }
 
   private async applyWebhookEvent(
+    provider: PaymentProvider,
     fingerprint: string,
     event: PaymentWebhookEvent,
     verifiedPayment: RetrievedPayment | null,
@@ -263,13 +297,13 @@ export class SubscriptionPaymentsService {
         ...(event.reference ? [{ reference: event.reference }] : []),
       ];
       const payment = await tx.subscriptionPayment.findFirst({
-        where: { provider: this.provider.name, OR: lookups },
+        where: { provider: provider.name, OR: lookups },
       });
 
       if (!payment) {
         await tx.subscriptionPaymentEvent.create({
           data: {
-            provider: this.provider.name,
+            provider: provider.name,
             fingerprint,
             eventType: event.type,
           },
@@ -284,7 +318,7 @@ export class SubscriptionPaymentsService {
       await tx.subscriptionPaymentEvent.create({
         data: {
           subscriptionPaymentId: payment.id,
-          provider: this.provider.name,
+          provider: provider.name,
           fingerprint,
           eventType: event.type,
         },

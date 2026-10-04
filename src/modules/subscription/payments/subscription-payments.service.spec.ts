@@ -1,5 +1,6 @@
 import { SubscriptionStatus } from '@prisma/client';
 import type { PaymentProvider } from './payment-provider';
+import { PaymentProviderRegistry } from './payment-provider.registry';
 import {
   addBillingPeriod,
   calculateProPrice,
@@ -36,7 +37,7 @@ describe('SubscriptionPaymentsService', () => {
       name: 'notchpay',
       initializePayment: jest.fn(),
       retrievePayment: jest.fn(),
-      verifyWebhookSignature: jest.fn().mockReturnValue(true),
+      verifyWebhook: jest.fn().mockReturnValue(true),
       parseWebhook: jest.fn(),
     };
   }
@@ -64,7 +65,7 @@ describe('SubscriptionPaymentsService', () => {
       authorizationUrl: 'https://pay.notchpay.co/trx-1',
       providerStatus: 'Accepted',
     });
-    const service = new SubscriptionPaymentsService(prisma as never, provider);
+    const service = new SubscriptionPaymentsService(prisma as never, PaymentProviderRegistry.of(provider));
 
     const result = await service.createCheckout('tenant-1', 'annual');
 
@@ -127,11 +128,12 @@ describe('SubscriptionPaymentsService', () => {
       status: 'COMPLETE',
       providerStatus: 'complete',
     });
-    const service = new SubscriptionPaymentsService(prisma as never, provider);
+    const service = new SubscriptionPaymentsService(prisma as never, PaymentProviderRegistry.of(provider));
 
     const result = await service.handleWebhook(
+      'notchpay',
       Buffer.from('{"type":"payment.complete"}'),
-      'signature',
+      {},
       { type: 'payment.complete', data: { id: 'trx-1' } },
     );
 
@@ -163,11 +165,12 @@ describe('SubscriptionPaymentsService', () => {
       providerTransactionId: 'trx-1',
       reference: null,
     });
-    const service = new SubscriptionPaymentsService(prisma as never, provider);
+    const service = new SubscriptionPaymentsService(prisma as never, PaymentProviderRegistry.of(provider));
 
     const result = await service.handleWebhook(
+      'notchpay',
       Buffer.from('{"type":"payment.failed"}'),
-      'signature',
+      {},
       { type: 'payment.failed', data: { id: 'trx-1' } },
     );
 
@@ -189,12 +192,13 @@ describe('SubscriptionPaymentsService', () => {
       providerTransactionId: 'trx-1',
       reference: null,
     });
-    const service = new SubscriptionPaymentsService(prisma as never, provider);
+    const service = new SubscriptionPaymentsService(prisma as never, PaymentProviderRegistry.of(provider));
 
     await expect(
       service.handleWebhook(
+        'notchpay',
         Buffer.from('{"type":"payment.failed"}'),
-        'signature',
+        {},
         { type: 'payment.failed', data: { id: 'trx-1' } },
       ),
     ).resolves.toEqual({ received: true, duplicate: true, activated: false });
@@ -229,12 +233,13 @@ describe('SubscriptionPaymentsService', () => {
       status: 'COMPLETE',
       providerStatus: 'complete',
     });
-    const service = new SubscriptionPaymentsService(prisma as never, provider);
+    const service = new SubscriptionPaymentsService(prisma as never, PaymentProviderRegistry.of(provider));
 
     await expect(
       service.handleWebhook(
+        'notchpay',
         Buffer.from('{"type":"payment.complete"}'),
-        'signature',
+        {},
         { type: 'payment.complete', data: { id: 'trx-1' } },
       ),
     ).rejects.toMatchObject({
@@ -269,7 +274,7 @@ describe('SubscriptionPaymentsService', () => {
       providerTransactionId: 'trx-1', reference: 'sub-1', amount: 45_000, currency: 'XAF', status: 'COMPLETE', providerStatus: 'complete',
     });
 
-    await new SubscriptionPaymentsService(prisma as never, provider).handleWebhook(Buffer.from('{}'), 'sig', {});
+    await new SubscriptionPaymentsService(prisma as never, PaymentProviderRegistry.of(provider)).handleWebhook('notchpay', Buffer.from('{}'), {}, {});
 
     expect(order).toHaveLength(2);
     expect(order[0]).toMatch(/FROM tenants WHERE id = \?::uuid FOR UPDATE/);
@@ -322,18 +327,36 @@ describe('SubscriptionPaymentsService', () => {
     provider.retrievePayment.mockImplementation(async (id: string) => ({
       providerTransactionId: id, reference: id.replace('trx', 'sub'), amount: 45_000, currency: 'XAF', status: 'COMPLETE', providerStatus: 'complete',
     }));
-    const service = new SubscriptionPaymentsService(prisma as never, provider);
+    const service = new SubscriptionPaymentsService(prisma as never, PaymentProviderRegistry.of(provider));
 
     await Promise.all([
-      service.handleWebhook(Buffer.from('a'), 'sig', { id: 'trx-a' }),
-      service.handleWebhook(Buffer.from('b'), 'sig', { id: 'trx-b' }),
+      service.handleWebhook('notchpay', Buffer.from('a'), {}, { id: 'trx-a' }),
+      service.handleWebhook('notchpay', Buffer.from('b'), {}, { id: 'trx-b' }),
     ]);
 
     expect(row.subscriptionEndsAt.toISOString()).toBe('2027-01-01T00:00:00.000Z');
   });
 
+  it('routes a webhook to the provider named in the URL and rejects an unknown one', async () => {
+    const notchpay = makeProvider();
+    const other = { ...makeProvider(), name: 'other', verifyWebhook: jest.fn().mockReturnValue(false) } as jest.Mocked<PaymentProvider>;
+    const service = new SubscriptionPaymentsService({} as never, new PaymentProviderRegistry([notchpay, other]));
+    const headers = { 'x-signature': 'abc' };
+
+    await expect(service.handleWebhook('other', Buffer.from('{}'), headers, {})).rejects.toMatchObject({
+      response: expect.objectContaining({ errorCode: 'INVALID_PAYMENT_WEBHOOK_SIGNATURE' }),
+    });
+    expect(other.verifyWebhook).toHaveBeenCalledWith(Buffer.from('{}'), headers);
+    expect(notchpay.verifyWebhook).not.toHaveBeenCalled();
+    await expect(service.handleWebhook('unknown', Buffer.from('{}'), {}, {})).rejects.toMatchObject({
+      response: expect.objectContaining({ errorCode: 'PAYMENT_PROVIDER_UNKNOWN' }),
+    });
+  });
+
   describe('reconcilePendingPayments (pull, sans dépendre du webhook)', () => {
-    const pendingRow = (id: string) => ({ id, providerTransactionId: `trx.test_${id}`, reference: `sub_${id}` });
+    const pendingRow = (id: string, createdAt = new Date()) => ({
+      id, provider: 'notchpay', providerTransactionId: `trx.test_${id}`, reference: `sub_${id}`, createdAt,
+    });
     const storedPayment = (id: string) => ({
       id, tenantId: 'tenant-1', provider: 'notchpay', providerTransactionId: `trx.test_${id}`,
       reference: `sub_${id}`, amountXaf: 45_000, currency: 'XAF', plan: 'pro', billingCycle: 'monthly', status: 'PENDING',
@@ -359,11 +382,14 @@ describe('SubscriptionPaymentsService', () => {
         },
       };
       const prisma = {
-        subscriptionPayment: { findMany: jest.fn().mockResolvedValue(rows) },
+        subscriptionPayment: {
+          findMany: jest.fn().mockResolvedValue(rows),
+          updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+        },
         $transaction: jest.fn((callback: (t: unknown) => unknown) => callback(tx)),
       };
       const provider = makeProvider();
-      const service = new SubscriptionPaymentsService(prisma as never, provider);
+      const service = new SubscriptionPaymentsService(prisma as never, PaymentProviderRegistry.of(provider));
       return { tx, prisma, provider, service };
     }
 
@@ -373,7 +399,7 @@ describe('SubscriptionPaymentsService', () => {
 
       const summary = await service.reconcilePendingPayments({ tenantId: 'tenant-1' });
 
-      expect(summary).toEqual({ checked: 1, activated: 1, closed: 0, stillPending: 0, failed: 0 });
+      expect(summary).toEqual({ checked: 1, activated: 1, closed: 0, stillPending: 0, expired: 0, failed: 0 });
       expect(provider.retrievePayment).toHaveBeenCalledWith('trx.test_a');
       expect(prisma.subscriptionPayment.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: expect.objectContaining({ tenantId: 'tenant-1', status: 'PENDING' }) }),
@@ -424,6 +450,64 @@ describe('SubscriptionPaymentsService', () => {
         .mockResolvedValueOnce(verified('b', 'COMPLETE'));
 
       await expect(service.reconcilePendingPayments()).resolves.toMatchObject({ checked: 2, failed: 1, activated: 1 });
+    });
+
+    it('closes as EXPIRED a payment still pending after the delay (abandoned checkout)', async () => {
+      const old = new Date(Date.now() - 49 * 3_600_000);
+      const { prisma, provider, service } = setup([pendingRow('a', old)]);
+      provider.retrievePayment.mockResolvedValue(verified('a', 'PENDING'));
+
+      const summary = await service.reconcilePendingPayments();
+
+      expect(summary).toMatchObject({ checked: 1, expired: 1, stillPending: 0 });
+      expect(prisma.subscriptionPayment.updateMany).toHaveBeenCalledWith({
+        where: { id: 'a', status: 'PENDING' },
+        data: { status: 'EXPIRED', providerStatus: 'EXPIRED_UNCONFIRMED' },
+      });
+    });
+
+    it('still activates an old payment that the provider confirms', async () => {
+      const { prisma, provider, service } = setup([pendingRow('a', new Date(Date.now() - 72 * 3_600_000))]);
+      provider.retrievePayment.mockResolvedValue(verified('a', 'COMPLETE'));
+
+      await expect(service.reconcilePendingPayments()).resolves.toMatchObject({ activated: 1, expired: 0 });
+      expect(prisma.subscriptionPayment.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('expires a stale payment whose checkout never got a provider transaction', async () => {
+      const row = { ...pendingRow('a', new Date(Date.now() - 49 * 3_600_000)), providerTransactionId: null };
+      const { provider, service } = setup([row as never]);
+
+      await expect(service.reconcilePendingPayments()).resolves.toMatchObject({ expired: 1 });
+      expect(provider.retrievePayment).not.toHaveBeenCalled();
+    });
+
+    it('checks each payment with its own provider, even after switching the active one', async () => {
+      const notchpay = makeProvider();
+      const other = { ...makeProvider(), name: 'other' } as jest.Mocked<PaymentProvider>;
+      notchpay.retrievePayment.mockResolvedValue(verified('a', 'PENDING'));
+      other.retrievePayment.mockResolvedValue(verified('b', 'PENDING'));
+      const prisma = {
+        subscriptionPayment: {
+          findMany: jest.fn().mockResolvedValue([pendingRow('a'), { ...pendingRow('b'), provider: 'other' }]),
+        },
+      };
+      const registry = new PaymentProviderRegistry([notchpay, other], 'other');
+      const service = new SubscriptionPaymentsService(prisma as never, registry);
+
+      await expect(service.reconcilePendingPayments()).resolves.toMatchObject({ stillPending: 2 });
+      expect(notchpay.retrievePayment).toHaveBeenCalledWith('trx.test_a');
+      expect(other.retrievePayment).toHaveBeenCalledWith('trx.test_b');
+      expect(prisma.subscriptionPayment.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { status: 'PENDING' } }),
+      );
+    });
+
+    it('reports (without crashing) a payment whose provider is no longer registered', async () => {
+      const { provider, service } = setup([{ ...pendingRow('a'), provider: 'removed' }]);
+
+      await expect(service.reconcilePendingPayments()).resolves.toMatchObject({ checked: 1, failed: 1 });
+      expect(provider.retrievePayment).not.toHaveBeenCalled();
     });
   });
 });
