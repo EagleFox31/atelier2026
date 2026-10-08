@@ -1,0 +1,106 @@
+name: Prod API logs
+
+# Lecture seule : récupère les logs du conteneur API de production via SSM
+# (pas de SSH, rôle OIDC de déploiement). Sert à diagnostiquer un incident
+# (ex. webhooks de paiement) sans accès AWS local.
+
+on:
+  workflow_dispatch:
+    inputs:
+      filter:
+        description: 'Filtre grep -E (lettres, chiffres, _ | . espace -)'
+        default: 'webhook|notchpay'
+        required: true
+      since_minutes:
+        description: 'Fenêtre de lecture en minutes (1 à 1440)'
+        default: '120'
+        required: true
+      max_lines:
+        description: 'Nombre maximal de lignes renvoyées (1 à 500)'
+        default: '200'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prod-logs
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-west-3
+  STACK_NAME: atelier-maitre-prod
+
+jobs:
+  logs:
+    name: Lire les logs API
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Valider les entrées
+        env:
+          FILTER: ${{ inputs.filter }}
+          SINCE: ${{ inputs.since_minutes }}
+          MAX_LINES: ${{ inputs.max_lines }}
+        run: |
+          [[ "$FILTER" =~ ^[A-Za-z0-9_|.\ -]{1,80}$ ]] || { echo "::error::filter invalide"; exit 1; }
+          [[ "$SINCE" =~ ^[0-9]{1,4}$ ]] && [ "$SINCE" -ge 1 ] && [ "$SINCE" -le 1440 ] || { echo "::error::since_minutes hors bornes"; exit 1; }
+          [[ "$MAX_LINES" =~ ^[0-9]{1,3}$ ]] && [ "$MAX_LINES" -ge 1 ] && [ "$MAX_LINES" -le 500 ] || { echo "::error::max_lines hors bornes"; exit 1; }
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Read API logs through SSM
+        env:
+          FILTER: ${{ inputs.filter }}
+          SINCE: ${{ inputs.since_minutes }}
+          MAX_LINES: ${{ inputs.max_lines }}
+        run: |
+          INSTANCE_ID=$(aws cloudformation describe-stacks \
+            --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='InstanceId'].OutputValue | [0]" \
+            --output text)
+
+          REMOTE="docker logs --since ${SINCE}m atelier2026-api-1 2>&1 | grep -aiE '${FILTER}' | tail -n ${MAX_LINES} || true"
+          jq -n --arg cmd "$REMOTE" '{commands: [$cmd]}' > ssm-commands.json
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --comment "Read API logs" \
+            --parameters file://ssm-commands.json \
+            --query 'Command.CommandId' \
+            --output text)
+
+          STATUS=""
+          for attempt in $(seq 1 40); do
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "$COMMAND_ID" \
+              --instance-id "$INSTANCE_ID" \
+              --query 'Status' \
+              --output text 2>/dev/null || true)
+            case "$STATUS" in
+              Success|Failed|Cancelled|TimedOut|Cancelling) break ;;
+            esac
+            sleep 3
+          done
+
+          OUTPUT=$(aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID" \
+            --query 'StandardOutputContent' \
+            --output text)
+          {
+            echo "### Logs API prod (filtre : \`$FILTER\`, ${SINCE} min, statut SSM : ${STATUS:-inconnu})"
+            echo '```'
+            echo "${OUTPUT:-(aucune ligne correspondante)}"
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+          [ "$STATUS" = "Success" ]
