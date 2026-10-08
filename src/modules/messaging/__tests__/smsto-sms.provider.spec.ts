@@ -95,9 +95,45 @@ describe('SmsToSmsProvider', () => {
     expect((error as Error).message).not.toContain('699123456');
   });
 
-  it('statut de remise inconnu et validation d’expéditeur', async () => {
+  it('interroge GET /message/{id} et mappe le statut', async () => {
+    const { smsto, fetchImpl } = provider({
+      status: 200,
+      body: { status: 'DELIVERED', updated_at: '2022-02-01 07:19:04' },
+    });
+    await expect(smsto.getDeliveryStatus('abc/1')).resolves.toEqual({
+      status: 'DELIVERED',
+      deliveredAt: new Date('2022-02-01T07:19:04Z'),
+    });
+    const [url, init] = fetchImpl.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('https://api.sms.to/message/abc%2F1');
+    expect(init.method).toBe('GET');
+    expect(init.body).toBeUndefined();
+  });
+
+  it.each([
+    [{ status: 'FAILED', failed_reason: 'Absent subscriber' }, { status: 'FAILED', errorCode: 'Absent subscriber' }],
+    [{ status: 'FAILED' }, { status: 'FAILED' }],
+    [{ status: 'QUEUED' }, { status: 'QUEUED' }],
+    [{ status: 'SENT' }, { status: 'SENT' }],
+    [{ status: 'SOMETHING_NEW' }, { status: 'UNKNOWN' }],
+    [{}, { status: 'UNKNOWN' }],
+  ])('statut de remise %j', async (body, expected) => {
+    const { smsto } = provider({ status: 200, body });
+    await expect(smsto.getDeliveryStatus('id')).resolves.toEqual(expected);
+  });
+
+  it('statut inconnu si message introuvable, erreur typée sinon', async () => {
+    await expect(provider({ status: 404 }).smsto.getDeliveryStatus('id')).resolves.toEqual({ status: 'UNKNOWN' });
+    await expect(provider({ status: 401 }).smsto.getDeliveryStatus('id')).rejects.toMatchObject({
+      code: 'PROVIDER_CONFIGURATION',
+    });
+    await expect(provider({ status: 503 }).smsto.getDeliveryStatus('id')).rejects.toMatchObject({
+      code: 'UNAVAILABLE',
+    });
+  });
+
+  it('validation d’expéditeur', async () => {
     const { smsto } = provider({ status: 200 });
-    await expect(smsto.getDeliveryStatus()).resolves.toEqual({ status: 'UNKNOWN' });
     await expect(smsto.validateSender('AtelierMtr')).resolves.toEqual({ valid: true });
     await expect(smsto.validateSender('Atelier-Maitre')).resolves.toMatchObject({ valid: false });
   });
