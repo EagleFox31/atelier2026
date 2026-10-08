@@ -15,6 +15,34 @@ import type {
 const DEFAULT_API_URL = 'https://api.sms.to';
 const REQUEST_TIMEOUT_MS = 10_000;
 
+/** Statuts SMS.to → contrat interne ; tout le reste reste `UNKNOWN`. */
+function mapDeliveryStatus(raw: unknown): SmsDeliveryStatus['status'] {
+  switch (typeof raw === 'string' ? raw.trim().toUpperCase() : '') {
+    case 'QUEUED':
+    case 'PENDING':
+    case 'SCHEDULED':
+      return 'QUEUED';
+    case 'SENT':
+      return 'SENT';
+    case 'DELIVERED':
+      return 'DELIVERED';
+    case 'FAILED':
+    case 'REJECTED':
+    case 'UNDELIVERED':
+    case 'EXPIRED':
+      return 'FAILED';
+    default:
+      return 'UNKNOWN';
+  }
+}
+
+/** `updated_at` SMS.to ("2022-02-01 07:19:04"), supposé UTC. */
+function parseSmsToDate(raw: unknown): Date | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const date = new Date(`${raw.trim().replace(' ', 'T')}Z`);
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
 export type SmsToConfig = {
   apiKey: string;
   senderId: string;
@@ -29,7 +57,7 @@ export type SmsToConfig = {
  * - Le corps du message et la clé ne sont jamais journalisés ni placés dans une erreur.
  * - SMS.to n'offre pas de clé d'idempotence : un retry après timeout peut produire
  *   un doublon ; le worker borne `attempts` pour limiter ce risque.
- * - Le statut de remise n'est pas interrogé (callback non branché) : `UNKNOWN`.
+ * - Statut de remise par interrogation (`getDeliveryStatus`) ; callback non branché.
  */
 export class SmsToSmsProvider implements SmsProvider {
   readonly name = 'smsto';
@@ -67,7 +95,7 @@ export class SmsToSmsProvider implements SmsProvider {
       throw new PermanentMessagingError('SENDER_REJECTED', `Expéditeur invalide : "${senderId}".`, this.name);
     }
 
-    const { status, body } = await this.post('/sms/send', {
+    const { status, body } = await this.request('POST', '/sms/send', {
       message: request.text,
       to,
       sender_id: senderId,
@@ -84,8 +112,25 @@ export class SmsToSmsProvider implements SmsProvider {
     throw this.toError(status, body);
   }
 
-  async getDeliveryStatus(): Promise<SmsDeliveryStatus> {
-    return { status: 'UNKNOWN' };
+  /**
+   * Statut par interrogation (`GET /message/{id}`). Statut absent ou non reconnu → `UNKNOWN`
+   * (jamais supposé livré). Un message introuvable (404) ou une réponse illisible est aussi `UNKNOWN`.
+   */
+  async getDeliveryStatus(providerMessageId: string): Promise<SmsDeliveryStatus> {
+    const { status, body } = await this.request('GET', `/message/${encodeURIComponent(providerMessageId)}`);
+    if (status === 404) return { status: 'UNKNOWN' };
+    if (status < 200 || status >= 300) throw this.toError(status, body);
+
+    const mapped = mapDeliveryStatus(body.status);
+    if (mapped === 'DELIVERED') {
+      const deliveredAt = parseSmsToDate(body.updated_at);
+      return deliveredAt ? { status: mapped, deliveredAt } : { status: mapped };
+    }
+    if (mapped === 'FAILED') {
+      const reason = typeof body.failed_reason === 'string' ? body.failed_reason.trim() : '';
+      return reason ? { status: mapped, errorCode: reason.slice(0, 80) } : { status: mapped };
+    }
+    return { status: mapped };
   }
 
   async validateSender(senderId: string): Promise<SenderValidation> {
@@ -94,18 +139,22 @@ export class SmsToSmsProvider implements SmsProvider {
       : { valid: false, reason: '1 à 11 caractères alphanumériques, au moins une lettre.' };
   }
 
-  private async post(path: string, payload: Record<string, unknown>): Promise<{ status: number; body: Record<string, unknown> }> {
+  private async request(
+    method: 'GET' | 'POST',
+    path: string,
+    payload?: Record<string, unknown>,
+  ): Promise<{ status: number; body: Record<string, unknown> }> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
       const response = await this.fetchImpl(`${this.config.apiUrl}${path}`, {
-        method: 'POST',
+        method,
         headers: {
           Authorization: `Bearer ${this.config.apiKey}`,
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: payload ? JSON.stringify(payload) : undefined,
         signal: controller.signal,
       });
       const parsed: unknown = await response.json().catch(() => ({}));
