@@ -432,3 +432,15 @@ Une intégration de paiement se valide sur une **charge réelle** du prestataire
 **Principe dérivé / changement de standard**
 Toute intégration externe : fixtures copiées d'échanges réels (sandbox) + journalisation des refus/ignorés avant la mise en service.
 
+
+## LESSON-2026-014 — Jest vert, `tsc` front rouge (tests d'adaptateur)
+
+**Contexte** : PR SMS.to (#56). Les tests passaient `{ SMS_PROVIDER: 'smsto' }` à une fonction typée `NodeJS.ProcessEnv`.
+
+**Échec** : Jest vert (ts-jest tolérant) mais l'étape CI « Type-check frontend » (`npx tsc --noEmit`) échouait : `NODE_ENV` manquant.
+
+**Cause racine** : seul `tsc -p tsconfig.server.json` et Jest ont été lancés en local ; le `tsc` racine, qui compile aussi les specs, a été omis.
+
+**Prévention** : avant de pousser, exécuter les deux `tsc` (serveur et racine) dans l'ordre de la CI ; dans les specs, passer les environnements via un helper typé (`env()`), comme `messaging-providers.spec.ts`.
+
+**Leçon généralisée** : récidive de « Jest vert ≠ tsc vert » — la checklist de vérification locale doit refléter chaque étape de la CI.
