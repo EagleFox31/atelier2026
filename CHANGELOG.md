@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.12.0](https://github.com/EagleFox31/atelier2026/compare/v1.11.0...v1.12.0) (2026-10-08)
+
+
+### Features
+
+* **messaging:** add SMS.to SMS provider adapter ([23e8933](https://github.com/EagleFox31/atelier2026/commit/23e8933c10e39f8922b6187ac3d5aa114243db19))
+* **messaging:** add SMS.to SMS provider adapter ([c780673](https://github.com/EagleFox31/atelier2026/commit/c780673f2e42a96a48f48599c098f4ad607617fd))
+* **subscription:** pluggable payment provider registry ([de862b2](https://github.com/EagleFox31/atelier2026/commit/de862b257b14655dc69e14c033b406b05464b2b3))
+* **subscription:** pluggable payment provider registry ([372b87f](https://github.com/EagleFox31/atelier2026/commit/372b87f08567754a33869827bd4f20f663460b28))
+
+
+### Bug Fixes
+
+* **messaging:** type env fixtures in SMS.to provider tests ([db1f8ad](https://github.com/EagleFox31/atelier2026/commit/db1f8ad354f15396cc97b05ab5abf4b5d4d708d4))
+
 ## [1.11.0](https://github.com/EagleFox31/atelier2026/compare/v1.10.0...v1.11.0) (2026-10-02)
 
 
