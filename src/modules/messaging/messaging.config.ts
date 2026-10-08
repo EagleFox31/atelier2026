@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { SimulatorSmsProvider } from './sms/simulator-sms.provider';
 import type { SmsProvider } from './sms/sms-provider.interface';
+import { SmsToSmsProvider } from './sms/smsto-sms.provider';
 import { SimulatorWhatsAppProvider } from './whatsapp/simulator-whatsapp.provider';
 import type { WhatsAppProvider } from './whatsapp/whatsapp-provider.interface';
 
@@ -17,6 +18,7 @@ import type { WhatsAppProvider } from './whatsapp/whatsapp-provider.interface';
  */
 const SMS_PROVIDERS: Record<string, (env: NodeJS.ProcessEnv) => SmsProvider> = {
   simulator: () => new SimulatorSmsProvider(),
+  smsto: (env) => SmsToSmsProvider.fromEnv(env),
 };
 
 const WHATSAPP_PROVIDERS: Record<string, (env: NodeJS.ProcessEnv) => WhatsAppProvider> = {
