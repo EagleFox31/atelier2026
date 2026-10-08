@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.13.0](https://github.com/EagleFox31/atelier2026/compare/v1.12.0...v1.13.0) (2026-10-08)
+
+
+### Features
+
+* **messaging:** add WhatsApp Cloud API provider adapter ([b178c65](https://github.com/EagleFox31/atelier2026/commit/b178c6555d53d811ec5445cb4c1659c5904aa660))
+* **messaging:** add WhatsApp Cloud API provider adapter ([bde26ad](https://github.com/EagleFox31/atelier2026/commit/bde26ad827a04ff048a8c78688b19b0ed72c51cd))
+* **messaging:** read SMS.to delivery status by polling ([e275c23](https://github.com/EagleFox31/atelier2026/commit/e275c236a2fa5cdbb712d7c26947b27ead60ff61))
+* **messaging:** read SMS.to delivery status by polling ([adde987](https://github.com/EagleFox31/atelier2026/commit/adde987f5a8cdc408118d9d5ce6182cf70b2a5dc))
+
 ## [1.12.0](https://github.com/EagleFox31/atelier2026/compare/v1.11.0...v1.12.0) (2026-10-08)
 
 
