@@ -1,4 +1,5 @@
-export const PAYMENT_PROVIDER = Symbol('PAYMENT_PROVIDER');
+/** Liste de tous les adaptateurs enregistrés (voir PaymentProviderRegistry). */
+export const PAYMENT_PROVIDERS = Symbol('PAYMENT_PROVIDERS');
 
 export type BillingCycle = 'monthly' | 'annual';
 export type ProviderPaymentStatus =
@@ -41,10 +42,23 @@ export type PaymentWebhookEvent = {
   reference: string | null;
 };
 
+/** En-têtes HTTP tels que Node les expose (noms en minuscules). */
+export type WebhookHeaders = Record<string, string | string[] | undefined>;
+
+/**
+ * Contrat d'un prestataire de paiement (adaptateur). Toute la logique métier
+ * (activation, verrou tenant, idempotence, réconciliation) vit dans
+ * SubscriptionPaymentsService et ne dépend que de ce contrat.
+ * Ajouter un prestataire = un adaptateur + son entrée dans PAYMENT_PROVIDERS
+ * (subscription.module.ts) + la suite `describePaymentProviderContract`.
+ */
 export interface PaymentProvider {
+  /** Identifiant stable : stocké sur chaque paiement et utilisé dans `/webhooks/:provider`. */
   readonly name: string;
   initializePayment(input: InitializePaymentInput): Promise<InitializedPayment>;
-  retrievePayment(reference: string): Promise<RetrievedPayment>;
-  verifyWebhookSignature(rawPayload: Buffer, signature: string | undefined): boolean;
+  /** Statut faisant foi, lu chez le prestataire (jamais déduit du webhook ou de l'URL de retour). */
+  retrievePayment(providerTransactionId: string): Promise<RetrievedPayment>;
+  /** Authentifie la notification (signature, jeton…) à partir du corps brut et des en-têtes. */
+  verifyWebhook(rawBody: Buffer, headers: WebhookHeaders): boolean;
   parseWebhook(payload: unknown): PaymentWebhookEvent;
 }

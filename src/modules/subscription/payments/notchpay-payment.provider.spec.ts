@@ -1,6 +1,8 @@
 import { createHmac } from 'crypto';
 import { SubscriptionStatus } from '@prisma/client';
 import { NotchPayPaymentProvider, normalizeNotchPayStatus } from './notchpay-payment.provider';
+import { describePaymentProviderContract } from './payment-provider.contract';
+import { PaymentProviderRegistry } from './payment-provider.registry';
 import { SubscriptionPaymentsService } from './subscription-payments.service';
 
 // Réponse réelle de la sandbox NotchPay (POST /payments, 2026-10-02) : pas de champ `id`,
@@ -252,16 +254,30 @@ describe('NotchPayPaymentProvider', () => {
         },
       };
       const prisma = { $transaction: jest.fn((callback: (t: unknown) => unknown) => callback(tx)) };
-      const service = new SubscriptionPaymentsService(prisma as never, new NotchPayPaymentProvider());
+      const service = new SubscriptionPaymentsService(prisma as never, PaymentProviderRegistry.of(new NotchPayPaymentProvider()));
       const body = Buffer.from(JSON.stringify({ type: 'payment.complete', data: { ...SANDBOX_TRANSACTION, status: 'complete' } }));
       const signature = createHmac('sha256', 'test_hash_example').update(body).digest('hex');
 
-      const result = await service.handleWebhook(body, signature, JSON.parse(body.toString()));
+      const result = await service.handleWebhook('notchpay', body, { 'x-notch-signature': signature }, JSON.parse(body.toString()));
 
       expect(result).toMatchObject({ received: true, activated: true });
       expect(tx.tenant.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ subscriptionStatus: SubscriptionStatus.ACTIVE }) }),
       );
     });
+  });
+
+  describePaymentProviderContract('notchpay', {
+    create: () => new NotchPayPaymentProvider(),
+    signedCompleteWebhook: () => {
+      const payload = { type: 'payment.complete', data: { ...SANDBOX_TRANSACTION, status: 'complete' } };
+      const rawBody = Buffer.from(JSON.stringify(payload));
+      const signature = createHmac('sha256', 'test_hash_example').update(rawBody).digest('hex');
+      return { rawBody, headers: { 'x-notch-signature': signature }, payload };
+    },
+    expectedIdentifiers: {
+      providerTransactionId: SANDBOX_TRANSACTION.reference,
+      reference: SANDBOX_TRANSACTION.merchant_reference,
+    },
   });
 });

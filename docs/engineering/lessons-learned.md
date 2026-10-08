@@ -424,6 +424,8 @@ Tests construits sur la **réponse réelle de la sandbox** (fixture `SANDBOX_TRA
 
 **Suite (même jour)** : après le correctif, l'abonnement ne s'activait toujours pas, et NotchPay n'expose aucun historique de livraison des webhooks (diagnostic impossible côté prestataire). Le webhook n'est donc plus un point de défaillance unique : **réconciliation « pull »** (`reconcilePendingPayments`) au retour du client (`POST /subscription/payments/reconcile`, appelé par `AppLayout` sur `?payment=return`) et toutes les 5 minutes (`PaymentReconciliationScheduler`), par le même chemin transactionnel et idempotent que le webhook.
 
+**Suite (2026-10-04, validation prod sandbox)** : la réconciliation active bien (+1 mois par paiement, aucun doublon), mais les checkouts abandonnés restaient `PENDING` à vie : la réconciliation ne regardait que 48 h (near miss, ~9 lignes). Désormais tout paiement `PENDING` est vérifié auprès de **son** prestataire (registre `PaymentProviderRegistry`), et un paiement toujours en attente après 48 h est clos en `EXPIRED` (`providerStatus = EXPIRED_UNCONFIRMED`) ; un « complete » tardif reste applicable. Tests : `subscription-payments.service.spec.ts` (expiration, prestataire inconnu, routage par prestataire). Constat sandbox : le numéro 670000001 n'y simule **pas** des fonds insuffisants (paiement `complete`).
+
 **Leçon généralisée**
 Une intégration de paiement se valide sur une **charge réelle** du prestataire (sandbox), pas sur la doc ; et un événement de paiement non appliqué ne doit jamais renvoyer un succès silencieux sans trace.
 

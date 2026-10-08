@@ -12,6 +12,7 @@ import type {
   PaymentWebhookEvent,
   ProviderPaymentStatus,
   RetrievedPayment,
+  WebhookHeaders,
 } from './payment-provider';
 
 type JsonObject = Record<string, unknown>;
@@ -151,6 +152,11 @@ export class NotchPayPaymentProvider implements PaymentProvider {
       status: normalizeNotchPayStatus(providerStatus),
       providerStatus,
     };
+  }
+
+  verifyWebhook(rawBody: Buffer, headers: WebhookHeaders): boolean {
+    const signature = headers['x-notch-signature'];
+    return this.verifyWebhookSignature(rawBody, Array.isArray(signature) ? signature[0] : signature);
   }
 
   verifyWebhookSignature(rawPayload: Buffer, signature: string | undefined): boolean {
