@@ -20,6 +20,10 @@ function provider(response: { status: number; body?: unknown } | Error) {
   return { smsto, fetchImpl };
 }
 
+function env(values: Record<string, string>): NodeJS.ProcessEnv {
+  return values as NodeJS.ProcessEnv;
+}
+
 const request = { to: '699123456', text: 'Code secret 4242', idempotencyKey: 'k1' };
 
 describe('SmsToSmsProvider', () => {
@@ -101,18 +105,18 @@ describe('SmsToSmsProvider', () => {
 
 describe('Configuration SMS_PROVIDER=smsto', () => {
   it('sélectionne l’adaptateur avec la clé et un expéditeur par défaut', () => {
-    const p = createSmsProvider({ SMS_PROVIDER: 'smsto', SMSTO_API_KEY: KEY });
+    const p = createSmsProvider(env({ SMS_PROVIDER: 'smsto', SMSTO_API_KEY: KEY }));
     expect(p).toBeInstanceOf(SmsToSmsProvider);
     expect(p.name).toBe('smsto');
   });
 
   it('clé absente : l’API refuse de démarrer, sans citer de secret', () => {
-    expect(() => createSmsProvider({ SMS_PROVIDER: 'smsto' })).toThrow(/SMSTO_API_KEY/);
+    expect(() => createSmsProvider(env({ SMS_PROVIDER: 'smsto' }))).toThrow(/SMSTO_API_KEY/);
   });
 
   it('expéditeur invalide : refus au démarrage', () => {
     expect(() =>
-      createSmsProvider({ SMS_PROVIDER: 'smsto', SMSTO_API_KEY: KEY, SMSTO_SENDER_ID: 'Atelier-Maitre' }),
+      createSmsProvider(env({ SMS_PROVIDER: 'smsto', SMSTO_API_KEY: KEY, SMSTO_SENDER_ID: 'Atelier-Maitre' })),
     ).toThrow(/SMSTO_SENDER_ID/);
   });
 });
