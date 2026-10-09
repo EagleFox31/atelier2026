@@ -150,6 +150,7 @@ enum SMSStatus {
   SENT
   DELIVERED
   FAILED
+  SIMULATED
 
   @@map("sms_status_t")
 }
@@ -269,6 +270,10 @@ model Garage {
   workshopSettings WorkshopSettings[]
   counterSales     CounterSale[]
   smsNotifications SMSNotification[]
+  customerNotifications   CustomerNotification[]
+  customerChannelConsents CustomerChannelConsent[]
+  notificationSettings    GarageNotificationSetting[]
+  quoteAccessTokens       QuoteAccessToken[]
 
   @@unique([tenantId, slug])
   @@map("garages")
@@ -366,6 +371,8 @@ model User {
   inAppNotifications      InAppNotification[]
   workshopSettingsUpdates WorkshopSettings[]      @relation("WorkshopSettingsUpdatedBy")
   handledDemoRequests     DemoRequest[]           @relation("DemoRequestHandledBy")
+  consentEventsRecorded       CustomerConsentEvent[]      @relation("ConsentEventRecordedBy")
+  notificationSettingsUpdated GarageNotificationSetting[] @relation("NotificationSettingUpdatedBy")
   tenant                  Tenant?                 @relation(fields: [tenantId], references: [id])
   garage                  Garage?                 @relation(fields: [garageId], references: [id])
 
@@ -438,6 +445,8 @@ model Customer {
   counterSales     CounterSale[]
   smsNotifications SMSNotification[]
   appointments     Appointment[]
+  customerNotifications CustomerNotification[]
+  channelConsents       CustomerChannelConsent[]
 
   @@index([phonePrimary])
   @@map("customers")
@@ -577,6 +586,7 @@ model ServiceOrder {
   immobilizations    VehicleImmobilization[]
   appointments       Appointment[]
   inAppNotifications InAppNotification[]
+  customerNotifications CustomerNotification[]
 
   @@index([vehicleId, status])
   @@index([customerId])
@@ -849,6 +859,8 @@ model Quote {
   creator              User         @relation(fields: [createdBy], references: [id])
   lines                QuoteLine[]
   invoices             Invoice[]
+  customerNotifications CustomerNotification[]
+  accessTokens          QuoteAccessToken[]
 
   @@index([serviceOrderId, status])
   @@index([status, createdAt])
@@ -958,6 +970,7 @@ model Invoice {
   validator        User?         @relation("InvoiceValidated", fields: [validatedBy], references: [id])
   lines            InvoiceLine[]
   payments         Payment[]
+  customerNotifications CustomerNotification[]
 
   @@index([serviceOrderId])
   @@index([customerId, status])
@@ -998,6 +1011,7 @@ model Payment {
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
   invoice        Invoice       @relation(fields: [invoiceId], references: [id])
   recorder       User          @relation(fields: [recordedBy], references: [id])
+  customerNotifications CustomerNotification[]
 
   @@index([invoiceId, status])
   @@map("payments")
@@ -1069,6 +1083,7 @@ model Appointment {
   customer        Customer          @relation(fields: [customerId], references: [id])
   vehicle         Vehicle?          @relation(fields: [vehicleId], references: [id])
   serviceOrder    ServiceOrder?     @relation(fields: [serviceOrderId], references: [id])
+  customerNotifications CustomerNotification[]
 
   @@index([scheduledAt])
   @@index([customerId])
@@ -1099,6 +1114,194 @@ model SMSNotification {
   @@index([createdAt])
   @@index([garageId])
   @@map("sms_notifications")
+}
+
+// ─── Notifications client multicanal (WhatsApp d'abord) ─────────────────────
+// Noms d'objets = défauts Prisma : `prisma db push` tourne avant migrate-missing en prod.
+
+enum NotificationChannel {
+  WHATSAPP
+  SMS
+
+  @@map("notification_channel_t")
+}
+
+enum CustomerNotificationEvent {
+  APPOINTMENT_CONFIRMED
+  APPOINTMENT_REMINDER
+  SERVICE_ORDER_RECEIVED
+  QUOTE_APPROVAL_REQUESTED
+  VEHICLE_READY
+  INVOICE_AVAILABLE
+  INVOICE_PAYMENT_REMINDER
+  PAYMENT_CONFIRMED
+
+  @@map("customer_notification_event_t")
+}
+
+enum CustomerNotificationStatus {
+  PENDING
+  ACCEPTED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  SKIPPED
+  SIMULATED
+
+  @@map("customer_notification_status_t")
+}
+
+enum ConsentStatus {
+  GRANTED
+  REVOKED
+
+  @@map("consent_status_t")
+}
+
+enum ConsentSource {
+  IN_PERSON
+  SIGNED_FORM
+  PHONE_CALL
+  CUSTOMER_MESSAGE
+
+  @@map("consent_source_t")
+}
+
+/// Notification client : un événement métier, un canal. Idempotence par (garage, clé).
+model CustomerNotification {
+  id                String                     @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  garageId          String                     @map("garage_id") @db.Uuid
+  customerId        String?                    @map("customer_id") @db.Uuid
+  eventType         CustomerNotificationEvent  @map("event_type")
+  idempotencyKey    String                     @map("idempotency_key")
+  channel           NotificationChannel?
+  status            CustomerNotificationStatus @default(PENDING)
+  skipReason        String?                    @map("skip_reason")
+  serviceOrderId    String?                    @map("service_order_id") @db.Uuid
+  appointmentId     String?                    @map("appointment_id") @db.Uuid
+  quoteId           String?                    @map("quote_id") @db.Uuid
+  invoiceId         String?                    @map("invoice_id") @db.Uuid
+  paymentId         String?                    @map("payment_id") @db.Uuid
+  recipientE164     String?                    @map("recipient_e164")
+  lang              String?
+  templateName      String?                    @map("template_name")
+  templateLanguage  String?                    @map("template_language")
+  templateVersion   Int?                       @map("template_version") @db.SmallInt
+  variables         Json?
+  provider          String?
+  senderAccountRef  String?                    @map("sender_account_ref")
+  providerMessageId String?                    @map("provider_message_id")
+  attemptCount      Int                        @default(0) @map("attempt_count") @db.SmallInt
+  lastErrorCode     String?                    @map("last_error_code")
+  lastErrorMessage  String?                    @map("last_error_message")
+  fallbackOfId      String?                    @map("fallback_of_id") @db.Uuid
+  dispatchStartedAt DateTime?                  @map("dispatch_started_at") @db.Timestamptz
+  acceptedAt        DateTime?                  @map("accepted_at") @db.Timestamptz
+  sentAt            DateTime?                  @map("sent_at") @db.Timestamptz
+  deliveredAt       DateTime?                  @map("delivered_at") @db.Timestamptz
+  readAt            DateTime?                  @map("read_at") @db.Timestamptz
+  failedAt          DateTime?                  @map("failed_at") @db.Timestamptz
+  createdAt         DateTime                   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime                   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  garage            Garage                 @relation(fields: [garageId], references: [id], onDelete: Cascade)
+  customer          Customer?              @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  serviceOrder      ServiceOrder?          @relation(fields: [serviceOrderId], references: [id], onDelete: SetNull)
+  appointment       Appointment?           @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  quote             Quote?                 @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  invoice           Invoice?               @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  payment           Payment?               @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  fallbackOf        CustomerNotification?  @relation("NotificationFallback", fields: [fallbackOfId], references: [id], onDelete: SetNull)
+  fallbacks         CustomerNotification[] @relation("NotificationFallback")
+  quoteAccessTokens QuoteAccessToken[]
+
+  @@unique([garageId, idempotencyKey])
+  @@unique([provider, providerMessageId])
+  @@index([garageId, createdAt])
+  @@index([customerId, createdAt])
+  @@index([serviceOrderId])
+  @@index([status, createdAt])
+  @@map("customer_notifications")
+}
+
+/// État courant du consentement par client et canal ; l'historique est dans CustomerConsentEvent.
+model CustomerChannelConsent {
+  id         String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  garageId   String              @map("garage_id") @db.Uuid
+  customerId String              @map("customer_id") @db.Uuid
+  channel    NotificationChannel
+  status     ConsentStatus
+  phoneE164  String              @map("phone_e164")
+  grantedAt  DateTime?           @map("granted_at") @db.Timestamptz
+  revokedAt  DateTime?           @map("revoked_at") @db.Timestamptz
+  createdAt  DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  garage   Garage                 @relation(fields: [garageId], references: [id], onDelete: Cascade)
+  customer Customer               @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  events   CustomerConsentEvent[]
+
+  @@unique([customerId, channel])
+  @@index([garageId])
+  @@map("customer_channel_consents")
+}
+
+/// Journal en ajout seul (trigger anti-UPDATE) : preuve datée de chaque accord ou retrait.
+model CustomerConsentEvent {
+  id                 String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  consentId          String        @map("consent_id") @db.Uuid
+  action             ConsentStatus
+  phoneE164          String        @map("phone_e164")
+  source             ConsentSource
+  consentTextVersion String        @map("consent_text_version")
+  note               String?
+  recordedById       String?       @map("recorded_by_id") @db.Uuid
+  occurredAt         DateTime      @default(now()) @map("occurred_at") @db.Timestamptz
+
+  consent    CustomerChannelConsent @relation(fields: [consentId], references: [id], onDelete: Cascade)
+  recordedBy User?                  @relation("ConsentEventRecordedBy", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@index([consentId, occurredAt])
+  @@map("customer_consent_events")
+}
+
+/// Surcharge par garage ; absence de ligne = valeur par défaut du code.
+model GarageNotificationSetting {
+  id          String                    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  garageId    String                    @map("garage_id") @db.Uuid
+  eventType   CustomerNotificationEvent @map("event_type")
+  enabled     Boolean
+  params      Json                      @default("{}")
+  updatedAt   DateTime                  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  updatedById String?                   @map("updated_by_id") @db.Uuid
+
+  garage    Garage @relation(fields: [garageId], references: [id], onDelete: Cascade)
+  updatedBy User?  @relation("NotificationSettingUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([garageId, eventType])
+  @@map("garage_notification_settings")
+}
+
+/// Lien public vers un devis : seule l'empreinte SHA-256 du jeton est stockée.
+model QuoteAccessToken {
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  garageId       String    @map("garage_id") @db.Uuid
+  quoteId        String    @map("quote_id") @db.Uuid
+  tokenHash      String    @unique @map("token_hash")
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz
+  lastViewedAt   DateTime? @map("last_viewed_at") @db.Timestamptz
+  decidedAt      DateTime? @map("decided_at") @db.Timestamptz
+  notificationId String?   @map("notification_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  garage       Garage                @relation(fields: [garageId], references: [id], onDelete: Cascade)
+  quote        Quote                 @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  notification CustomerNotification? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+
+  @@index([quoteId])
+  @@map("quote_access_tokens")
 }
 
 model InAppNotification {
