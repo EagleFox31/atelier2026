@@ -12,6 +12,7 @@ import { CustomerNotificationsController, NotificationSettingsController } from 
 import { CUSTOMER_NOTIFICATIONS_QUEUE } from './customer-notifications.queue';
 import { NotificationPreferencesService } from './notification-preferences.service';
 import { NotificationStalenessService } from './notification-staleness.service';
+import { ReminderSchedulerService } from './reminder-scheduler.service';
 import { WhatsAppSenderResolver } from './whatsapp-sender.resolver';
 
 /**
@@ -35,6 +36,7 @@ import { WhatsAppSenderResolver } from './whatsapp-sender.resolver';
     CustomerNotificationSweeper,
     NotificationPreferencesService,
     NotificationStalenessService,
+    ReminderSchedulerService,
     WhatsAppSenderResolver,
   ],
   exports: [CustomerNotificationEmitter],

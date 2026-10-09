@@ -85,6 +85,16 @@ La première règle qui échoue donne `SKIPPED` avec sa raison :
 | `PAYMENT_CONFIRMED` | `BillingService` | paiement enregistré (`CONFIRMED`) ; un doublon d'idempotence n'émet rien |
 | `QUOTE_APPROVAL_REQUESTED` | — | avec le lien sécurisé de devis (PR 7) |
 
+### Rappels planifiés (`reminder-scheduler.service.ts`, fuseau Africa/Douala)
+
+| Événement | Cron | Règle |
+|---|---|---|
+| `APPOINTMENT_REMINDER` | toutes les heures, envois entre 7 h et 21 h | RDV `SCHEDULED`/`CONFIRMED` dans ]+2 h, +24 h] ; pas de rappel pour un RDV pris moins de 24 h à l'avance (la confirmation vient de partir) |
+| `INVOICE_PAYMENT_REMINDER` | 8 h | facture `ISSUED`/`PARTIAL`, solde > 0 ; étape = dernier palier atteint (défaut J+7, J+15 après l'échéance), rattrapée 7 jours au plus ; montant = solde restant dû |
+
+- Politique de relance par garage : `garage_notification_settings.params.reminderDaysAfterDue` (1 à 3 jours distincts dans [1, 90]) ; absente = défaut, invalide = défaut + avertissement.
+- Les colonnes `invoices.reminder_1_sent_at` / `reminder_2_sent_at` ne sont plus écrites (conservées pour l'historique) : la clé d'idempotence remplace ces drapeaux. Les anciens crons SMS de `SchedulerService` sont retirés.
+
 ## API et écrans (consentement, préférences, historique)
 
 | Route | Droit | Rôle |

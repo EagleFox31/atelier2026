@@ -24,7 +24,7 @@ function makeProcessor() {
 
 function job(
   data: Partial<SmsJobData>,
-  name = 'reminder_j7',
+  name = 'manual_sms',
   extra: { id?: string; attemptsMade?: number; attempts?: number } = {},
 ) {
   return {
@@ -38,40 +38,33 @@ function job(
 }
 
 describe('SmsProcessor — droit SMS et relances', () => {
-  it('envoie, journalise et marque la relance J+7 APRÈS l’envoi réussi', async () => {
+  it('envoie et journalise le SMS', async () => {
     const { processor, prisma, provider } = makeProcessor();
 
-    await expect(
-      processor.process(job({ tenantId: 't1', garageId: 'g1', invoiceId: 'inv-1', invoiceReminder: 1 })),
-    ).resolves.toEqual({ sent: true });
+    await expect(processor.process(job({ tenantId: 't1', garageId: 'g1' }))).resolves.toEqual({ sent: true });
 
     expect(provider.sent).toHaveLength(1);
     expect(prisma.sMSNotification.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({ garageId: 'g1', status: 'SENT', templateCode: 'reminder_j7' }),
-    });
-    expect(prisma.invoice.update).toHaveBeenCalledWith({
-      where: { id: 'inv-1' },
-      data: { reminder1SentAt: expect.any(Date) },
+      data: expect.objectContaining({ garageId: 'g1', status: 'SENT', templateCode: 'manual_sms' }),
     });
   });
 
-  it('marque reminder2SentAt pour la relance J+15', async () => {
-    const { processor, prisma } = makeProcessor();
+  it('ancien job de relance de facture encore en file : SMS traité, facture jamais modifiée', async () => {
+    const { processor, prisma, provider } = makeProcessor();
+    const legacy = { tenantId: 't1', invoiceId: 'inv-1', invoiceReminder: 1 } as Partial<SmsJobData>;
 
-    await processor.process(job({ tenantId: 't1', invoiceId: 'inv-2', invoiceReminder: 2 }, 'reminder_j15'));
+    await processor.process(job(legacy, 'reminder_j7'));
 
-    expect(prisma.invoice.update).toHaveBeenCalledWith({
-      where: { id: 'inv-2' },
-      data: { reminder2SentAt: expect.any(Date) },
-    });
+    expect(provider.sent).toHaveLength(1);
+    expect(prisma.invoice.update).not.toHaveBeenCalled();
   });
 
-  it('refus commercial : échec définitif (pas de retry), SMS marqué FAILED, relance non marquée', async () => {
+  it('refus commercial : échec définitif (pas de retry), SMS marqué FAILED', async () => {
     const { processor, prisma, subscriptions, provider } = makeProcessor();
     subscriptions.assertSmsEntitled.mockRejectedValue(new ForbiddenException({ errorCode: 'SMS_SUBSCRIPTION_REQUIRED' }));
 
     await expect(
-      processor.process(job({ tenantId: 't1', notificationId: 'n1', invoiceId: 'inv-1', invoiceReminder: 1 })),
+      processor.process(job({ tenantId: 't1', notificationId: 'n1' })),
     ).rejects.toBeInstanceOf(UnrecoverableError);
 
     expect(provider.sent).toHaveLength(0);
@@ -79,7 +72,6 @@ describe('SmsProcessor — droit SMS et relances', () => {
       where: { id: 'n1' },
       data: { status: 'FAILED', errorMessage: expect.stringContaining('Pro ou Business') },
     });
-    expect(prisma.invoice.update).not.toHaveBeenCalled();
   });
 
   it('panne temporaire (abonnement illisible) : erreur relancée pour que BullMQ réessaie', async () => {
@@ -178,33 +170,31 @@ describe('SmsProcessor — fournisseur injecté (SMS_PROVIDER)', () => {
     expect(provider.sent[0].idempotencyKey).toBe(provider.sent[1].idempotencyKey);
   });
 
-  it('échec définitif du fournisseur : UnrecoverableError, FAILED avec le code, relance non marquée', async () => {
+  it('échec définitif du fournisseur : UnrecoverableError, FAILED avec le code', async () => {
     const { processor, prisma, provider } = makeProcessor();
     provider.failPermanently('INSUFFICIENT_CREDIT');
 
     await expect(
-      processor.process(job({ tenantId: 't1', notificationId: 'n1', invoiceId: 'inv-1', invoiceReminder: 1 })),
+      processor.process(job({ tenantId: 't1', notificationId: 'n1' })),
     ).rejects.toBeInstanceOf(UnrecoverableError);
 
     expect(prisma.sMSNotification.update).toHaveBeenCalledWith({
       where: { id: 'n1' },
       data: { status: 'FAILED', errorMessage: expect.stringContaining('INSUFFICIENT_CREDIT') },
     });
-    expect(prisma.invoice.update).not.toHaveBeenCalled();
   });
 
-  it('échec temporaire (tentatives restantes) : erreur relancée, notification et relance intactes', async () => {
+  it('échec temporaire (tentatives restantes) : erreur relancée, notification intacte', async () => {
     const { processor, prisma, provider } = makeProcessor();
     provider.failTemporarily('UNAVAILABLE');
 
     const result = processor.process(
-      job({ tenantId: 't1', notificationId: 'n1', invoiceId: 'inv-1', invoiceReminder: 1 }, 'reminder_j7', { attempts: 3 }),
+      job({ tenantId: 't1', notificationId: 'n1' }, 'manual_sms', { attempts: 3 }),
     );
 
     await expect(result).rejects.toThrow('UNAVAILABLE');
     await expect(result).rejects.not.toBeInstanceOf(UnrecoverableError);
     expect(prisma.sMSNotification.update).not.toHaveBeenCalled();
-    expect(prisma.invoice.update).not.toHaveBeenCalled();
   });
 
   it('échec temporaire à la dernière tentative : erreur relancée et notification FAILED', async () => {
@@ -228,12 +218,12 @@ describe('SmsProcessor — fournisseur injecté (SMS_PROVIDER)', () => {
     provider.always({ kind: 'error', error: new Error('socket hang up') });
 
     const result = processor.process(
-      job({ tenantId: 't1', invoiceId: 'inv-1', invoiceReminder: 1 }, 'reminder_j7', { attempts: 3 }),
+      job({ tenantId: 't1', notificationId: 'n1' }, 'manual_sms', { attempts: 3 }),
     );
 
     await expect(result).rejects.toThrow('socket hang up');
     await expect(result).rejects.not.toBeInstanceOf(UnrecoverableError);
-    expect(prisma.invoice.update).not.toHaveBeenCalled();
+    expect(prisma.sMSNotification.update).not.toHaveBeenCalled();
   });
 
   it('numéro inexploitable : échec définitif sans appel au fournisseur', async () => {
@@ -252,21 +242,17 @@ describe('SmsProcessor — fournisseur injecté (SMS_PROVIDER)', () => {
 });
 
 describe('SmsProcessor — fournisseur simulé', () => {
-  it('enregistre SIMULATED (jamais SENT ni DELIVERED) et marque quand même la relance', async () => {
+  it('enregistre SIMULATED (jamais SENT ni DELIVERED)', async () => {
     const { prisma, subscriptions } = makeProcessor();
     const processor = new SmsProcessor(prisma as never, subscriptions as never, new SimulatorSmsProvider());
 
     await expect(
-      processor.process(job({ tenantId: 't1', garageId: 'g1', invoiceId: 'inv-1', invoiceReminder: 1 })),
+      processor.process(job({ tenantId: 't1', garageId: 'g1' })),
     ).resolves.toEqual({ sent: false, simulated: true });
 
     const { data } = prisma.sMSNotification.create.mock.calls[0][0];
     expect(data.status).toBe('SIMULATED');
     expect(data).not.toHaveProperty('deliveredAt');
-    expect(prisma.invoice.update).toHaveBeenCalledWith({
-      where: { id: 'inv-1' },
-      data: { reminder1SentAt: expect.any(Date) },
-    });
   });
 
   it('met à jour une notification existante en SIMULATED', async () => {
