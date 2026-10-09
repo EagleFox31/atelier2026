@@ -22,8 +22,6 @@ export type SmsJobData = {
   lang?: string;
   notificationId?: string;
   serviceOrderId?: string;
-  invoiceId?: string;
-  invoiceReminder?: 1 | 2;
 };
 
 /**
@@ -36,8 +34,6 @@ export type SmsJobData = {
  * - numéro inexploitable ou refus définitif du fournisseur → `UnrecoverableError` ;
  * - panne temporaire du fournisseur → erreur relancée (retry BullMQ borné par
  *   `attempts`), notification FAILED à la dernière tentative ;
- * - relances de facture marquées UNIQUEMENT après un envoi accepté (ou simulé :
- *   le drapeau évite que le planificateur réenfile la même relance en boucle) ;
  * - fournisseur simulé (`simulated`) → statut `SIMULATED`, jamais `SENT` ;
  * - le fournisseur est injecté (`SMS_PROVIDER`), jamais importé directement.
  */
@@ -62,8 +58,6 @@ export class SmsProcessor extends WorkerHost {
       notificationId,
       serviceOrderId,
       garageId,
-      invoiceId,
-      invoiceReminder,
     } = job.data;
 
     this.logger.log(`Traitement SMS ${job.name} pour ${maskPhone(phone)} (${lang})`);
@@ -135,15 +129,6 @@ export class SmsProcessor extends WorkerHost {
           ...(serviceOrderId ? { serviceOrderId } : {}),
           ...sentData,
         },
-      });
-    }
-
-    if (invoiceId && invoiceReminder) {
-      await this.prisma.invoice.update({
-        where: { id: invoiceId },
-        data: invoiceReminder === 1
-          ? { reminder1SentAt: new Date() }
-          : { reminder2SentAt: new Date() },
       });
     }
 
