@@ -586,6 +586,54 @@ test.describe('Atelier Maître — garde-fous UX/UI/CX', () => {
     await expect(page).toHaveURL(/\/devis\//);
   });
 
+  test('la supervision des notifications explique les alertes sans exposer de donnée client', async ({ page }) => {
+    await mockAuthenticatedApp(page, {
+      trial: false,
+      profileOverrides: { roles: ['SUPER_ADMIN'], tenantId: null, garageId: null },
+    });
+    // Enregistrée après le mock général : prioritaire pour cette route.
+    await page.route('**/api/admin/customer-notifications/health', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          generatedAt: '2026-10-15T10:00:00.000Z',
+          status: 'critical',
+          alerts: [
+            { level: 'critical', code: 'QUEUE_UNAVAILABLE', message: 'File Redis injoignable : les notifications restent en attente.' },
+            { level: 'warning', code: 'QUOTA_NEAR_LIMIT', message: '1 garage(s) à 80 % ou plus du plafond mensuel.' },
+          ],
+          config: { mode: 'sandbox', whatsappProvider: 'simulator', providerSimulated: true, monthlyCap: 300, sandboxRecipientCount: 2 },
+          templates: [
+            { eventType: 'VEHICLE_READY', name: 'am_vehicle_ready_v1', language: 'fr', approved: true, defaultEnabled: true },
+            { eventType: 'APPOINTMENT_REMINDER', name: 'am_appointment_reminder_v1', language: 'fr', approved: false, defaultEnabled: true },
+          ],
+          queue: { available: false },
+          outbox: {
+            windowHours: 24,
+            byStatus: { SIMULATED: 4, SKIPPED: 2 },
+            skippedByReason: [{ reason: 'NO_CONSENT', count: 2 }],
+            failedByCode: [],
+            backlog: 0,
+            oldestPendingAt: null,
+          },
+          quota: { monthStart: '2026-09-30T23:00:00.000Z', cap: 300, garages: [{ garageId: 'g1', garageName: 'Garage Central', used: 250, ratio: 0.83 }] },
+        }),
+      }),
+    );
+
+    await page.goto('/admin/notifications');
+
+    const status = page.getByTestId('health-status');
+    await expect(status).toContainText('Critique');
+    await expect(status).toContainText('File Redis injoignable');
+    await expect(page.getByText(/File injoignable : les notifications restent en base/)).toBeVisible();
+    await expect(page.getByText('Sandbox (numéros de test seulement)')).toBeVisible();
+    await expect(page.getByText('Pas de consentement WhatsApp')).toBeVisible(); // raison traduite, pas NO_CONSENT
+    await expect(page.getByText('Non approuvé', { exact: true })).toBeVisible();
+    await expect(page.getByText('250 / 300')).toBeVisible();
+  });
+
   test('le login parle d’identifiant employé et non de code employé', async ({ page }) => {
     await page.goto('/login');
     await expect(page.getByText('Email ou identifiant employé', { exact: true })).toBeVisible();

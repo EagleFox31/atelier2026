@@ -60,7 +60,8 @@ C'est le workflow central du système. **Entièrement implémenté côté backen
 |-------------|-------------|-----|
 | UPDATE status sur `service_orders` | INSERT dans `ot_status_history` | Trigger SQL `trg_ot_status_history` |
 | `quote_lines.partStatus` → CONSUMED | Mouvement stock OUT + màj `qty_in_stock` | Trigger SQL `trg_stock_consumption` |
-| Facture impayée J+7 | SMS de relance | `SchedulerService` (cron 7h WAT) |
+| Facture impayée (J+7, J+15 par défaut) | Relance WhatsApp | `ReminderSchedulerService` (cron 8 h, Douala) |
+| RDV dans les 24 h | Rappel WhatsApp | `ReminderSchedulerService` (cron horaire, 7 h-21 h) |
 
 ### Ce qui est **manuel** aujourd'hui
 | Étape | Qui le fait | Via |
@@ -179,7 +180,7 @@ Rendez-vous (COMPLETED) ← automatique via transaction
 
 ### Ce qui **pourrait être automatisé**
 - ✨ Bouton "Créer un OT depuis ce RDV" (frontend) → pré-remplir formulaire avec customer + vehicle + reason + appointmentId
-- ✨ SMS de rappel J-1 avant le RDV (SchedulerService + BullMQ) — non implémenté
+- ✅ Rappel WhatsApp 24 h avant le RDV (`ReminderSchedulerService`, voir `docs/architecture/notifications-client.md`)
 
 ---
 
@@ -201,15 +202,13 @@ mockSmsGateway() [simulation 500ms]
 SMSNotification INSERT en base (status: SENT)
 ```
 
-### Notifications **existantes mais non déclenchées automatiquement**
-| Événement | SMS prévu | État |
-|-----------|-----------|------|
-| Facture impayée J+7 | ✅ SchedulerService | Actif (cron) |
-| Véhicule prêt | ✅ WorkshopService (BullMQ) | Actif (OT → READY) |
-| Rappel RDV J-1 | ❌ | Non implémenté |
-| Alerte stock critique | ⚠️ Queue alimentée | Consumer SMS absent |
-| Devis envoyé | ❌ | Non implémenté |
-| Confirmation RDV | ❌ | Non implémenté |
+Le SMS ne sert plus qu'aux envois manuels (`/notifications/sms/*`). Les notifications client automatiques passent par WhatsApp : voir `docs/architecture/notifications-client.md` (outbox `customer_notifications`, file `customer-notifications`).
+
+| Événement | Canal | Où |
+|-----------|-------|----|
+| RDV confirmé, véhicule pris en charge, devis à valider, véhicule prêt, facture disponible, paiement reçu | WhatsApp | `PlanningService`, `WorkshopService`, `BillingService` → `CustomerNotificationEmitter` |
+| Rappel RDV, relance de facture | WhatsApp | `ReminderSchedulerService` |
+| Alerte stock critique | in-app | worker `stock-alerts` |
 
 ---
 
@@ -241,8 +240,8 @@ VehicleImmobilization créée (MANUEL)
 | # | Automatisation | Déclencheur | Action | Effort |
 |---|----------------|-------------|--------|--------|
 | 1 | **OT → INVOICED auto** | `Invoice.status` = PAID | `PATCH /workshop/ot/:id/status` → INVOICED | 1h |
-| 2 | **SMS "véhicule prêt"** | OT → READY | BullMQ → SMS client | 2h |
-| 3 | **SMS rappel RDV J-1** | Cron minuit | Pour tous RDV du lendemain | 2h |
+| 2 | ~~« Véhicule prêt »~~ ✅ WhatsApp | OT → READY | outbox → WhatsApp | — |
+| 3 | ~~Rappel RDV~~ ✅ WhatsApp | Cron horaire | RDV dans les 24 h | — |
 | 4 | **Bouton "OT depuis RDV"** | Frontend planning | Pré-remplir formulaire OT | 3h |
 
 ### 🟠 Impact moyen, effort moyen
@@ -251,8 +250,8 @@ VehicleImmobilization créée (MANUEL)
 |---|----------------|-------------|--------|--------|
 | 5 | **SMS alerte stock** | BullMQ `stock-alerts` | SMS chef + ADMIN | 3h |
 | 6 | **Réservation pièces auto** | OT → QUOTE_APPROVED | partStatus → STOCK_RESERVED | 4h |
-| 7 | **SMS devis envoyé** | Quote → SENT | SMS client + montant | 2h |
-| 8 | **Relance J+15 facture** | Cron (manquant) | SMS client + audit | 1h |
+| 7 | ~~Devis envoyé~~ ✅ WhatsApp + lien public | Quote → SENT | validation en ligne | — |
+| 8 | ~~Relance J+15 facture~~ ✅ WhatsApp | Cron 8 h | J+7, J+15 par garage | — |
 
 ### 🟡 Impact long terme
 
@@ -275,14 +274,6 @@ VehicleImmobilization créée (MANUEL)
 
 > `WorkshopService.updateStatus()` émet `VEHICLE_READY` vers l'outbox des notifications client dès que `targetStatus === READY` (WhatsApp seul, voir `docs/architecture/notifications-client.md`).
 
-### Automatisation #3 : Rappel RDV J-1
+### ~~Automatisation #3 : Rappel RDV~~ ✅ Implémenté (WhatsApp)
 
-```typescript
-// src/workers/scheduler.service.ts — nouveau cron
-@Cron('0 20 * * *') // 21h WAT chaque soir
-async sendAppointmentReminders() {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  // ... chercher tous RDV du lendemain et envoyer SMS
-}
-```
+> `ReminderSchedulerService` (cron horaire, fuseau Africa/Douala) émet `APPOINTMENT_REMINDER` pour les RDV dans ]+2 h, +24 h], voir `docs/architecture/notifications-client.md`.

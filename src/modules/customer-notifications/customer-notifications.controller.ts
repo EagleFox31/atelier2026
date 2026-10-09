@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Patch, Put, Query } from '@nestjs/common'
 import { CurrentUser, RequirePermission, RequireRole } from '../../decorators/auth.decorator';
 import { CustomerConsentService } from './customer-consent.service';
 import { CustomerNotificationHistoryService } from './customer-notification-history.service';
+import { CustomerNotificationsHealthService } from './customer-notifications-health.service';
 import {
   ConsentChannelParamDto,
   CustomerParamDto,
@@ -56,5 +57,17 @@ export class NotificationSettingsController {
   @RequireRole('ADMIN', 'SUPER_ADMIN')
   update(@CurrentUser() user: any, @Body() body: UpdateNotificationSettingsDto) {
     return this.preferences.update(user?.garageId, body.settings, user?.id);
+  }
+}
+
+/** Supervision plateforme : configuration, file, outbox et plafonds (lecture seule). */
+@Controller('admin/customer-notifications')
+@RequireRole('SUPER_ADMIN')
+export class CustomerNotificationsAdminController {
+  constructor(private readonly health: CustomerNotificationsHealthService) {}
+
+  @Get('health')
+  getHealth() {
+    return this.health.getHealth();
   }
 }

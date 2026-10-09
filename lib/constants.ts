@@ -14,6 +14,7 @@ import {
   Presentation,
   Building2,
   CircleHelp,
+  Activity,
   type LucideIcon,
 } from "lucide-react";
 
@@ -133,6 +134,12 @@ export const NAV_ITEMS: NavItem[] = [
     title: "Demandes démo",
     href: "/demo-requests",
     icon: Presentation,
+    roles: ["SUPER_ADMIN"],
+  },
+  {
+    title: "Notifications client",
+    href: "/admin/notifications",
+    icon: Activity,
     roles: ["SUPER_ADMIN"],
   },
   {

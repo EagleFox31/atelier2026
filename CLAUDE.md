@@ -105,7 +105,9 @@ Règles prod :
 | `APP_PUBLIC_URL` | URL publique pour les liens et le logo des e-mails (sinon `https://APP_DOMAIN`) |
 | `RATE_LIMIT_ENABLED` | `false` désactive la limitation de débit (tests locaux / Postman uniquement — jamais en prod) |
 | `TEAM_INVITE_EMAIL_FROM` | Expéditeur des invitations d'équipe (facultatif, défaut `SIGNUP_EMAIL_FROM`) |
-| `WHATSAPP_TEST_RECIPIENTS` | Numéros E.164 (virgules) autorisés pour l'envoi WhatsApp de contrôle ; vide = envoi de test refusé |
+| `WHATSAPP_TEST_RECIPIENTS` | Numéros E.164 (virgules) autorisés pour l'envoi WhatsApp de contrôle et le mode `sandbox` ; vide = envoi de test refusé |
+| `CUSTOMER_NOTIFICATIONS_MODE` | Notifications client WhatsApp : `off` (défaut) / `sandbox` / `live` ; valeur inconnue = l'API refuse de démarrer |
+| `WHATSAPP_APPROVED_TEMPLATES` / `CUSTOMER_NOTIFICATIONS_MONTHLY_CAP` | Modèles Meta approuvés (`nom:langue`, virgules) / plafond mensuel par garage (défaut 300, obligatoire en `live`) |
 
 ---
 
@@ -118,10 +120,11 @@ Règles prod :
 | CustomersModule | `/customers/*` | CRUD + soft delete |
 | VehiclesModule | `/vehicles/*` | CRUD + soft delete + `/makes` + `/models` |
 | StockModule | `/stock/*` | BullMQ alertes stock |
-| BillingModule | `/billing/*` | TVA 19.25%, timbre, idempotence paiements |
+| BillingModule | `/billing/*`, `/public/quotes/:token` | TVA 19.25%, timbre, idempotence paiements ; lien public de devis (jeton haché, consulter / valider / refuser) |
 | TeamModule | `/team/*`, `/public/invitations/:token` | Utilisateurs/techniciens ; invitations par e-mail (jeton haché SHA-256, 72 h, usage unique) — `POST /team/:id/invite` (ADMIN) |
 | PlanningModule | `/planning/appointments/*` | Hard delete (pas de deletedAt) |
 | NotificationsModule | `/notifications/sms/*`, `/notifications/whatsapp/test` | Mise en file SMS (`sms-notifications`) — envoi par `SmsProcessor` ; envoi WhatsApp de contrôle d'un modèle (SUPER_ADMIN, `WHATSAPP_TEST_RECIPIENTS`) |
+| CustomerNotificationsModule | `/customers/:id/notification-consents`, `/customers/:id/notifications`, `/settings/notifications`, `/admin/customer-notifications/health` | Notifications client WhatsApp : outbox `customer_notifications` + file `customer-notifications` + balayeur, rappels RDV / relances facture (cron), consentement, supervision SUPER_ADMIN. Services métier : `CustomerNotificationEmitter` seul. Voir `docs/architecture/notifications-client.md` |
 | MessagingModule | — | Jetons `SMS_PROVIDER` / `WHATSAPP_PROVIDER` choisis par env ; erreurs définitives vs temporaires ; E.164 +237. Aucun module métier n'importe un fournisseur |
 | ReportsModule | `/reports/*` | Revenus + performance + `/reports/dashboard-stats` (dashboard) |
 | CounterSalesModule | `/counter-sales` | Vente comptoir (pièces sans OT) |
@@ -130,7 +133,7 @@ Règles prod :
 | MarketingModule | `/public/demo-booking`, `/demo-requests/*` | Leads démo (avec forfait demandé) → notif SUPER_ADMIN |
 | SignupModule | `/public/signup` | Inscription libre-service : crée Tenant + Garage + ADMIN, démarre le pilote |
 | SubscriptionModule | `/subscription/status` | Cycle pilote (voir ci-dessous) + cron horaire de réconciliation |
-| AdminModule | `/admin/tenants/*` | Console plateforme SUPER_ADMIN |
+| AdminModule | `/admin/tenants/*` | Console plateforme SUPER_ADMIN (supervision des notifications : `/admin/notifications`, servie par CustomerNotificationsModule) |
 | SharedModule (@Global) | `/audit/*` | PrismaService + AuditService globaux |
 
 Guards globaux (ordre) : `ClientIpThrottlerGuard` → `JwtAuthGuard` → `SubscriptionGuard` → `PermissionsGuard`. Limites de débit : `src/shared/security/rate-limits.ts` (`@Throttle(RATE_LIMITS.x)` ; `@SkipThrottle()` pour sondes et webhooks) — 429 `RATE_LIMITED`. Routes publiques via `@Public()`.
@@ -300,6 +303,7 @@ Référence : `main` à `8320b97` (merge de #44), déployé sur AWS le 2026-10-0
 - Limitation de débit sur l'API, dont le login (429 `RATE_LIMITED`, LESSON-2026-009) (#43)
 
 ### Travail en cours
+- Notifications client WhatsApp, lot 2 terminé (#68 à #75 + supervision) : en prod, `CUSTOMER_NOTIFICATIONS_MODE=off` jusqu'à l'approbation des modèles Meta ; passage en service → `docs/architecture/notifications-client.md` § Exploitation. Lot 3 : webhooks Meta, statuts de remise, « STOP »
 - Issues ouvertes : passerelles SMS réelles Techsoft (#19) et SmsPro / Sender ID (#20), modèles + consentement + historique de remise (#21), bot WhatsApp (#22), quotas SMS/WhatsApp par garage (#23), activation Pro + NotchPay (#7), URLs avec slug tenant/garage (#12, #16), campagne de régression Playwright (#17)
 - Plan de correction → [docs/PLAN-CORRECTIONS-2026-09.md](docs/PLAN-CORRECTIONS-2026-09.md) (lot 3b SSE multi-instance différé, lot 5 point 3 fenêtre de déploiement à faire)
 
@@ -308,7 +312,8 @@ Référence : `main` à `8320b97` (merge de #44), déployé sur AWS le 2026-10-0
 - **SMS** : Pro et Business `ACTIVE` uniquement (conforme à la page tarifs) — ni Essentiel, ni pilote
 - **Suspension** : suspendre un tenant ne touche pas au statut des utilisateurs. Un utilisateur suspendu par son ADMIN le reste quand le tenant est réactivé
 - **Invitations** : un membre avec e-mail reçoit un lien d'activation à usage unique (72 h) et choisit son mot de passe ; sans e-mail, repli sur le mot de passe temporaire affiché une seule fois (2026-10-02)
-- **Relances SMS** : un envoi en échec temporaire chez le fournisseur fait 3 tentatives au maximum (backoff exponentiel, `smsJobOptions`) — SMS manuels, « véhicule prêt », rappels de RDV et de factures ; un refus définitif n'est jamais relancé (2026-10-02)
+- **Relances d'envoi** : un envoi en échec temporaire chez le fournisseur fait 3 tentatives au maximum (backoff exponentiel, `messagingJobOptions`) — SMS manuels et notifications client WhatsApp ; un refus définitif n'est jamais relancé (2026-10-02)
+- **Notifications client** : « véhicule prêt », rappels de RDV et relances de facture partent en **WhatsApp seul** (plus de SMS) ; consentement recueilli par le personnel, plafond 300 / mois / garage, droit `whatsapp` = Pro/Business `ACTIVE` (2026-10-09)
 - **Opérateurs** : seuls les préfixes vérifiés auprès de l'ART (et sources citées dans `src/modules/messaging/shared/phone.ts`) sont attribués à un opérateur ; tout le reste vaut `UNKNOWN` (2026-10-02)
 
 ### Historique
