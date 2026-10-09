@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.14.0](https://github.com/EagleFox31/atelier2026/compare/v1.13.0...v1.14.0) (2026-10-09)
+
+
+### Features
+
+* **messaging:** add Unimatrix SMS provider ([1827633](https://github.com/EagleFox31/atelier2026/commit/18276334dc11d97289946a96d1febbe29af9a842))
+* **messaging:** add Unimatrix SMS provider ([bcff4de](https://github.com/EagleFox31/atelier2026/commit/bcff4de542c0a166b94e03dd9380b72a84738fdf))
+* **notifications:** add a platform-only WhatsApp template test send ([ead65c8](https://github.com/EagleFox31/atelier2026/commit/ead65c8a6e9a1b23b8bc63481f2e5fb805551ad7))
+* **notifications:** add a platform-only WhatsApp template test send ([8b23e8f](https://github.com/EagleFox31/atelier2026/commit/8b23e8fee8d8ffe778a6407f80add24a919ccdad))
+
+
+### Bug Fixes
+
+* **auth:** stop the ADMIN bypass from opening SUPER_ADMIN routes ([317dcc8](https://github.com/EagleFox31/atelier2026/commit/317dcc88cbed17db5820ec7156b84f248012159d))
+* **auth:** stop the ADMIN bypass from opening SUPER_ADMIN routes ([e207967](https://github.com/EagleFox31/atelier2026/commit/e2079672943504ab33df5b3d9cc3a43577dcda63))
+* **messaging:** map Unimtx signature errors 107120-107123 to SENDER_REJECTED ([c8526ee](https://github.com/EagleFox31/atelier2026/commit/c8526ee41a300874ac3045fbf64e147fcc7a4d4c))
+* **messaging:** map Unimtx signature errors to SENDER_REJECTED ([71b279b](https://github.com/EagleFox31/atelier2026/commit/71b279bfda6156eec0e5e263280e308caef18f89))
+* **notifications:** keep the Meta message id out of WhatsApp test logs ([0f50673](https://github.com/EagleFox31/atelier2026/commit/0f506732d2581115b6fe2d5dcd589a0434f8b40b))
+* **subscription:** diagnose rejected NotchPay webhook signatures ([bf0d276](https://github.com/EagleFox31/atelier2026/commit/bf0d2762aed4e3303ac52b17bb8726195a804f04))
+* **subscription:** log a secret-free diagnostic when a NotchPay webhook signature is rejected ([0b01a3f](https://github.com/EagleFox31/atelier2026/commit/0b01a3f15244ed9b3c33ca00f6b0dfa96d7ad0ed))
+
 ## [1.13.0](https://github.com/EagleFox31/atelier2026/compare/v1.12.0...v1.13.0) (2026-10-08)
 
 
