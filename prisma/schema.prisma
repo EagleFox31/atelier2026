@@ -1253,6 +1253,8 @@ model WhatsAppWebhookEvent {
   status            CustomerNotificationStatus?
   occurredAt        DateTime                     @map("occurred_at") @db.Timestamptz
   errorCode         String?                      @map("error_code")
+  /// Expéditeur d'un « STOP » (E.164), effacé dès le traitement de l'événement.
+  senderE164        String?                      @map("sender_e164")
   dedupKey          String                       @unique @map("dedup_key")
   notificationId    String?                      @map("notification_id") @db.Uuid
   outcome           WhatsAppWebhookEventOutcome?

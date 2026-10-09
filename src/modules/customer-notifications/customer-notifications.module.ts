@@ -18,6 +18,7 @@ import { CUSTOMER_NOTIFICATIONS_QUEUE } from './customer-notifications.queue';
 import { NotificationPreferencesService } from './notification-preferences.service';
 import { NotificationStalenessService } from './notification-staleness.service';
 import { ReminderSchedulerService } from './reminder-scheduler.service';
+import { WhatsAppOptOutService } from './whatsapp-opt-out.service';
 import { WhatsAppSenderResolver } from './whatsapp-sender.resolver';
 import { WhatsAppStatusService } from './whatsapp-status.service';
 import { WhatsAppWebhookController } from './whatsapp-webhook.controller';
@@ -54,6 +55,7 @@ import { WhatsAppWebhookSweeper } from './whatsapp-webhook.sweeper';
     NotificationPreferencesService,
     NotificationStalenessService,
     ReminderSchedulerService,
+    WhatsAppOptOutService,
     WhatsAppSenderResolver,
     WhatsAppStatusService,
     WhatsAppWebhookEventProcessor,

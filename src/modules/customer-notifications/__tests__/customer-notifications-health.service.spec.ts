@@ -1,4 +1,4 @@
-import { CustomerNotificationsHealthService, OUTBOX_BACKLOG_MS } from '../customer-notifications-health.service';
+import { CustomerNotificationsHealthService, OUTBOX_BACKLOG_MS, WEBHOOK_STUCK_MS } from '../customer-notifications-health.service';
 import { loadCustomerNotificationsConfig } from '../customer-notifications.config';
 
 const NOW = new Date('2026-10-15T10:00:00.000Z');
@@ -14,6 +14,10 @@ function makeService(
     failed?: GroupRow[];
     backlog?: number;
     usage?: GroupRow[];
+    provider?: string;
+    webhookEnabled?: boolean;
+    acceptedWithoutReceipt?: number;
+    events?: { pending?: number; stuck?: number; unmatched?: number; optOuts?: number; lastAt?: Date };
   } = {},
 ) {
   const groupBy = jest.fn().mockImplementation(({ by }: { by: string[] }) => {
@@ -25,10 +29,22 @@ function makeService(
   const prisma = {
     customerNotification: {
       groupBy,
-      count: jest.fn().mockResolvedValue(options.backlog ?? 0),
+      count: jest.fn().mockImplementation(({ where }: { where: { status: string } }) =>
+        Promise.resolve(where.status === 'ACCEPTED' ? options.acceptedWithoutReceipt ?? 0 : options.backlog ?? 0),
+      ),
       findFirst: jest.fn().mockResolvedValue(null),
       update: jest.fn(),
       updateMany: jest.fn(),
+    },
+    whatsAppWebhookEvent: {
+      count: jest.fn().mockImplementation(({ where }: { where: Record<string, unknown> }) => {
+        const events = options.events ?? {};
+        if (where.outcome === 'UNMATCHED') return Promise.resolve(events.unmatched ?? 0);
+        if (where.kind === 'INBOUND') return Promise.resolve(events.optOuts ?? 0);
+        if (where.receivedAt) return Promise.resolve(events.stuck ?? 0);
+        return Promise.resolve(events.pending ?? 0);
+      }),
+      findFirst: jest.fn().mockResolvedValue(options.events?.lastAt ? { receivedAt: options.events.lastAt } : null),
     },
     garage: {
       findMany: jest.fn().mockResolvedValue([{ id: 'g1', name: 'Garage Central' }]),
@@ -42,8 +58,15 @@ function makeService(
     }),
   };
   const config = loadCustomerNotificationsConfig(options.env ?? {});
-  const whatsapp = { name: 'simulator', simulated: true };
-  const service = new CustomerNotificationsHealthService(prisma as never, queue as never, config, whatsapp as never);
+  const whatsapp = { name: options.provider ?? 'simulator', simulated: !options.provider };
+  const webhookConfig = { enabled: options.webhookEnabled ?? false };
+  const service = new CustomerNotificationsHealthService(
+    prisma as never,
+    queue as never,
+    config,
+    whatsapp as never,
+    webhookConfig as never,
+  );
   return { service, prisma, queue };
 }
 
@@ -70,6 +93,67 @@ describe('CustomerNotificationsHealthService', () => {
     });
     expect(health.queue).toEqual({ available: true, waiting: 2, active: 1, delayed: 0, failed: 3 });
     expect(health.templates).toHaveLength(8);
+    expect(health.webhook).toEqual({
+      configured: false,
+      receiptTimeoutMinutes: 30,
+      acceptedWithoutReceipt: 0,
+      pendingEvents: 0,
+      stuckEvents: 0,
+      unmatchedEvents: 0,
+      optOuts: 0,
+      lastEventAt: null,
+    });
+  });
+
+  it('messages acceptés sans accusé : alerte, sans renvoi ni écriture, même en mode off', async () => {
+    const { service, prisma } = makeService({ acceptedWithoutReceipt: 2 });
+    const health = await service.getHealth(NOW);
+
+    expect(health.status).toBe('warning');
+    expect(health.alerts.map((a) => a.code)).toEqual(['ACCEPTED_WITHOUT_RECEIPT']);
+    const call = prisma.customerNotification.count.mock.calls.find(([args]) => args.where.status === 'ACCEPTED')[0];
+    expect(call.where).toEqual({
+      status: 'ACCEPTED',
+      provider: 'whatsapp-cloud',
+      acceptedAt: { lt: new Date(NOW.getTime() - 30 * 60_000) },
+    });
+    expect(prisma.customerNotification.update).not.toHaveBeenCalled();
+    expect(prisma.customerNotification.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('accusés Meta bloqués : alerte critique ; compteurs du webhook exposés', async () => {
+    const lastAt = new Date('2026-10-15T09:58:00.000Z');
+    const { service, prisma } = makeService({
+      webhookEnabled: true,
+      events: { pending: 5, stuck: 1, unmatched: 3, optOuts: 2, lastAt },
+    });
+    const health = await service.getHealth(NOW);
+
+    expect(health.status).toBe('critical');
+    expect(health.alerts.map((a) => a.code)).toEqual(['WEBHOOK_EVENTS_STUCK']);
+    expect(health.webhook).toMatchObject({
+      configured: true,
+      pendingEvents: 5,
+      stuckEvents: 1,
+      unmatchedEvents: 3,
+      optOuts: 2,
+      lastEventAt: lastAt.toISOString(),
+    });
+    const stuck = prisma.whatsAppWebhookEvent.count.mock.calls.find(
+      ([args]) => args.where.processedAt === null && args.where.receivedAt,
+    )[0];
+    expect(stuck.where.receivedAt).toEqual({ lt: new Date(NOW.getTime() - WEBHOOK_STUCK_MS) });
+  });
+
+  it('fournisseur Cloud actif sans webhook configuré : alerte (hors mode off)', async () => {
+    const live = makeService({ env: LIVE_ENV, provider: 'whatsapp-cloud' });
+    expect((await live.service.getHealth(NOW)).alerts.map((a) => a.code)).toContain('WEBHOOK_NOT_CONFIGURED');
+
+    const configured = makeService({ env: LIVE_ENV, provider: 'whatsapp-cloud', webhookEnabled: true });
+    expect((await configured.service.getHealth(NOW)).alerts.map((a) => a.code)).not.toContain('WEBHOOK_NOT_CONFIGURED');
+
+    const off = makeService({ provider: 'whatsapp-cloud' });
+    expect((await off.service.getHealth(NOW)).alerts).toEqual([]);
   });
 
   it("n'écrit jamais en base", async () => {
@@ -115,7 +199,7 @@ describe('CustomerNotificationsHealthService', () => {
 
     expect(health.status).toBe('critical');
     expect(health.alerts.map((a) => a.code)).toEqual(['OUTBOX_BACKLOG']);
-    const where = prisma.customerNotification.count.mock.calls[0][0].where;
+    const where = prisma.customerNotification.count.mock.calls.find(([args]) => args.where.status === 'PENDING')[0].where;
     expect(where).toEqual({ status: 'PENDING', createdAt: { lt: new Date(NOW.getTime() - OUTBOX_BACKLOG_MS) } });
   });
 

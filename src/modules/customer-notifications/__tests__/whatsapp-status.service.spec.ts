@@ -1,5 +1,5 @@
 import type { WhatsAppProvider } from '../../messaging';
-import { toEventRows } from '../whatsapp-webhook.service';
+import { toEventRows, toOptOutRows } from '../whatsapp-webhook.service';
 import { WhatsAppSenderResolver, PLATFORM_SENDER_REF } from '../whatsapp-sender.resolver';
 import {
   CORRELATION_WINDOW_MS,
@@ -97,7 +97,8 @@ function notification(overrides: Partial<Row> = {}): Row {
 function setup(notifications: Row[], platform: Partial<WhatsAppProvider> = { name: 'whatsapp-cloud', accountRef: PLATFORM_PHONE_ID }) {
   const prisma = { customerNotification: table(notifications), whatsAppWebhookEvent: table([]) };
   const senders = new WhatsAppSenderResolver(platform as WhatsAppProvider);
-  const service = new WhatsAppStatusService(prisma as never, senders);
+  const optOuts = { handle: jest.fn().mockResolvedValue('APPLIED') };
+  const service = new WhatsAppStatusService(prisma as never, senders, optOuts as never);
   let seq = 0;
 
   /** Persiste un accusé comme le webhook (dédoublonnage compris) et renvoie son id. */
@@ -118,10 +119,53 @@ function setup(notifications: Row[], platform: Partial<WhatsAppProvider> = { nam
     return id;
   }
 
-  return { prisma, service, receive, row: (id = 'n1') => notifications.find((n) => n.id === id)! };
+  /** Persiste un « STOP » entrant comme le webhook. */
+  function receiveStop(wamid = 'wamid.IN') {
+    const [row] = toOptOutRows([{ phoneNumberId: PLATFORM_PHONE_ID, messageId: wamid, fromE164: '+237690000001', occurredAt: T0 }]);
+    const id = `ev${++seq}`;
+    prisma.whatsAppWebhookEvent.rows.push({ ...row, id, attempts: 0, outcome: null, notificationId: null, processedAt: null, receivedAt: T0 } as Row);
+    return id;
+  }
+
+  return { prisma, service, optOuts, receive, receiveStop, row: (id = 'n1') => notifications.find((n) => n.id === id)! };
 }
 
 const SOON = at(5);
+
+describe('WhatsAppStatusService — « STOP » entrant', () => {
+  it('délégué au désabonnement, puis numéro de l’expéditeur effacé ; rejoué = aucun nouveau traitement', async () => {
+    const { prisma, service, optOuts, receiveStop } = setup([notification()]);
+    const seen: unknown[] = [];
+    optOuts.handle.mockImplementation(async (event: Row) => {
+      seen.push(event.senderE164);
+      return 'APPLIED';
+    });
+    const id = receiveStop();
+
+    expect(await service.apply(id, SOON)).toEqual({ outcome: 'APPLIED', notificationId: null });
+    expect(optOuts.handle).toHaveBeenCalledWith(expect.objectContaining({ id, kind: 'INBOUND' }));
+    expect(seen).toEqual(['+237690000001']);
+    expect(prisma.whatsAppWebhookEvent.rows[0]).toMatchObject({ outcome: 'APPLIED', processedAt: SOON, senderE164: null, attempts: 1 });
+
+    expect(await service.apply(id, SOON)).toEqual({ outcome: 'ALREADY_PROCESSED' });
+    expect(optOuts.handle).toHaveBeenCalledTimes(1);
+  });
+
+  it('échec du désabonnement : événement non traité (numéro gardé pour la relance)', async () => {
+    const { prisma, service, optOuts, receiveStop } = setup([]);
+    optOuts.handle.mockRejectedValueOnce(new Error('base indisponible'));
+    const id = receiveStop();
+
+    await expect(service.apply(id, SOON)).rejects.toThrow('base indisponible');
+    expect(prisma.whatsAppWebhookEvent.rows[0]).toMatchObject({ processedAt: null, senderE164: '+237690000001' });
+  });
+
+  it('un accusé de statut ne passe jamais par le désabonnement', async () => {
+    const { service, optOuts, receive } = setup([notification()]);
+    await service.apply(receive('sent'), SOON);
+    expect(optOuts.handle).not.toHaveBeenCalled();
+  });
+});
 
 describe('WhatsAppStatusService — progression normale', () => {
   it('sent → delivered → read : statut et horodatages Meta', async () => {
@@ -261,10 +305,10 @@ describe('WhatsAppStatusService — rattachement', () => {
     expect(row()).toMatchObject({ status: 'SIMULATED', readAt: null });
   });
 
-  it('événement non lié à un statut : IGNORED', async () => {
+  it('accusé sans statut exploitable : IGNORED', async () => {
     const { service, prisma } = setup([notification()]);
-    prisma.whatsAppWebhookEvent.rows.push({ id: 'in1', kind: 'INBOUND', status: null, processedAt: null, receivedAt: T0 } as Row);
-    expect(await service.apply('in1', SOON)).toEqual({ outcome: 'IGNORED', notificationId: null });
+    prisma.whatsAppWebhookEvent.rows.push({ id: 'st1', kind: 'STATUS', status: null, processedAt: null, receivedAt: T0 } as Row);
+    expect(await service.apply('st1', SOON)).toEqual({ outcome: 'IGNORED', notificationId: null });
   });
 });
 

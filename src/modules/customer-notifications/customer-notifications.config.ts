@@ -14,11 +14,14 @@ export type CustomerNotificationsConfig = {
   approvedTemplates: ReadonlySet<string>;
   /** Plafond mensuel de messages par garage. */
   monthlyCap: number;
+  /** Délai après lequel un message ACCEPTED sans accusé Meta est signalé (jamais renvoyé). */
+  receiptTimeoutMinutes: number;
 };
 
 export const CUSTOMER_NOTIFICATIONS_CONFIG = Symbol('CUSTOMER_NOTIFICATIONS_CONFIG');
 
 export const DEFAULT_MONTHLY_CAP = 300;
+export const DEFAULT_RECEIPT_TIMEOUT_MINUTES = 30;
 const MODES: readonly CustomerNotificationsMode[] = ['off', 'sandbox', 'live'];
 
 export class CustomerNotificationsConfigurationError extends Error {
@@ -72,6 +75,14 @@ export function loadCustomerNotificationsConfig(
     );
   }
 
+  const rawTimeout = env.CUSTOMER_NOTIFICATIONS_RECEIPT_TIMEOUT_MINUTES?.trim();
+  const receiptTimeoutMinutes = rawTimeout ? Number(rawTimeout) : DEFAULT_RECEIPT_TIMEOUT_MINUTES;
+  if (!Number.isInteger(receiptTimeoutMinutes) || receiptTimeoutMinutes < 5 || receiptTimeoutMinutes > 10_080) {
+    throw new CustomerNotificationsConfigurationError(
+      `CUSTOMER_NOTIFICATIONS_RECEIPT_TIMEOUT_MINUTES="${rawTimeout}" invalide (entier de 5 à 10080 attendu).`,
+    );
+  }
+
   const testRecipients = new Set<string>();
   for (const raw of parseList(env.WHATSAPP_TEST_RECIPIENTS)) {
     const e164 = toE164(raw);
@@ -97,5 +108,5 @@ export function loadCustomerNotificationsConfig(
     }
   }
 
-  return { mode, testRecipients, approvedTemplates, monthlyCap };
+  return { mode, testRecipients, approvedTemplates, monthlyCap, receiptTimeoutMinutes };
 }

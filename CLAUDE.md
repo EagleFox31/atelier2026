@@ -107,6 +107,7 @@ Règles prod :
 | `TEAM_INVITE_EMAIL_FROM` | Expéditeur des invitations d'équipe (facultatif, défaut `SIGNUP_EMAIL_FROM`) |
 | `WHATSAPP_TEST_RECIPIENTS` | Numéros E.164 (virgules) autorisés pour l'envoi WhatsApp de contrôle et le mode `sandbox` ; vide = envoi de test refusé |
 | `CUSTOMER_NOTIFICATIONS_MODE` | Notifications client WhatsApp : `off` (défaut) / `sandbox` / `live` ; valeur inconnue = l'API refuse de démarrer |
+| `CUSTOMER_NOTIFICATIONS_RECEIPT_TIMEOUT_MINUTES` | Délai avant l'alerte `ACCEPTED_WITHOUT_RECEIPT` (défaut 30, 5 à 10080) ; valeur invalide = l'API refuse de démarrer |
 | `WHATSAPP_APPROVED_TEMPLATES` / `CUSTOMER_NOTIFICATIONS_MONTHLY_CAP` | Modèles Meta approuvés (`nom:langue`, virgules) / plafond mensuel par garage (défaut 300, obligatoire en `live`) |
 | `WHATSAPP_WEBHOOK_VERIFY_TOKEN` / `WHATSAPP_APP_SECRET` | Webhook Meta `GET\|POST /api/webhooks/whatsapp` : jeton du challenge (aléatoire, à nous) / secret d'application Meta (signature `X-Hub-Signature-256`) ; les deux ou aucun (aucun = route 404) ; ≠ `WHATSAPP_ACCESS_TOKEN` |
 
@@ -125,7 +126,7 @@ Règles prod :
 | TeamModule | `/team/*`, `/public/invitations/:token` | Utilisateurs/techniciens ; invitations par e-mail (jeton haché SHA-256, 72 h, usage unique) — `POST /team/:id/invite` (ADMIN) |
 | PlanningModule | `/planning/appointments/*` | Hard delete (pas de deletedAt) |
 | NotificationsModule | `/notifications/sms/*`, `/notifications/whatsapp/test` | Mise en file SMS (`sms-notifications`) — envoi par `SmsProcessor` ; envoi WhatsApp de contrôle d'un modèle (SUPER_ADMIN, `WHATSAPP_TEST_RECIPIENTS`) |
-| CustomerNotificationsModule | `/customers/:id/notification-consents`, `/customers/:id/notifications`, `/settings/notifications`, `/admin/customer-notifications/health` | Notifications client WhatsApp : outbox `customer_notifications` + file `customer-notifications` + balayeur, rappels RDV / relances facture (cron), consentement, supervision SUPER_ADMIN. Services métier : `CustomerNotificationEmitter` seul. Voir `docs/architecture/notifications-client.md` |
+| CustomerNotificationsModule | `/customers/:id/notification-consents`, `/customers/:id/notifications`, `/settings/notifications`, `/admin/customer-notifications/health`, `/webhooks/whatsapp` | Notifications client WhatsApp : outbox `customer_notifications` + file `customer-notifications` + balayeur, rappels RDV / relances facture (cron), consentement, supervision SUPER_ADMIN. Webhook Meta signé : accusés persistés (`whatsapp_webhook_events`) puis appliqués de façon monotone (file `whatsapp-webhook-events` + balayeur), « STOP » = retrait du consentement, `ACCEPTED` sans accusé signalé jamais renvoyé. Services métier : `CustomerNotificationEmitter` seul. Voir `docs/architecture/notifications-client.md` |
 | MessagingModule | — | Jetons `SMS_PROVIDER` / `WHATSAPP_PROVIDER` choisis par env ; erreurs définitives vs temporaires ; E.164 +237. Aucun module métier n'importe un fournisseur |
 | ReportsModule | `/reports/*` | Revenus + performance + `/reports/dashboard-stats` (dashboard) |
 | CounterSalesModule | `/counter-sales` | Vente comptoir (pièces sans OT) |
@@ -304,7 +305,7 @@ Référence : `main` à `8320b97` (merge de #44), déployé sur AWS le 2026-10-0
 - Limitation de débit sur l'API, dont le login (429 `RATE_LIMITED`, LESSON-2026-009) (#43)
 
 ### Travail en cours
-- Notifications client WhatsApp, lot 2 terminé (#68 à #75 + supervision) : en prod, `CUSTOMER_NOTIFICATIONS_MODE=off` jusqu'à l'approbation des modèles Meta ; passage en service → `docs/architecture/notifications-client.md` § Exploitation. Lot 3 : webhooks Meta, statuts de remise, « STOP »
+- Notifications client WhatsApp, lot 2 terminé (#68 à #75 + supervision) : en prod, `CUSTOMER_NOTIFICATIONS_MODE=off` jusqu'à l'approbation des modèles Meta ; passage en service → `docs/architecture/notifications-client.md` § Exploitation. Lot 3 (webhook Meta, statuts de remise, réconciliation, « STOP ») : PR empilées, en attente de la recette Meta (`docs/architecture/notifications-client.md` § Recette Meta)
 - Issues ouvertes : passerelles SMS réelles Techsoft (#19) et SmsPro / Sender ID (#20), modèles + consentement + historique de remise (#21), bot WhatsApp (#22), quotas SMS/WhatsApp par garage (#23), activation Pro + NotchPay (#7), URLs avec slug tenant/garage (#12, #16), campagne de régression Playwright (#17)
 - Plan de correction → [docs/PLAN-CORRECTIONS-2026-09.md](docs/PLAN-CORRECTIONS-2026-09.md) (lot 3b SSE multi-instance différé, lot 5 point 3 fenêtre de déploiement à faire)
 
