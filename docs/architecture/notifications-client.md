@@ -1,6 +1,6 @@
 # Notifications client multicanal (WhatsApp d'abord)
 
-Statut : lot 2 en cours (2026-10-10). Lot 3 = webhooks Meta, statuts de remise, réconciliation.
+Statut : lot 2 terminé (2026-10-09). Lot 3 = webhooks Meta, statuts de remise, réconciliation.
 
 ## Règles produit
 
@@ -124,6 +124,49 @@ La première règle qui échoue donne `SKIPPED` avec sa raison :
 - Un devis déjà tranché reste consultable. Après un refus, l'OT reste en `QUOTE_PENDING` (l'atelier révise ou annule).
 - Écran : `app/devis/[token]/page.tsx` (page publique, sans compte).
 
+## Supervision (SUPER_ADMIN)
+
+`GET /admin/customer-notifications/health` (`CustomerNotificationsHealthService`), écran `/admin/notifications`. Lecture seule, sans donnée client : ni numéro (les numéros de test ne sont que comptés), ni variable, ni nom de client.
+
+| Bloc | Contenu |
+|---|---|
+| `config` | mode, fournisseur WhatsApp (et s'il est simulé), plafond, nombre de numéros de test |
+| `templates` | chaque modèle du catalogue en `fr`, approuvé ou non |
+| `queue` | compteurs BullMQ (attente, en cours, différés, échecs) ; Redis muet 2 s = `available: false`, jamais une 500 |
+| `outbox` | sur 24 h : nombre par statut, `SKIPPED` par raison, `FAILED` par code ; PENDING de plus de 5 min ; plus ancien PENDING |
+| `quota` | 10 garages les plus consommateurs depuis le 1er du mois (Douala), statuts facturables seulement |
+
+Alertes (`status` = pire niveau) :
+
+| Code | Niveau | Condition |
+|---|---|---|
+| `QUEUE_UNAVAILABLE` | critique | Redis injoignable |
+| `OUTBOX_BACKLOG` | critique | PENDING de plus de 5 min (le balayeur tourne chaque minute : la file ne consomme plus) |
+| `SANDBOX_NO_RECIPIENTS` | avertissement | mode `sandbox` sans `WHATSAPP_TEST_RECIPIENTS` |
+| `TEMPLATES_NOT_APPROVED` | avertissement | mode ≠ `off` et modèle actif par défaut absent de `WHATSAPP_APPROVED_TEMPLATES` |
+| `RECENT_FAILURES` | avertissement | au moins un `FAILED` sur 24 h |
+| `QUOTA_NEAR_LIMIT` | avertissement | garage à 80 % ou plus du plafond |
+
+En mode `off`, seules les alertes de file comptent (les autres sont attendues).
+
+## Exploitation
+
+Passage en service, une étape à la fois, en vérifiant `/admin/notifications` entre chaque :
+
+1. **`off`** (défaut) : les événements sont enregistrés en `SKIPPED` / `MODE_OFF`. Vérifier qu'aucune alerte de file n'apparaît.
+2. **`sandbox`** : `CUSTOMER_NOTIFICATIONS_MODE=sandbox`, `WHATSAPP_TEST_RECIPIENTS=<numéros de l'équipe>`, `WHATSAPP_PROVIDER=whatsapp-cloud` + secrets Meta, `WHATSAPP_APPROVED_TEMPLATES` = modèles approuvés dans le WhatsApp Manager. Sur le garage de test : consentement d'un numéro de l'équipe, puis un OT passé à « Prêt » → `ACCEPTED` attendu ; tout autre client → `SANDBOX_RECIPIENT_NOT_ALLOWED`.
+3. **`live`** : ajouter `CUSTOMER_NOTIFICATIONS_MONTHLY_CAP` (obligatoire), passer le mode à `live`. Surveiller `RECENT_FAILURES` et `QUOTA_NEAR_LIMIT` la première semaine.
+
+Les variables vivent dans SSM (`/atelier-maitre/prod/env`) ; une modification demande un redémarrage de l'API (Run workflow du déploiement, ou redémarrage du conteneur). Configuration invalide = l'API refuse de démarrer : le check `/api/health` du déploiement échoue avant toute mise en ligne.
+
+Retour arrière : `CUSTOMER_NOTIFICATIONS_MODE=off` puis redémarrage. Les PENDING restants passent en `SKIPPED` / `MODE_OFF` ; l'historique est conservé.
+
+Incidents :
+
+- `QUEUE_UNAVAILABLE` / `OUTBOX_BACKLOG` : vérifier le conteneur Redis (`docker ps`, `docker logs`). Les notifications restent en base et le balayeur les réenfile au retour de Redis ; celles prises en charge depuis plus de 10 min passent en `FAILED` / `UNKNOWN_OUTCOME` sans renvoi.
+- `FAILED` avec un code Meta : modèle refusé ou désactivé, jeton expiré (renouveler `WHATSAPP_ACCESS_TOKEN` dans SSM), numéro invalide.
+- Ajout ou nouvelle version de modèle : l'approuver chez Meta d'abord, puis l'ajouter à `WHATSAPP_APPROVED_TEMPLATES` ; jamais l'inverse (sinon `FAILED` côté Meta au lieu de `SKIPPED`).
+
 ## Clés d'idempotence (unique par garage)
 
 | Événement | Clé |
@@ -178,7 +221,7 @@ Compte WhatsApp par garage (plus tard) : `WhatsAppSenderResolver.resolve(garageI
 5. Événements immédiats (planning, workshop, billing).
 6. Rappels de RDV et relances de facture (cron, fuseau Africa/Douala).
 7. Lien sécurisé de devis.
-8. Supervision, E2E, documentation d'exploitation.
+8. Supervision SUPER_ADMIN, garde-fou UX, documentation d'exploitation.
 
 ## Lot 3 (esquisse)
 

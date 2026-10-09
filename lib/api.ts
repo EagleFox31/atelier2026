@@ -605,7 +605,41 @@ export const superAdminApi = {
   listTenants:        () => get<TenantSummary[]>('/admin/tenants'),
   toggleTenantStatus: (id: string) =>
     patch<{ tenantId: string; status: 'active' | 'suspended'; subscriptionStatus: string }>(`/admin/tenants/${id}/toggle-status`, {}),
+  customerNotificationsHealth: () => get<CustomerNotificationsHealth>('/admin/customer-notifications/health'),
 };
+
+export type HealthLevel = 'ok' | 'warning' | 'critical';
+
+/** Contrat de `GET /admin/customer-notifications/health` (aucune donnée client). */
+export interface CustomerNotificationsHealth {
+  generatedAt: string;
+  status: HealthLevel;
+  alerts: { level: Exclude<HealthLevel, 'ok'>; code: string; message: string }[];
+  config: {
+    mode: 'off' | 'sandbox' | 'live';
+    whatsappProvider: string;
+    providerSimulated: boolean;
+    monthlyCap: number;
+    sandboxRecipientCount: number;
+  };
+  templates: { eventType: string; name: string; language: string; approved: boolean; defaultEnabled: boolean }[];
+  queue:
+    | { available: true; waiting: number; active: number; delayed: number; failed: number }
+    | { available: false };
+  outbox: {
+    windowHours: number;
+    byStatus: Partial<Record<string, number>>;
+    skippedByReason: { reason: string; count: number }[];
+    failedByCode: { code: string; count: number }[];
+    backlog: number;
+    oldestPendingAt: string | null;
+  };
+  quota: {
+    monthStart: string;
+    cap: number;
+    garages: { garageId: string; garageName: string; used: number; ratio: number }[];
+  };
+}
 
 export interface TenantSummary {
   id: string;
