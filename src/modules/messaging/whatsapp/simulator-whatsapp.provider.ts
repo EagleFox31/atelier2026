@@ -12,6 +12,7 @@ import type {
 /** Simulateur WhatsApp : rien n'est envoyé, identifiant déterministe, journal masqué. */
 export class SimulatorWhatsAppProvider implements WhatsAppProvider {
   readonly name = 'simulator';
+  readonly simulated = true;
   private readonly logger = new Logger(SimulatorWhatsAppProvider.name);
 
   async sendWhatsAppMessage(request: SendWhatsAppMessageRequest): Promise<SendWhatsAppResult> {

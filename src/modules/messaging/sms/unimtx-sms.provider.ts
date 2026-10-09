@@ -90,6 +90,7 @@ export type UnimtxConfig = {
  */
 export class UnimtxSmsProvider implements SmsProvider {
   readonly name = 'unimtx';
+  readonly simulated = false;
 
   private readonly fetchImpl: typeof fetch;
 

@@ -73,6 +73,31 @@ describe('WhatsAppCloudApiProvider', () => {
     });
   });
 
+  it('ajoute un bouton URL dynamique après le corps (suffixe seul)', async () => {
+    const { whatsapp, fetchImpl } = provider({ status: 200, body: { messages: [{ id: 'wamid.3' }] } });
+    await whatsapp.sendTemplate({ ...template, buttons: [{ index: 0, urlSuffix: 'tok_abc' }] });
+    const sent = JSON.parse((fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+    expect(sent.template.components[1]).toEqual({
+      type: 'button',
+      sub_type: 'url',
+      index: '0',
+      parameters: [{ type: 'text', text: 'tok_abc' }],
+    });
+  });
+
+  it.each([
+    { index: 10, urlSuffix: 'x' },
+    { index: 1.5, urlSuffix: 'x' },
+    { index: 0, urlSuffix: '  ' },
+  ])('refuse un bouton URL invalide sans appel réseau (%o)', async (button) => {
+    const { whatsapp, fetchImpl } = provider({ status: 200 });
+    await expect(whatsapp.sendTemplate({ ...template, buttons: [button] })).rejects.toMatchObject({
+      code: 'CONTENT_REJECTED',
+      permanent: true,
+    });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it('refuse un numéro invalide sans appel réseau', async () => {
     const { whatsapp, fetchImpl } = provider({ status: 200 });
     await expect(whatsapp.sendWhatsAppMessage({ ...text, to: '12' })).rejects.toMatchObject({

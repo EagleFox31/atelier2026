@@ -15,6 +15,12 @@ export interface SmsProvider {
   /** Nom stable du fournisseur (valeur de `SMS_PROVIDER`), stocké pour le suivi. */
   readonly name: string;
 
+  /**
+   * `true` si aucun message ne quitte le serveur (simulateur) : un envoi
+   * « réussi » est alors enregistré `SIMULATED`, jamais compté comme envoyé.
+   */
+  readonly simulated: boolean;
+
   sendSms(request: SendSmsRequest): Promise<SendSmsResult>;
 
   /** Statut de remise (DLR) d'un message déjà accepté — par interrogation. */

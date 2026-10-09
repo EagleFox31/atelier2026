@@ -34,3 +34,9 @@ export function smsJobOptions(
   }
   return { ...SMS_RETRY_OPTIONS, backoff: { ...SMS_RETRY_OPTIONS.backoff }, ...retention, jobId };
 }
+
+/**
+ * Mêmes garanties pour toute file de messagerie (SMS, `customer-notifications`) :
+ * une seule politique de relance et de rétention. `smsJobOptions` en est l'alias historique.
+ */
+export const messagingJobOptions = smsJobOptions;
