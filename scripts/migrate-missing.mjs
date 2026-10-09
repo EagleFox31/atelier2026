@@ -129,6 +129,7 @@ async function main() {
   await migrateWorkshopLogoUrl();
   await migratePasswordSecurity();
   await migrateTeamInvitations();
+  await migrateCustomerNotifications();
 
   console.log('\n✅ Migration terminée.');
 }
@@ -682,6 +683,17 @@ async function migrateTeamInvitations() {
   await q(`ALTER TABLE public.users ADD COLUMN IF NOT EXISTS invite_accepted_at TIMESTAMPTZ`);
   await q(`CREATE UNIQUE INDEX IF NOT EXISTS users_invite_token_hash_key ON public.users(invite_token_hash)`);
   console.log('   ✅ Colonnes d’invitation équipe (users.invite_*) présentes');
+}
+
+/**
+ * Notifications client multicanal. `ADD VALUE` passe seul : il ne peut pas être
+ * utilisé dans la même transaction que le reste du script.
+ */
+async function migrateCustomerNotifications() {
+  await q(`ALTER TYPE sms_status_t ADD VALUE IF NOT EXISTS 'SIMULATED'`);
+  const sqlPath = join(__dirname, '../prisma/migrations/20261010_customer_notifications/migration.sql');
+  await q(readFileSync(sqlPath, 'utf8'));
+  console.log('   ✅ Notifications client (historique, consentement, préférences, lien devis) présentes');
 }
 
 main()
