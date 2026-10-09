@@ -137,6 +137,33 @@ describe('NotchPayPaymentProvider', () => {
     expect(provider.verifyWebhookSignature(payload, undefined)).toBe(false);
   });
 
+  it('logs a secret-free diagnostic when a webhook signature is rejected', () => {
+    const provider = new NotchPayPaymentProvider();
+    const warn = jest.spyOn(provider['logger'], 'warn').mockImplementation(() => undefined);
+    const payload = Buffer.from('{ "type": "payment.complete" }');
+    const reserializedSignature = createHmac('sha256', 'test_hash_example')
+      .update(JSON.stringify(JSON.parse(payload.toString('utf8'))))
+      .digest('hex');
+
+    expect(provider.verifyWebhook(payload, { 'x-notch-signature': reserializedSignature })).toBe(false);
+
+    const message = warn.mock.calls[0][0] as string;
+    expect(message).toContain('NOTCHPAY_TEST_WEBHOOK_HASH/reserialized');
+    expect(message).not.toContain('NOTCHPAY_TEST_WEBHOOK_HASH/raw');
+    expect(message).not.toContain('test_hash_example');
+    expect(message).not.toContain(reserializedSignature);
+  });
+
+  it('does not log a diagnostic for a valid webhook signature', () => {
+    const provider = new NotchPayPaymentProvider();
+    const warn = jest.spyOn(provider['logger'], 'warn').mockImplementation(() => undefined);
+    const payload = Buffer.from('{"type":"payment.complete"}');
+    const signature = createHmac('sha256', 'test_hash_example').update(payload).digest('hex');
+
+    expect(provider.verifyWebhook(payload, { 'x-notch-signature': signature })).toBe(true);
+    expect(warn).not.toHaveBeenCalled();
+  });
+
   it('parses the documented payment.complete webhook shape', () => {
     const provider = new NotchPayPaymentProvider();
 
