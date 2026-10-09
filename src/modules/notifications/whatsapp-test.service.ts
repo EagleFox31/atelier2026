@@ -60,7 +60,7 @@ export class WhatsAppTestService {
         idempotencyKey: `whatsapp-test:${randomUUID()}`,
       });
       this.logger.log(
-        `Test WhatsApp accepté par ${this.provider.name} (${templateName}/${language} → ${maskPhone(to)}) : ${result.providerMessageId}`,
+        `Test WhatsApp accepté par ${this.provider.name} (${templateName}/${language} → ${maskPhone(to)}).`,
       );
       return {
         provider: this.provider.name,

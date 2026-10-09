@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, Logger } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ClientIpThrottlerGuard } from '../../shared/security/client-ip-throttler.guard';
@@ -85,6 +85,17 @@ describe('POST /api/notifications/whatsapp/test — contrat HTTP', () => {
     expect(provider.sendTemplate).toHaveBeenCalledWith(
       expect.objectContaining({ to: ALLOWED, templateName: 'hello_world', language: 'en_US', variables: [] }),
     );
+  });
+
+  it("ne journalise pas l'identifiant Meta : le wamid encode le numéro en base64", async () => {
+    const logSpy = jest.spyOn(Logger.prototype, 'log');
+
+    await post({ to: ALLOWED });
+
+    const logged = logSpy.mock.calls.map((args) => String(args[0])).join('\n');
+    expect(logged).toContain('Test WhatsApp accepté');
+    expect(logged).not.toContain('wamid.TEST');
+    logSpy.mockRestore();
   });
 
   it('refuse un destinataire hors de WHATSAPP_TEST_RECIPIENTS (403), sans appel fournisseur', async () => {
