@@ -31,6 +31,7 @@ export type {
 export { detectCameroonOperator, maskPhone, toE164, type CameroonOperator } from './shared/phone';
 export {
   MAX_WEBHOOK_BODY_BYTES,
+  WHATSAPP_CLOUD_PROVIDER,
   MetaWebhookPayloadError,
   WhatsAppWebhookConfigurationError,
   loadWhatsAppWebhookConfig,

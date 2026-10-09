@@ -11,6 +11,12 @@ export interface WhatsAppProvider {
   /** `true` si aucun message ne quitte le serveur (simulateur) → statut `SIMULATED`. */
   readonly simulated: boolean;
 
+  /**
+   * Compte émetteur chez le fournisseur (ex. `phone_number_id` Meta), jamais un secret.
+   * Sert à rattacher les accusés de remise au bon compte. Absent = compte unique de la plateforme.
+   */
+  readonly accountRef?: string;
+
   /** Message libre (autorisé uniquement dans une fenêtre de conversation ouverte chez Meta). */
   sendWhatsAppMessage(request: SendWhatsAppMessageRequest): Promise<SendWhatsAppResult>;
 

@@ -10,6 +10,8 @@ import { createTestApp, makeIntegrationPrismaMock } from '../integration/helpers
 import { WHATSAPP_WEBHOOK_CONFIG, signMetaPayload, type WhatsAppWebhookConfig } from '../../modules/messaging';
 import { WhatsAppWebhookController } from '../../modules/customer-notifications/whatsapp-webhook.controller';
 import { WhatsAppWebhookService } from '../../modules/customer-notifications/whatsapp-webhook.service';
+import { WHATSAPP_WEBHOOK_EVENTS_QUEUE } from '../../modules/customer-notifications/whatsapp-webhook.queue';
+import { getQueueToken } from '@nestjs/bullmq';
 import { SubscriptionPaymentsController } from '../../modules/subscription/payments/subscription-payments.controller';
 import { SubscriptionPaymentsService } from '../../modules/subscription/payments/subscription-payments.service';
 import { ClientIpThrottlerGuard } from '../../shared/security/client-ip-throttler.guard';
@@ -43,6 +45,12 @@ const PAYLOAD = {
 
 async function makeApp(config: WhatsAppWebhookConfig = ENABLED) {
   const payments = { handleWebhook: jest.fn().mockResolvedValue({ received: true }) };
+  const events = {
+    createMany: jest.fn().mockResolvedValue({ count: 0 }),
+    findMany: jest.fn().mockResolvedValue([{ id: 'ev1' }, { id: 'ev2' }]),
+  };
+  const queue = { add: jest.fn().mockResolvedValue({}) };
+  const prisma = Object.assign(makeIntegrationPrismaMock(), { whatsAppWebhookEvent: events });
   const { app } = await createTestApp({
     moduleImports: [ThrottlerModule.forRoot([{ name: 'default', ...GLOBAL_RATE_LIMIT }])],
     controllers: [WhatsAppWebhookController, SubscriptionPaymentsController],
@@ -51,11 +59,12 @@ async function makeApp(config: WhatsAppWebhookConfig = ENABLED) {
       { provide: WHATSAPP_WEBHOOK_CONFIG, useValue: config },
       WhatsAppWebhookService,
       { provide: SubscriptionPaymentsService, useValue: payments },
+      { provide: getQueueToken(WHATSAPP_WEBHOOK_EVENTS_QUEUE), useValue: queue },
     ],
-    prismaOverride: makeIntegrationPrismaMock(),
+    prismaOverride: prisma,
     productionBodyParsers: true,
   });
-  return { app, payments };
+  return { app, payments, events, queue };
 }
 
 type App = Awaited<ReturnType<typeof makeApp>>['app'];
@@ -125,6 +134,55 @@ describe('Webhook WhatsApp — notifications signées (POST)', () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ received: 2, ignored: 0 });
+  });
+
+  it('accusés persistés AVANT la réponse, puis mis en file (jobId déterministe), sans numéro du client', async () => {
+    const { app, events, queue } = await makeApp();
+    const withRecipient = JSON.parse(JSON.stringify(PAYLOAD));
+    withRecipient.entry[0].changes[0].value.statuses[0].recipient_id = '237690000001';
+    const raw = JSON.stringify(withRecipient);
+    const res = await post(app, raw, signMetaPayload(Buffer.from(raw), SECRET));
+    await app.close();
+
+    expect(res.status).toBe(200);
+    expect(events.createMany).toHaveBeenCalledTimes(1);
+    const { data, skipDuplicates } = events.createMany.mock.calls[0][0];
+    expect(skipDuplicates).toBe(true);
+    expect(data.map((row: { dedupKey: string }) => row.dedupKey)).toEqual([
+      'status:123456789012345:wamid.A:sent',
+      'status:123456789012345:wamid.A:delivered',
+    ]);
+    expect(JSON.stringify(data)).not.toContain('237690000001');
+    expect(queue.add.mock.calls.map((call) => call[2].jobId)).toEqual(['wwe_ev1', 'wwe_ev2']);
+  });
+
+  it('base indisponible : 500, Meta renverra la notification (rien n’est acquitté)', async () => {
+    const { app, events, queue } = await makeApp();
+    events.createMany.mockRejectedValueOnce(new Error('connexion perdue'));
+    const raw = JSON.stringify(PAYLOAD);
+    const res = await post(app, raw, signMetaPayload(Buffer.from(raw), SECRET));
+    await app.close();
+
+    expect(res.status).toBe(500);
+    expect(queue.add).not.toHaveBeenCalled();
+  });
+
+  it('Redis indisponible : 200 quand même (accusés en base, repris par le balayeur)', async () => {
+    const { app, queue } = await makeApp();
+    queue.add.mockRejectedValue(new Error('ECONNREFUSED'));
+    const raw = JSON.stringify(PAYLOAD);
+    const res = await post(app, raw, signMetaPayload(Buffer.from(raw), SECRET));
+    await app.close();
+
+    expect(res.status).toBe(200);
+  });
+
+  it('signature invalide : rien n’est écrit', async () => {
+    const { app, events } = await makeApp();
+    await post(app, JSON.stringify(PAYLOAD), `sha256=${'a'.repeat(64)}`);
+    await app.close();
+
+    expect(events.createMany).not.toHaveBeenCalled();
   });
 
   it.each([
