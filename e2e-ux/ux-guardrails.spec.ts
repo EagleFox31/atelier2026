@@ -31,6 +31,23 @@ const SETTINGS = {
   updatedAt: '2026-09-23T08:00:00.000Z',
 };
 
+const CUSTOMER = {
+  id: 'customer-ux',
+  customerType: 'INDIVIDUAL',
+  firstName: 'Jean',
+  lastName: 'Mbarga',
+  phonePrimary: '690000000',
+  createdAt: '2026-09-01T08:00:00.000Z',
+  vehicles: [],
+  serviceOrders: [],
+};
+
+const NOTIFICATION_PREFS = [
+  { eventType: 'APPOINTMENT_CONFIRMED', enabled: true, defaultEnabled: true },
+  { eventType: 'SERVICE_ORDER_RECEIVED', enabled: false, defaultEnabled: false },
+  { eventType: 'VEHICLE_READY', enabled: true, defaultEnabled: true },
+];
+
 async function mockPublicSignup(page: Page) {
   await page.route('**/api/public/signup/status', async (route) => {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ available: true }) });
@@ -51,6 +68,9 @@ async function mockAuthenticatedApp(
     profileOverrides?: Record<string, unknown>;
   } = {},
 ) {
+  // État simulé côté API, modifié par les PATCH / PUT des tests.
+  let notificationPrefs = NOTIFICATION_PREFS.map((pref) => ({ ...pref }));
+  let consent: Record<string, unknown> | null = null;
   // Profil mutable (onboarding, changement de mot de passe) : type ouvert volontairement.
   let profile: Record<string, unknown> = options.onboardingPending
     ? { ...PROFILE, onboardingCompletedAt: null }
@@ -106,12 +126,68 @@ async function mockAuthenticatedApp(
           daysRemaining: 30,
           readOnly: false,
           blocked: false,
-          features: options.trial === false ? { sms: true, branding: true } : { sms: false, branding: false },
+          features: options.trial === false
+            ? { sms: true, branding: true, whatsapp: true }
+            : { sms: false, branding: false, whatsapp: false },
         }),
       });
     }
     if (path === '/api/settings/workshop' && method === 'GET') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(SETTINGS) });
+    }
+    if (path === '/api/settings/notifications') {
+      if (method === 'PATCH') {
+        const { settings } = request.postDataJSON() as { settings: { eventType: string; enabled: boolean }[] };
+        notificationPrefs = notificationPrefs.map((pref) => {
+          const change = settings.find((s) => s.eventType === pref.eventType);
+          return change ? { ...pref, enabled: change.enabled } : pref;
+        });
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(notificationPrefs) });
+    }
+    if (path === `/api/customers/${CUSTOMER.id}`) {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(CUSTOMER) });
+    }
+    if (path === `/api/customers/${CUSTOMER.id}/notification-consents/WHATSAPP` && method === 'PUT') {
+      const body = request.postDataJSON() as { status: string; source: string; phone?: string };
+      consent = {
+        channel: 'WHATSAPP',
+        status: body.status,
+        phoneE164: '+237690000000',
+        grantedAt: '2026-10-09T08:00:00.000Z',
+        revokedAt: null,
+        updatedAt: '2026-10-09T08:00:00.000Z',
+        events: [],
+      };
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ changed: true, consent }) });
+    }
+    if (path === `/api/customers/${CUSTOMER.id}/notification-consents`) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          consentText: { version: 'whatsapp-fr-v1', text: 'J’accepte de recevoir sur WhatsApp les messages de suivi.' },
+          consents: consent ? [consent] : [],
+        }),
+      });
+    }
+    if (path === `/api/customers/${CUSTOMER.id}/notifications`) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([{
+          id: 'cn-1',
+          eventType: 'VEHICLE_READY',
+          channel: null,
+          status: 'SKIPPED',
+          skipReason: 'NO_CONSENT',
+          recipientE164: null,
+          lastErrorCode: null,
+          createdAt: '2026-10-08T16:00:00.000Z',
+          acceptedAt: null,
+          failedAt: null,
+        }]),
+      });
     }
     if (path === '/api/notifications/unread-count') {
       return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ count: 0 }) });
@@ -292,29 +368,47 @@ test.describe('Atelier Maître — garde-fous UX/UI/CX', () => {
     await expect(page.getByText('QUOTE_PENDING', { exact: true })).toHaveCount(0);
   });
 
-  test('pendant le pilote les réglages SMS expliquent clairement le verrouillage', async ({ page }) => {
+  test('pendant le pilote les réglages WhatsApp expliquent clairement le verrouillage', async ({ page }) => {
     await mockAuthenticatedApp(page, { trial: true });
     await page.goto('/settings');
     await page.getByRole('tab', { name: /Notifications/i }).click();
 
-    await expect(page.getByText(/SMS sont désactivés pendant le pilote gratuit/i)).toBeVisible();
-    const buttons = page.getByRole('button', { name: 'Configurer le template' });
-    await expect(buttons).toHaveCount(2);
-    await expect(buttons.nth(0)).toBeDisabled();
-    await expect(buttons.nth(1)).toBeDisabled();
+    await expect(page.getByText(/WhatsApp sont désactivés pendant le pilote gratuit/i)).toBeVisible();
+    await expect(page.getByRole('switch', { name: 'Véhicule prêt' })).toBeVisible();
   });
 
-  test('les droits renvoyés par l’API (features) déverrouillent les SMS d’un forfait actif', async ({ page }) => {
+  test('les droits renvoyés par l’API (features) lèvent le verrou WhatsApp et les réglages s’enregistrent', async ({ page }) => {
     await mockAuthenticatedApp(page, { trial: false });
     await page.goto('/settings');
     await page.getByRole('tab', { name: /Notifications/i }).click();
 
-    const buttons = page.getByRole('button', { name: 'Configurer le template' });
-    await expect(buttons).toHaveCount(2);
-    await expect(buttons.nth(0)).toBeEnabled();
-    await expect(buttons.nth(1)).toBeEnabled();
+    const card = page.getByTestId('customer-notification-settings');
+    await expect(card.getByText('Abonnement actif requis')).toHaveCount(0);
+    const received = page.getByRole('switch', { name: 'Véhicule pris en charge' });
+    await expect(received).not.toBeChecked();
+    const patch = page.waitForRequest((r) => r.url().endsWith('/api/settings/notifications') && r.method() === 'PATCH');
+    await received.click();
+    expect((await patch).postDataJSON()).toEqual({ settings: [{ eventType: 'SERVICE_ORDER_RECEIVED', enabled: true }] });
+    await expect(received).toBeChecked();
   });
 
+  test('la fiche client enregistre l’accord WhatsApp et explique un message non envoyé', async ({ page }) => {
+    await mockAuthenticatedApp(page, { trial: false });
+    await page.goto(`/customers/${CUSTOMER.id}`);
+
+    const card = page.getByTestId('customer-whatsapp-card');
+    await expect(card.getByText('Aucun accord enregistré')).toBeVisible();
+    await expect(card.getByText(/Pas de consentement WhatsApp/)).toBeVisible();
+    await expect(card.getByText('NO_CONSENT')).toHaveCount(0);
+
+    await card.getByRole('button', { name: 'Enregistrer l’accord' }).click();
+    await expect(card.getByText(/J’accepte de recevoir sur WhatsApp/)).toBeVisible();
+    await card.getByRole('button', { name: 'Par téléphone' }).click();
+    const put = page.waitForRequest((r) => r.url().endsWith('/notification-consents/WHATSAPP') && r.method() === 'PUT');
+    await card.getByRole('button', { name: 'Confirmer l’accord' }).click();
+    expect((await put).postDataJSON()).toMatchObject({ status: 'GRANTED', source: 'PHONE_CALL', phone: '690000000' });
+    await expect(card.getByText('Accord donné')).toBeVisible();
+  });
 
   test('le premier accès impose le tour interactif puis ne le marque terminé qu’à la fin', async ({ page }) => {
     let onboardingWrites = 0;
