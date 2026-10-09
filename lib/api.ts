@@ -479,6 +479,44 @@ export const invitationsApi = {
     ),
 };
 
+// ─── Lien public de devis (client) ──────────────────────────────────────────
+export type PublicQuoteStatus = 'DRAFT' | 'SENT' | 'APPROVED' | 'REJECTED' | 'REVISED' | 'BILLED';
+
+export interface PublicQuote {
+  garageName: string;
+  customerName: string;
+  reference: string;
+  status: PublicQuoteStatus;
+  issuedAt: string;
+  validUntil: string | null;
+  approvedAt: string | null;
+  vehicle: { plate: string; label: string | null } | null;
+  notes: string | null;
+  lines: Array<{
+    lineType: string;
+    description: string | null;
+    quantity: number;
+    unitPriceXaf: number;
+    discountPct: number;
+    lineTotalXaf: number;
+  }>;
+  subtotalXaf: number;
+  taxRate: number;
+  taxAmountXaf: number;
+  stampDutyXaf: number;
+  totalXaf: number;
+  /** Faux si le devis a déjà reçu une réponse ou si le garage ne peut pas l'enregistrer. */
+  canDecide: boolean;
+}
+
+export const publicQuotesApi = {
+  get: (token: string) => get<PublicQuote>(`/public/quotes/${encodeURIComponent(token)}`),
+  approve: (token: string) =>
+    post<{ status: 'APPROVED' }>(`/public/quotes/${encodeURIComponent(token)}/approve`, {}),
+  reject: (token: string, reason?: string) =>
+    post<{ status: 'REJECTED' }>(`/public/quotes/${encodeURIComponent(token)}/reject`, reason ? { reason } : {}),
+};
+
 // ─── Inscription atelier (public) ───────────────────────────────────────────
 export interface SignupTeamCreated {
   roleCode: string;

@@ -28,14 +28,15 @@ function makeDeps() {
   const partsFlowMock = {
     onQuoteApproved: jest.fn().mockResolvedValue({ reserved: 0, aspCreated: 0, missingCount: 0 }),
   };
+  const emitter = new RecordingCustomerNotificationEmitter();
   const service = new BillingService(
     prismaMock as any,
     workshopMock as any,
     notifMock as any,
     partsFlowMock as any,
-    new RecordingCustomerNotificationEmitter() as any,
+    emitter as any,
   );
-  return { service, prismaMock, partsFlowMock, notifMock };
+  return { service, prismaMock, partsFlowMock, notifMock, emitter };
 }
 
 // ─── listQuotes() ─────────────────────────────────────────────────────────────
@@ -180,6 +181,56 @@ describe('BillingService.createQuote()', () => {
 
     const lines = prismaMock.quote.create.mock.calls[0][0].data.lines.create;
     expect(lines[0].discountPct).toBe(0);
+  });
+});
+
+// ─── sendQuote() ──────────────────────────────────────────────────────────────
+
+describe('BillingService.sendQuote()', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const DRAFT = {
+    id: 'q-1',
+    status: 'DRAFT',
+    reference: 'DEV-2026-0042',
+    serviceOrderId: 'ot-1',
+    garageId: TEST_GARAGE_ID,
+    customerId: 'cust-1',
+    totalXaf: 119250,
+    revisedCount: 2,
+    serviceOrder: { reference: 'OT-1' },
+    customer: { firstName: 'Jean', lastName: 'Mbarga', companyName: null, customerType: 'INDIVIDUAL' },
+  };
+
+  it('passe en SENT et émet la demande de validation WhatsApp (clé par révision)', async () => {
+    const { service, prismaMock, emitter } = makeDeps();
+    prismaMock.quote.findUnique.mockResolvedValue(DRAFT);
+    (prismaMock as any).serviceOrder = { updateMany: jest.fn().mockResolvedValue({ count: 1 }) };
+
+    await service.sendQuote('q-1', TEST_GARAGE_ID);
+
+    expect(prismaMock.quote.update).toHaveBeenCalledWith({
+      where: { id: 'q-1' },
+      data: { status: 'SENT', sentAt: expect.any(Date) },
+    });
+    await expect(emitter.inputs()).resolves.toEqual([
+      {
+        garageId: TEST_GARAGE_ID,
+        eventType: 'QUOTE_APPROVAL_REQUESTED',
+        idempotencyKey: 'quote.sent:q-1:r2',
+        customerId: 'cust-1',
+        refs: { quoteId: 'q-1', serviceOrderId: 'ot-1' },
+        variables: { quoteNumber: 'DEV-2026-0042', amount: '119 250 FCFA' },
+      },
+    ]);
+  });
+
+  it('un devis déjà envoyé n’émet rien', async () => {
+    const { service, prismaMock, emitter } = makeDeps();
+    prismaMock.quote.findUnique.mockResolvedValue({ ...DRAFT, status: 'SENT' });
+
+    await expect(service.sendQuote('q-1', TEST_GARAGE_ID)).rejects.toThrow(BadRequestException);
+    expect(emitter.builds).toHaveLength(0);
   });
 });
 

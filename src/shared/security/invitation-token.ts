@@ -1,20 +1,15 @@
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
+import { generateOpaqueToken, hashOpaqueToken, isWellFormedOpaqueToken, OPAQUE_TOKEN_BYTES } from './opaque-token';
 
 /**
  * Jetons d'invitation d'équipe (#15).
  *
- * - 32 octets aléatoires (CSPRNG) → 256 bits, encodés en base64url (43 caractères) dans le lien
- *   UNIQUEMENT. Le jeton brut n'est ni stocké, ni journalisé.
- * - En base : empreinte SHA-256 (hex, colonne unique). Un jeton à 256 bits d'entropie n'a pas
- *   besoin d'un hachage lent (bcrypt) : l'empreinte n'est pas inversible et la recherche par
- *   empreinte ne compare jamais le secret lui-même.
+ * - Jeton opaque (`opaque-token.ts`) : 256 bits dans le lien uniquement, empreinte SHA-256 en base.
  * - Validité : INVITATION_TTL_HOURS, usage unique (acceptation conditionnelle atomique).
  */
-export const INVITATION_TOKEN_BYTES = 32;
+export const INVITATION_TOKEN_BYTES = OPAQUE_TOKEN_BYTES;
 export const INVITATION_TTL_HOURS = 72;
 export const INVITATION_TTL_MS = INVITATION_TTL_HOURS * 60 * 60 * 1000;
-
-const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
 export type InvitationStatus = 'none' | 'pending' | 'expired' | 'accepted';
 
@@ -31,12 +26,12 @@ export type IssuedInvitation = {
 };
 
 export function hashInvitationToken(token: string): string {
-  return createHash('sha256').update(token, 'utf8').digest('hex');
+  return hashOpaqueToken(token);
 }
 
 /** Rejette tôt (sans requête DB) tout ce qui n'a pas la forme d'un jeton émis. */
 export function isWellFormedInvitationToken(token: unknown): token is string {
-  return typeof token === 'string' && TOKEN_PATTERN.test(token);
+  return isWellFormedOpaqueToken(token);
 }
 
 /** Comparaison à temps constant de deux empreintes hex (défense en profondeur après la recherche). */
@@ -48,7 +43,7 @@ export function invitationHashMatches(expectedHex: string, actualHex: string): b
 
 /** Nouveau jeton + champs à persister. Un nouvel envoi remplace l'empreinte : l'ancien lien meurt. */
 export function issueInvitation(now: Date = new Date()): IssuedInvitation {
-  const token = randomBytes(INVITATION_TOKEN_BYTES).toString('base64url');
+  const token = generateOpaqueToken();
   return {
     token,
     data: {

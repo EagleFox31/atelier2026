@@ -217,3 +217,71 @@ describe('monthStartInDouala', () => {
     expect(monthStartInDouala(new Date('2026-10-15T12:00:00Z')).toISOString()).toBe('2026-09-30T23:00:00.000Z');
   });
 });
+
+describe('CustomerNotificationProcessor — lien de devis', () => {
+  const QUOTE_ROW = {
+    ...ROW,
+    eventType: 'QUOTE_APPROVAL_REQUESTED' as const,
+    idempotencyKey: 'quote.sent:q1:r0',
+    quoteId: 'q1',
+    variables: { customerName: 'Jean', garageName: 'Garage Central', quoteNumber: 'DEV-1', amount: '119 250 FCFA' },
+  };
+
+  function makeQuoteProcessor(quote: { validUntil: Date | null } | null = { validUntil: null }) {
+    const made = makeProcessor({
+      env: {
+        CUSTOMER_NOTIFICATIONS_MODE: 'live',
+        WHATSAPP_PROVIDER: 'whatsapp-cloud',
+        WHATSAPP_APPROVED_TEMPLATES: 'am_quote_approval_v1:fr',
+        CUSTOMER_NOTIFICATIONS_MONTHLY_CAP: '300',
+      },
+    });
+    const prisma = made.prisma as typeof made.prisma & Record<string, unknown>;
+    prisma.customerNotification.findUniqueOrThrow.mockResolvedValue(QUOTE_ROW);
+    const tokens = {
+      updateMany: jest.fn((args: unknown) => ({ op: 'revoke', args })),
+      create: jest.fn((args: { data: Record<string, unknown> }) => ({ op: 'create', args })),
+    };
+    Object.assign(prisma, {
+      quote: { findFirst: jest.fn().mockResolvedValue(quote) },
+      quoteAccessToken: tokens,
+      $transaction: jest.fn().mockResolvedValue([]),
+    });
+    return { ...made, tokens, transaction: prisma.$transaction as jest.Mock };
+  }
+
+  it('crée le jeton à l’envoi, le place dans le bouton URL et ne stocke que son empreinte', async () => {
+    const { processor, provider, tokens, transaction } = makeQuoteProcessor();
+
+    await expect(processor.process(job())).resolves.toEqual({ outcome: 'ACCEPTED' });
+
+    const [sent] = provider.sent;
+    expect(sent.buttons).toEqual([{ index: 0, urlSuffix: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/) }]);
+    const token = sent.buttons![0].urlSuffix;
+    const created = tokens.create.mock.calls[0][0].data;
+    expect(created).toMatchObject({ garageId: 'g1', quoteId: 'q1', notificationId: 'n1' });
+    expect(created.tokenHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(JSON.stringify(created)).not.toContain(token);
+    // Révocation des anciens liens et création du nouveau dans la même transaction.
+    expect(tokens.updateMany).toHaveBeenCalledWith({
+      where: { quoteId: 'q1', revokedAt: null, decidedAt: null },
+      data: { revokedAt: expect.any(Date) },
+    });
+    expect(transaction).toHaveBeenCalledWith([expect.objectContaining({ op: 'revoke' }), expect.objectContaining({ op: 'create' })]);
+  });
+
+  it('devis introuvable au moment de l’envoi → FAILED sans relance', async () => {
+    const { processor, prisma, provider } = makeQuoteProcessor(null);
+
+    await expect(processor.process(job())).rejects.toBeInstanceOf(UnrecoverableError);
+
+    expect(provider.sent).toHaveLength(0);
+    expect(lastUpdateData(prisma)).toMatchObject({ status: 'FAILED', lastErrorCode: 'MISSING_VARIABLE' });
+  });
+
+  it('les autres modèles n’ont pas de bouton', async () => {
+    const { processor, provider } = makeProcessor();
+    await processor.process(job());
+    expect(provider.sent[0].buttons).toBeUndefined();
+  });
+});

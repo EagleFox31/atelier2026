@@ -105,6 +105,9 @@ export class BillingService {
         reference: true,
         serviceOrderId: true,
         garageId: true,
+        customerId: true,
+        totalXaf: true,
+        revisedCount: true,
         serviceOrder: { select: { reference: true } },
         customer: { select: { firstName: true, lastName: true, companyName: true, customerType: true } },
       },
@@ -113,7 +116,17 @@ export class BillingService {
     if (quote.status !== 'DRAFT')
       throw new BadRequestException('Seul un devis en brouillon peut être soumis au client');
 
-    await this.prisma.quote.update({ where: { id: quoteId }, data: { status: 'SENT' } });
+    await this.prisma.quote.update({ where: { id: quoteId }, data: { status: 'SENT', sentAt: new Date() } });
+
+    // Lien sécurisé de devis par WhatsApp : le jeton est créé par le worker au moment de l'envoi.
+    this.customerNotifications.emitInBackground('QUOTE_APPROVAL_REQUESTED', async () => ({
+      garageId: quote.garageId,
+      eventType: 'QUOTE_APPROVAL_REQUESTED',
+      idempotencyKey: notificationKeys.quoteSent(quote.id, quote.revisedCount),
+      customerId: quote.customerId,
+      refs: { quoteId: quote.id, serviceOrderId: quote.serviceOrderId },
+      variables: { quoteNumber: quote.reference, amount: formatNotificationAmount(quote.totalXaf) },
+    }));
 
     if (quote.serviceOrderId) {
       await this.prisma.serviceOrder.updateMany({
@@ -178,6 +191,26 @@ export class BillingService {
       },
     });
 
+    await this.afterQuoteApproved(quote, userId, garageId);
+    return quote;
+  }
+
+  /**
+   * Effets d'une approbation (au comptoir ou par le client via le lien public) :
+   * OT QUOTE_PENDING → QUOTE_APPROVED, notification interne, réservation des pièces.
+   */
+  async afterQuoteApproved(
+    quote: {
+      id: string;
+      reference: string;
+      serviceOrderId: string;
+      serviceOrder?: { id: string; reference: string; assignedChef: string | null } | null;
+      customer?: { firstName: string | null; lastName: string | null; companyName: string | null; customerType: string } | null;
+    },
+    userId: string,
+    garageId?: string | null,
+  ): Promise<void> {
+    const quoteId = quote.id;
     // Transition OT QUOTE_PENDING → QUOTE_APPROVED
     if (quote.serviceOrderId) {
       await this.prisma.serviceOrder.updateMany({
@@ -227,8 +260,6 @@ export class BillingService {
         this.logger.error(`Échec réservation pièces devis ${quoteId}`, err);
       }
     }
-
-    return quote;
   }
 
   listInvoices(customerId?: string, status?: string, garageId?: string | null) {

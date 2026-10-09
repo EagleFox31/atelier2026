@@ -526,6 +526,66 @@ test.describe('Atelier Maître — garde-fous UX/UI/CX', () => {
     await expect(page).toHaveURL(/\/invitation\//); // page publique : pas de redirection vers /login
   });
 
+  test('un client valide son devis depuis le lien reçu, sans compte', async ({ page }) => {
+    const token = 'RGV2aXNDbGllbnRBdGVsaWVyTWFpdHJlMjAyNi0wMTIz';
+    let decided = false;
+    const quote = (status: 'SENT' | 'APPROVED') => ({
+      garageName: 'Garage UX',
+      customerName: 'Paul Mbarga',
+      reference: 'DEV-2026-0042',
+      status,
+      issuedAt: '2026-10-01T09:00:00.000Z',
+      validUntil: '2026-10-31T00:00:00.000Z',
+      approvedAt: status === 'APPROVED' ? '2026-10-02T09:00:00.000Z' : null,
+      vehicle: { plate: 'LT 123 AB', label: 'Toyota Corolla' },
+      notes: null,
+      lines: [{ lineType: 'LABOR', description: 'Vidange moteur', quantity: 1, unitPriceXaf: 100000, discountPct: 0, lineTotalXaf: 100000 }],
+      subtotalXaf: 100000,
+      taxRate: 0.1925,
+      taxAmountXaf: 19250,
+      stampDutyXaf: 0,
+      totalXaf: 119250,
+      canDecide: status === 'SENT',
+    });
+    await page.route(`**/api/public/quotes/${token}**`, async (route) => {
+      const request = route.request();
+      if (request.method() === 'POST') {
+        expect(request.url()).toMatch(/\/approve$/);
+        decided = true;
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'APPROVED' }) });
+      }
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(quote(decided ? 'APPROVED' : 'SENT')) });
+    });
+
+    await page.goto(`/devis/${token}`);
+    await expect(page.getByText('Bonjour Paul Mbarga')).toBeVisible();
+    await expect(page.getByText('Vidange moteur')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Valider le devis' }).click();
+
+    await expect(page.getByText('Vous avez validé ce devis. Le garage a été prévenu.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Valider le devis' })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/devis\//); // page publique : pas de redirection vers /login
+    expect(decided).toBe(true);
+  });
+
+  test('un lien de devis expiré donne le motif du serveur, sans bouton de décision', async ({ page }) => {
+    await page.route('**/api/public/quotes/**', (route) =>
+      route.fulfill({
+        status: 410,
+        contentType: 'application/json',
+        body: JSON.stringify({ statusCode: 410, errorCode: 'QUOTE_LINK_EXPIRED', message: 'Un lien plus récent vous a été envoyé pour ce devis.' }),
+      }),
+    );
+
+    await page.goto('/devis/RGV2aXNDbGllbnRBdGVsaWVyTWFpdHJlMjAyNi0wMTIz');
+
+    await expect(page.getByText('Lien expiré')).toBeVisible();
+    await expect(page.getByText('Un lien plus récent vous a été envoyé pour ce devis.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Valider le devis' })).toHaveCount(0);
+    await expect(page).toHaveURL(/\/devis\//);
+  });
+
   test('le login parle d’identifiant employé et non de code employé', async ({ page }) => {
     await page.goto('/login');
     await expect(page.getByText('Email ou identifiant employé', { exact: true })).toBeVisible();

@@ -24,7 +24,7 @@ import { SubscriptionBlockedScreen } from '@/components/subscription/Subscriptio
 
 const PUBLIC_PATHS = ['/', '/login', '/forgot-password', '/demo', '/inscription'];
 /** Pages publiques dynamiques (ex. /invitation/<jeton>) : correspondance par préfixe. */
-const PUBLIC_PATH_PREFIXES = ['/invitation/'];
+const PUBLIC_PATH_PREFIXES = ['/invitation/', '/devis/'];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.includes(pathname) || PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
