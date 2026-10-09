@@ -105,6 +105,7 @@ Règles prod :
 | `APP_PUBLIC_URL` | URL publique pour les liens et le logo des e-mails (sinon `https://APP_DOMAIN`) |
 | `RATE_LIMIT_ENABLED` | `false` désactive la limitation de débit (tests locaux / Postman uniquement — jamais en prod) |
 | `TEAM_INVITE_EMAIL_FROM` | Expéditeur des invitations d'équipe (facultatif, défaut `SIGNUP_EMAIL_FROM`) |
+| `WHATSAPP_TEST_RECIPIENTS` | Numéros E.164 (virgules) autorisés pour l'envoi WhatsApp de contrôle ; vide = envoi de test refusé |
 
 ---
 
@@ -120,7 +121,7 @@ Règles prod :
 | BillingModule | `/billing/*` | TVA 19.25%, timbre, idempotence paiements |
 | TeamModule | `/team/*`, `/public/invitations/:token` | Utilisateurs/techniciens ; invitations par e-mail (jeton haché SHA-256, 72 h, usage unique) — `POST /team/:id/invite` (ADMIN) |
 | PlanningModule | `/planning/appointments/*` | Hard delete (pas de deletedAt) |
-| NotificationsModule | `/notifications/sms/*` | Mise en file SMS (`sms-notifications`) — envoi par `SmsProcessor` |
+| NotificationsModule | `/notifications/sms/*`, `/notifications/whatsapp/test` | Mise en file SMS (`sms-notifications`) — envoi par `SmsProcessor` ; envoi WhatsApp de contrôle d'un modèle (SUPER_ADMIN, `WHATSAPP_TEST_RECIPIENTS`) |
 | MessagingModule | — | Jetons `SMS_PROVIDER` / `WHATSAPP_PROVIDER` choisis par env ; erreurs définitives vs temporaires ; E.164 +237. Aucun module métier n'importe un fournisseur |
 | ReportsModule | `/reports/*` | Revenus + performance + `/reports/dashboard-stats` (dashboard) |
 | CounterSalesModule | `/counter-sales` | Vente comptoir (pièces sans OT) |

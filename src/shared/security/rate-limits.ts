@@ -26,6 +26,8 @@ export const RATE_LIMITS = {
   invitationRead: { default: { ttl: MINUTE, limit: 20 } },
   /** Activation d'une invitation (choix du mot de passe). */
   invitationAccept: { default: { ttl: MINUTE, limit: 5 } },
+  /** Envoi WhatsApp de contrôle (SUPER_ADMIN) : chaque appel coûte un message réel. */
+  whatsappTest: { default: { ttl: MINUTE, limit: 5 } },
 } as const;
 
 export function isRateLimitEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
