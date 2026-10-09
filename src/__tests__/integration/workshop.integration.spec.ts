@@ -1,6 +1,7 @@
 import request from 'supertest';
+import { CustomerNotificationEmitter } from '../../modules/customer-notifications';
+import { RecordingCustomerNotificationEmitter } from '../../modules/customer-notifications/testing/recording-emitter';
 import { INestApplication } from '@nestjs/common';
-import { getQueueToken } from '@nestjs/bullmq';
 import { OTStatus, Prisma } from '@prisma/client';
 import { WorkshopController } from '../../modules/workshop/workshop.controller';
 import { WorkshopService } from '../../modules/workshop/workshop.service';
@@ -96,7 +97,7 @@ describe('Workshop — intégration HTTP', () => {
       extraProviders: [
         WorkshopService,
         { provide: AuditService, useValue: auditMock },
-        { provide: getQueueToken('sms-notifications'), useValue: { add: jest.fn() } },
+        { provide: CustomerNotificationEmitter, useValue: new RecordingCustomerNotificationEmitter() },
         { provide: NotificationsService, useValue: { getUserIdsByRoles: jest.fn().mockResolvedValue([]), createInApp: jest.fn().mockResolvedValue([]) } },
         { provide: PartsFlowService, useValue: { onQuoteApproved: jest.fn(), consumeReservedParts: jest.fn(), releaseReservationsForOrder: jest.fn(), reconcilePartsAtQc: jest.fn() } },
       ],

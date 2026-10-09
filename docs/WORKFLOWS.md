@@ -271,9 +271,9 @@ VehicleImmobilization créée (MANUEL)
 
 > `BillingService.recordPayment()` appelle `WorkshopService.updateStatus(INVOICED)` via `setImmediate` dès que `balanceXaf <= 0`.
 
-### ~~Automatisation #2 : SMS "véhicule prêt" quand OT → READY~~ ✅ Implémenté
+### ~~Automatisation #2 : « véhicule prêt » quand OT → READY~~ ✅ Implémenté (WhatsApp)
 
-> `WorkshopService.updateStatus()` ajoute un job `vehicle_ready` dans la queue BullMQ `sms-notifications` dès que `targetStatus === READY`.
+> `WorkshopService.updateStatus()` émet `VEHICLE_READY` vers l'outbox des notifications client dès que `targetStatus === READY` (WhatsApp seul, voir `docs/architecture/notifications-client.md`).
 
 ### Automatisation #3 : Rappel RDV J-1
 

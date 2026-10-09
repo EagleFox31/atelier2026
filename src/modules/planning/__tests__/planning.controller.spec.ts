@@ -1,5 +1,6 @@
 import { PlanningService } from '../planning.service';
 import { AppointmentStatus } from '@prisma/client';
+import { RecordingCustomerNotificationEmitter } from '../../customer-notifications/testing/recording-emitter';
 
 const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
 
@@ -19,8 +20,9 @@ function makeDeps() {
       findFirst: jest.fn().mockResolvedValue({ id: 'v-1' }),
     },
   };
-  const service = new PlanningService(prismaMock as any);
-  return { service, prismaMock };
+  const emitter = new RecordingCustomerNotificationEmitter();
+  const service = new PlanningService(prismaMock as any, emitter as any);
+  return { service, prismaMock, emitter };
 }
 
 describe('PlanningService', () => {
@@ -148,5 +150,58 @@ describe('PlanningService', () => {
         }),
       );
     });
+  });
+});
+
+describe('PlanningService — notification client « RDV confirmé »', () => {
+  const scheduledAt = new Date('2026-10-12T13:30:00Z'); // 14:30 à Douala
+  const appointment = {
+    id: 'appt-1',
+    garageId: TEST_GARAGE_ID,
+    customerId: 'cust-uuid-1',
+    scheduledAt,
+    status: AppointmentStatus.SCHEDULED,
+  };
+
+  it('création : émet APPOINTMENT_CONFIRMED avec date et heure de Douala', async () => {
+    const { service, prismaMock, emitter } = makeDeps();
+    prismaMock.appointment.create.mockResolvedValue(appointment);
+
+    await service.create(
+      { customerId: 'cust-uuid-1', scheduledAt: scheduledAt.toISOString(), reason: 'Vidange' } as any,
+      TEST_GARAGE_ID,
+    );
+
+    await expect(emitter.inputs()).resolves.toEqual([
+      {
+        garageId: TEST_GARAGE_ID,
+        eventType: 'APPOINTMENT_CONFIRMED',
+        idempotencyKey: `appointment.confirmed:appt-1:${scheduledAt.getTime() / 1000}`,
+        customerId: 'cust-uuid-1',
+        refs: { appointmentId: 'appt-1' },
+        variables: { date: '12/10/2026', time: '14:30' },
+      },
+    ]);
+  });
+
+  it('replanification ou confirmation : nouvelle émission ; autre modification : rien', async () => {
+    const { service, prismaMock, emitter } = makeDeps();
+    prismaMock.appointment.update.mockResolvedValue(appointment);
+
+    await service.update('appt-1', { notes: 'Apporter le carnet' }, TEST_GARAGE_ID);
+    expect(emitter.builds).toHaveLength(0);
+
+    await service.update('appt-1', { scheduledAt: scheduledAt.toISOString() }, TEST_GARAGE_ID);
+    await service.update('appt-1', { status: AppointmentStatus.CONFIRMED }, TEST_GARAGE_ID);
+    expect(emitter.builds).toHaveLength(2);
+  });
+
+  it('RDV annulé, terminé ou absent : aucune confirmation', async () => {
+    const { service, prismaMock, emitter } = makeDeps();
+    for (const status of [AppointmentStatus.CANCELLED, AppointmentStatus.COMPLETED, AppointmentStatus.NO_SHOW]) {
+      prismaMock.appointment.update.mockResolvedValue({ ...appointment, status });
+      await service.update('appt-1', { scheduledAt: scheduledAt.toISOString(), status }, TEST_GARAGE_ID);
+    }
+    expect(emitter.builds).toHaveLength(0);
   });
 });

@@ -71,7 +71,19 @@ La première règle qui échoue donne `SKIPPED` avec sa raison :
 - Balayeur : une prise en charge vieille de plus de 10 min (process mort pendant l'envoi) passe en `FAILED` / `UNKNOWN_OUTCOME`, **sans renvoi** : mieux vaut un message manqué qu'un doublon chez le client.
 - Plafond : messages `ACCEPTED`, `SENT`, `DELIVERED`, `READ` depuis le 1er du mois à Douala ; un message simulé ne compte pas.
 - Péremption (`notification-staleness.service.ts`) : RDV annulé, terminé, passé ou déplacé (horaire de la clé) ; OT annulé, clos ou pas encore prêt ; devis plus en `SENT` ; facture brouillon ou annulée (et, pour la relance, soldée) ; paiement non confirmé. Objet introuvable dans le garage = périmé.
+- Variables communes : `customerName` (raison sociale ou prénom + nom) et `garageName` (nom de l'atelier, sinon du garage) sont lues par l'émetteur ; les dates sont à l'heure de Douala et les montants écrits `119 250 FCFA` (`notification-format.ts`).
 - Bouton URL du lien de devis : ajouté avec le lien sécurisé (PR 7), le jeton étant créé à l'envoi et jamais stocké en clair.
+
+### Points d'émission (`emitInBackground`, après l'écriture métier, sans retarder la réponse)
+
+| Événement | Service | Moment |
+|---|---|---|
+| `APPOINTMENT_CONFIRMED` | `PlanningService` | création d'un RDV `SCHEDULED`/`CONFIRMED` ; modification de l'horaire ou passage en `CONFIRMED` (même horaire = même clé, pas de second message) |
+| `SERVICE_ORDER_RECEIVED` | `WorkshopService` | OT créé en `RECEIVED` ou transition vers `RECEIVED` (une fois par OT) |
+| `VEHICLE_READY` | `WorkshopService` | transition vers `READY` (remplace l'ancien SMS `vehicle_ready`) |
+| `INVOICE_AVAILABLE` | `BillingService` | facture émise depuis un devis approuvé |
+| `PAYMENT_CONFIRMED` | `BillingService` | paiement enregistré (`CONFIRMED`) ; un doublon d'idempotence n'émet rien |
+| `QUOTE_APPROVAL_REQUESTED` | — | avec le lien sécurisé de devis (PR 7) |
 
 ## API et écrans (consentement, préférences, historique)
 

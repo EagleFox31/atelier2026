@@ -1,4 +1,5 @@
 import { BillingService } from '../billing.service';
+import { RecordingCustomerNotificationEmitter } from '../../customer-notifications/testing/recording-emitter';
 import { PrismaService } from '../../../shared/prisma/prisma.service';
 import { WorkshopService } from '../../workshop/workshop.service';
 
@@ -10,7 +11,7 @@ const mockWorkshop = {} as unknown as WorkshopService;
 
 function makeInvoiceDeps() {
   const prismaMock = { invoice: { findMany: jest.fn().mockResolvedValue([]) } };
-  const service = new BillingService(prismaMock as any, {} as any, {} as any, {} as any);
+  const service = new BillingService(prismaMock as any, {} as any, {} as any, {} as any, {} as any);
   return { service, prismaMock };
 }
 
@@ -18,7 +19,7 @@ describe('BillingService', () => {
   let service: BillingService;
 
   beforeEach(() => {
-    service = new BillingService(mockPrisma, mockWorkshop, {} as any, {} as any);
+    service = new BillingService(mockPrisma, mockWorkshop, {} as any, {} as any, {} as any);
   });
 
   describe('computeAmounts()', () => {

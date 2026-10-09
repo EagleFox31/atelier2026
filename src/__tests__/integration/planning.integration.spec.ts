@@ -1,4 +1,6 @@
 import request from 'supertest';
+import { CustomerNotificationEmitter } from '../../modules/customer-notifications';
+import { RecordingCustomerNotificationEmitter } from '../../modules/customer-notifications/testing/recording-emitter';
 import { INestApplication } from '@nestjs/common';
 import { PlanningController } from '../../modules/planning/planning.controller';
 import { PlanningService } from '../../modules/planning/planning.service';
@@ -51,7 +53,7 @@ describe('Planning — intégration HTTP', () => {
 
     ({ app } = await createTestApp({
       controllers: [PlanningController],
-      extraProviders: [PlanningService],
+      extraProviders: [PlanningService, { provide: CustomerNotificationEmitter, useValue: new RecordingCustomerNotificationEmitter() }],
       prismaOverride: prisma,
     }));
   });

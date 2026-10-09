@@ -2,6 +2,7 @@ const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { PaymentMethod } from '@prisma/client';
 import { BillingService } from '../billing.service';
+import { RecordingCustomerNotificationEmitter } from '../../customer-notifications/testing/recording-emitter';
 
 function makePrismaMock() {
   return {
@@ -34,8 +35,9 @@ function makeDeps() {
     closeServiceOrderAfterFullPayment: jest.fn(),
   };
   const partsFlowMock = { onQuoteApproved: jest.fn() };
-  const service = new BillingService(prismaMock as any, workshopMock as any, {} as any, partsFlowMock as any);
-  return { service, prismaMock, workshopMock };
+  const emitter = new RecordingCustomerNotificationEmitter();
+  const service = new BillingService(prismaMock as any, workshopMock as any, {} as any, partsFlowMock as any, emitter as any);
+  return { service, prismaMock, workshopMock, emitter };
 }
 
 // ─── recordPayment() ──────────────────────────────────────────────────────────
@@ -504,5 +506,102 @@ describe('BillingService.createInvoiceFromQuote()', () => {
       where: { id: { in: ['obs-1', 'obs-2'] } },
       data: { quotedAt: expect.any(Date) },
     });
+  });
+});
+
+// ─── Notifications client (facture disponible, paiement confirmé) ─────────────
+
+describe('BillingService — notifications client', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('facture émise : INVOICE_AVAILABLE avec référence et montant TTC', async () => {
+    const { service, prismaMock, emitter } = makeDeps();
+    prismaMock.quote.findUnique.mockResolvedValue({
+      id: 'q-1',
+      garageId: TEST_GARAGE_ID,
+      status: 'APPROVED',
+      customerId: 'cust-1',
+      serviceOrderId: 'ot-1',
+      subtotalXaf: 100000,
+      taxRate: 19.25,
+      taxAmountXaf: 19250,
+      stampDutyXaf: 0,
+      totalXaf: 119250,
+      lines: [],
+      serviceOrder: { observations: [] },
+    });
+    prismaMock.invoice.create.mockResolvedValue({
+      id: 'inv-9',
+      reference: 'FAC-2026-0009',
+      garageId: TEST_GARAGE_ID,
+      customerId: 'cust-1',
+      serviceOrderId: 'ot-1',
+      totalXaf: 119250,
+    });
+
+    await service.createInvoiceFromQuote('q-1', 'user-1', TEST_GARAGE_ID);
+
+    await expect(emitter.inputs()).resolves.toEqual([
+      {
+        garageId: TEST_GARAGE_ID,
+        eventType: 'INVOICE_AVAILABLE',
+        idempotencyKey: 'invoice.issued:inv-9',
+        customerId: 'cust-1',
+        refs: { invoiceId: 'inv-9', serviceOrderId: 'ot-1' },
+        variables: { invoiceNumber: 'FAC-2026-0009', amount: '119 250 FCFA' },
+      },
+    ]);
+  });
+
+  it('paiement enregistré : PAYMENT_CONFIRMED avec le montant encaissé', async () => {
+    const { service, prismaMock, emitter } = makeDeps();
+    prismaMock.payment.create.mockResolvedValue({ id: 'pay-7', garageId: TEST_GARAGE_ID, amountXaf: 5000 });
+    prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amountXaf: 5000 } });
+    prismaMock.invoice.findUnique.mockResolvedValue({
+      id: 'inv-1',
+      reference: 'FAC-2026-0001',
+      totalXaf: 24850,
+      status: 'ISSUED',
+      garageId: TEST_GARAGE_ID,
+      serviceOrderId: null,
+      customerId: 'cust-1',
+    });
+    prismaMock.invoice.update.mockResolvedValue({});
+
+    await service.recordPayment({
+      invoiceId: 'inv-1',
+      amount: 5000,
+      method: PaymentMethod.CASH,
+      userId: 'user-1',
+      idempotencyKey: 'key-1',
+      garageId: TEST_GARAGE_ID,
+    });
+
+    await expect(emitter.inputs()).resolves.toEqual([
+      {
+        garageId: TEST_GARAGE_ID,
+        eventType: 'PAYMENT_CONFIRMED',
+        idempotencyKey: 'payment.confirmed:pay-7',
+        customerId: 'cust-1',
+        refs: { paymentId: 'pay-7', invoiceId: 'inv-1' },
+        variables: { amount: '5 000 FCFA', invoiceNumber: 'FAC-2026-0001' },
+      },
+    ]);
+  });
+
+  it('paiement en double (P2002) : aucune notification', async () => {
+    const { service, prismaMock, emitter } = makeDeps();
+    prismaMock.payment.create.mockRejectedValue({ code: 'P2002' });
+    await expect(
+      service.recordPayment({
+        invoiceId: 'inv-1',
+        amount: 5000,
+        method: PaymentMethod.CASH,
+        userId: 'user-1',
+        idempotencyKey: 'key-1',
+        garageId: TEST_GARAGE_ID,
+      }),
+    ).rejects.toThrow(BadRequestException);
+    expect(emitter.builds).toHaveLength(0);
   });
 });
