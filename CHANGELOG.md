@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.15.0](https://github.com/EagleFox31/atelier2026/compare/v1.14.0...v1.15.0) (2026-10-09)
+
+
+### Features
+
+* **billing:** secure public quote link for customer approval over WhatsApp ([161eac3](https://github.com/EagleFox31/atelier2026/commit/161eac34f589fae7ad0e9a4fea1061f1b22a13fa))
+* **billing:** secure public quote link for customer approval over WhatsApp ([e420773](https://github.com/EagleFox31/atelier2026/commit/e4207737e282af6e32eb8a95ef319958de863530))
+* **messaging:** shared messaging contracts for customer notifications ([d2ec28d](https://github.com/EagleFox31/atelier2026/commit/d2ec28d52b3dbdacae12a4f500e842032d4ee67d))
+* **messaging:** shared messaging contracts for customer notifications (lot 2 PR 2/8) ([a614f42](https://github.com/EagleFox31/atelier2026/commit/a614f42ba19d2124925ec873424da90a5330323d))
+* **notifications:** add customer notification schema for WhatsApp-first messaging ([b1db50b](https://github.com/EagleFox31/atelier2026/commit/b1db50bd1f8820fac4eb68c71e8bbca9c8ca844e))
+* **notifications:** appointment reminders and invoice payment reminders over WhatsApp ([c85525c](https://github.com/EagleFox31/atelier2026/commit/c85525cd3afdd6e539cfb8f9a6ac8704cd8da13c))
+* **notifications:** appointment reminders and invoice payment reminders over WhatsApp ([ad179b9](https://github.com/EagleFox31/atelier2026/commit/ad179b9194df79747e18baf9216a46a8e20ca225))
+* **notifications:** customer consent, garage preferences and notification history ([e494e92](https://github.com/EagleFox31/atelier2026/commit/e494e92badb81607ef81ac2020a64a29b582ab7f))
+* **notifications:** customer consent, preferences and history (PR 4/8) ([9682579](https://github.com/EagleFox31/atelier2026/commit/9682579fb95964a6bc86589baf7dd92445e85c6a))
+* **notifications:** customer notification engine (PR 3/8) ([3064670](https://github.com/EagleFox31/atelier2026/commit/306467034584e656d05c00e3674b7f39d7c040e7))
+* **notifications:** customer notification engine with outbox, dispatch rules and whatsapp entitlement ([3afa38d](https://github.com/EagleFox31/atelier2026/commit/3afa38d490671ba0366576fb434f67756cdf98b6))
+* **notifications:** customer notification schema (WhatsApp-first, lot 2 PR 1/8) ([48fd0e4](https://github.com/EagleFox31/atelier2026/commit/48fd0e45dbcf2c011d7f016d93dfc543896b2da2))
+* **notifications:** emit customer notifications from planning, workshop and billing ([ee40413](https://github.com/EagleFox31/atelier2026/commit/ee4041321e1aadb0f88bb8c64d533897aef34a25))
+* **notifications:** emit customer notifications from planning, workshop and billing ([fb98eea](https://github.com/EagleFox31/atelier2026/commit/fb98eeafdc8d79237d97e4e4f48b25f5dd8aa3d6))
+* **notifications:** SUPER_ADMIN health view and operations runbook for customer notifications ([d0d0e73](https://github.com/EagleFox31/atelier2026/commit/d0d0e7398a3bf2c27aecd1e269dc61e1f649f2f5))
+* **notifications:** SUPER_ADMIN health view and operations runbook for customer notifications ([b092d31](https://github.com/EagleFox31/atelier2026/commit/b092d314524ea058504871f5817dc550835a22dc))
+
 ## [1.14.0](https://github.com/EagleFox31/atelier2026/compare/v1.13.0...v1.14.0) (2026-10-09)
 
 
