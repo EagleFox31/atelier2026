@@ -21,11 +21,22 @@ const UNIMTX_SENDER_RE = /^[A-Za-z0-9 _-]{2,16}$/;
 /** Codes « réseau » traités comme temporaires (voir docs/api/error-codes). */
 const TEMPORARY_UNIMTX_CODES = new Set(['101000', '101303', '105100', '105300']);
 
+/** Signature / Sender ID refusés ou absents (10712x, 10714x). */
+const SENDER_REJECTED_UNIMTX_CODES = new Set([
+  '107120',
+  '107121',
+  '107122',
+  '107123',
+  '107143',
+  '107144',
+  '107145',
+]);
+
 /** Mapping d'un code Unimtx définitif → famille d'erreur interne. */
 function mapPermanentUnimtxCode(code: string): PermanentMessagingErrorCode {
   if (code === '105400') return 'INSUFFICIENT_CREDIT';
   if (code === '107111') return 'INVALID_RECIPIENT';
-  if (code === '107143' || code === '107144' || code === '107145') return 'SENDER_REJECTED';
+  if (SENDER_REJECTED_UNIMTX_CODES.has(code)) return 'SENDER_REJECTED';
   if (code.startsWith('104') || code === '105001') return 'PROVIDER_CONFIGURATION';
   if (code.startsWith('107')) return 'CONTENT_REJECTED';
   return 'CONTENT_REJECTED';

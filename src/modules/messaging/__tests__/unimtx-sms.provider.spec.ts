@@ -67,6 +67,10 @@ describe('UnimtxSmsProvider', () => {
   it.each([
     [200, { code: '105400', message: 'InsufficientFunds' }, 'INSUFFICIENT_CREDIT', true],
     [200, { code: '107111', message: 'InvalidPhoneNumbers' }, 'INVALID_RECIPIENT', true],
+    [200, { code: '107120' }, 'SENDER_REJECTED', true],
+    [200, { code: '107121', message: 'SmsSignatureNotExists' }, 'SENDER_REJECTED', true],
+    [200, { code: '107122' }, 'SENDER_REJECTED', true],
+    [200, { code: '107123' }, 'SENDER_REJECTED', true],
     [200, { code: '107143' }, 'SENDER_REJECTED', true],
     [200, { code: '104110' }, 'PROVIDER_CONFIGURATION', true],
     [200, { code: '105001' }, 'PROVIDER_CONFIGURATION', true],
