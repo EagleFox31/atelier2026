@@ -19,6 +19,7 @@ import {
   verifySubscription,
   WHATSAPP_CLOUD_PROVIDER,
   type MetaDeliveryStatus,
+  type MetaOptOutEvent,
   type MetaStatusEvent,
   type ParsedMetaWebhook,
   type WhatsAppWebhookConfig,
@@ -31,7 +32,7 @@ import {
   type ApplyEventJobData,
 } from './whatsapp-webhook.queue';
 
-export type WebhookReceipt = { received: number; ignored: number };
+export type WebhookReceipt = { received: number; optOuts: number; ignored: number };
 
 const META_STATUS: Record<MetaDeliveryStatus, CustomerNotificationStatus> = {
   sent: 'SENT',
@@ -57,6 +58,25 @@ export function toEventRows(statuses: MetaStatusEvent[]): Prisma.WhatsAppWebhook
       status: META_STATUS[event.status],
       occurredAt: event.occurredAt,
       errorCode: event.errorCode === null ? null : String(event.errorCode),
+      dedupKey,
+    });
+  }
+  return [...rows.values()];
+}
+
+/** « STOP » entrants. Clé = compte + `wamid` ; le numéro est effacé dès le traitement. */
+export function toOptOutRows(optOuts: MetaOptOutEvent[]): Prisma.WhatsAppWebhookEventCreateManyInput[] {
+  const rows = new Map<string, Prisma.WhatsAppWebhookEventCreateManyInput>();
+  for (const event of optOuts) {
+    const dedupKey = `inbound:${event.phoneNumberId}:${event.messageId}`;
+    if (rows.has(dedupKey)) continue;
+    rows.set(dedupKey, {
+      kind: 'INBOUND',
+      provider: WHATSAPP_CLOUD_PROVIDER,
+      phoneNumberId: event.phoneNumberId,
+      providerMessageId: event.messageId,
+      occurredAt: event.occurredAt,
+      senderE164: event.fromE164,
       dedupKey,
     });
   }
@@ -103,7 +123,7 @@ export class WhatsAppWebhookService {
    */
   async receive(rawBody: Buffer | undefined, signature: unknown): Promise<WebhookReceipt> {
     const parsed = this.authenticate(rawBody, signature);
-    const rows = toEventRows(parsed.statuses);
+    const rows = [...toEventRows(parsed.statuses), ...toOptOutRows(parsed.optOuts)];
     if (rows.length > 0) {
       await this.prisma.whatsAppWebhookEvent.createMany({ data: rows, skipDuplicates: true });
       const pending = await this.prisma.whatsAppWebhookEvent.findMany({
@@ -112,8 +132,10 @@ export class WhatsAppWebhookService {
       });
       await Promise.all(pending.map(({ id }) => this.enqueue(id)));
     }
-    this.logger.log(`Webhook WhatsApp : ${parsed.statuses.length} statut(s) reçu(s), ${parsed.ignored} élément(s) ignoré(s).`);
-    return { received: parsed.statuses.length, ignored: parsed.ignored };
+    this.logger.log(
+      `Webhook WhatsApp : ${parsed.statuses.length} statut(s), ${parsed.optOuts.length} « STOP », ${parsed.ignored} élément(s) ignoré(s).`,
+    );
+    return { received: parsed.statuses.length, optOuts: parsed.optOuts.length, ignored: parsed.ignored };
   }
 
   /** Redis absent : l'événement est déjà en base, le balayeur l'appliquera. */

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { CustomerNotificationStatus, Prisma, WhatsAppWebhookEventOutcome } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { WhatsAppOptOutService } from './whatsapp-opt-out.service';
 import { WhatsAppSenderResolver } from './whatsapp-sender.resolver';
 
 /**
@@ -36,7 +37,8 @@ export type ApplyEventResult =
   | { outcome: WhatsAppWebhookEventOutcome; notificationId: string | null };
 
 /**
- * Applique un accusé Meta persisté (`whatsapp_webhook_events`) à sa notification client.
+ * Applique un événement Meta persisté (`whatsapp_webhook_events`) : accusé de remise sur sa
+ * notification client, ou « STOP » entrant (délégué à `WhatsAppOptOutService`).
  *
  * Garanties (ne pas régresser) :
  * - rattachement par fournisseur + `wamid` + compte émetteur seulement : le garage vient de la
@@ -46,6 +48,7 @@ export type ApplyEventResult =
  * - idempotent et sûr en concurrence : écritures conditionnelles (`updateMany` + `where`), un
  *   même événement rejoué ne change rien ;
  * - lignes sans `wamid` (simulées, historiques) jamais touchées ;
+ * - numéro d'un expéditeur « STOP » effacé dès que l'événement est traité ;
  * - journaux : identifiants internes et codes seulement.
  */
 @Injectable()
@@ -55,6 +58,7 @@ export class WhatsAppStatusService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly senders: WhatsAppSenderResolver,
+    private readonly optOuts: WhatsAppOptOutService,
   ) {}
 
   async apply(eventId: string, now: Date = new Date()): Promise<ApplyEventResult> {
@@ -62,6 +66,10 @@ export class WhatsAppStatusService {
     if (!event) return { outcome: 'NOT_FOUND' };
     if (event.processedAt) return { outcome: 'ALREADY_PROCESSED' };
 
+    if (event.kind === 'INBOUND') {
+      await this.prisma.whatsAppWebhookEvent.update({ where: { id: eventId }, data: { attempts: { increment: 1 } } });
+      return this.finish(eventId, await this.optOuts.handle(event), null, now);
+    }
     if (event.kind !== 'STATUS' || !event.status) {
       return this.finish(eventId, 'IGNORED', null, now);
     }
@@ -131,7 +139,7 @@ export class WhatsAppStatusService {
   ): Promise<ApplyEventResult> {
     await this.prisma.whatsAppWebhookEvent.updateMany({
       where: { id: eventId, processedAt: null },
-      data: { outcome, notificationId, processedAt: now },
+      data: { outcome, notificationId, processedAt: now, senderE164: null },
     });
     return { outcome, notificationId };
   }

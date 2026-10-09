@@ -133,7 +133,29 @@ describe('Webhook WhatsApp — notifications signées (POST)', () => {
     await app.close();
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ received: 2, ignored: 0 });
+    expect(res.body).toEqual({ received: 2, optOuts: 0, ignored: 0 });
+  });
+
+  it('« STOP » entrant persisté (expéditeur seulement, jamais le texte) ; message ordinaire ignoré sans trace', async () => {
+    const { app, events } = await makeApp();
+    const withMessages = JSON.parse(JSON.stringify(PAYLOAD));
+    withMessages.entry[0].changes[0].value.statuses = [];
+    withMessages.entry[0].changes[0].value.messages = [
+      { from: '237690000001', id: 'wamid.IN1', timestamp: '1760000000', type: 'text', text: { body: 'Stop' } },
+      { from: '237690000002', id: 'wamid.IN2', timestamp: '1760000001', type: 'text', text: { body: 'Ma voiture est prête ?' } },
+    ];
+    const raw = JSON.stringify(withMessages);
+    const res = await post(app, raw, signMetaPayload(Buffer.from(raw), SECRET));
+    await app.close();
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ received: 0, optOuts: 1, ignored: 1 });
+    const { data } = events.createMany.mock.calls[0][0];
+    expect(data).toEqual([
+      expect.objectContaining({ kind: 'INBOUND', dedupKey: 'inbound:123456789012345:wamid.IN1', senderE164: '+237690000001' }),
+    ]);
+    const stored = JSON.stringify(data);
+    expect(stored).not.toMatch(/Stop|prête|237690000002/);
   });
 
   it('accusés persistés AVANT la réponse, puis mis en file (jobId déterministe), sans numéro du client', async () => {

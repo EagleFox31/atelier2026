@@ -617,6 +617,16 @@ test.describe('Atelier Maître — garde-fous UX/UI/CX', () => {
             backlog: 0,
             oldestPendingAt: null,
           },
+          webhook: {
+            configured: false,
+            receiptTimeoutMinutes: 30,
+            acceptedWithoutReceipt: 3,
+            pendingEvents: 0,
+            stuckEvents: 0,
+            unmatchedEvents: 0,
+            optOuts: 1,
+            lastEventAt: null,
+          },
           quota: { monthStart: '2026-09-30T23:00:00.000Z', cap: 300, garages: [{ garageId: 'g1', garageName: 'Garage Central', used: 250, ratio: 0.83 }] },
         }),
       }),
@@ -632,6 +642,8 @@ test.describe('Atelier Maître — garde-fous UX/UI/CX', () => {
     await expect(page.getByText('Pas de consentement WhatsApp')).toBeVisible(); // raison traduite, pas NO_CONSENT
     await expect(page.getByText('Non approuvé', { exact: true })).toBeVisible();
     await expect(page.getByText('250 / 300')).toBeVisible();
+    await expect(page.getByText('Acceptés sans accusé (> 30 min)')).toBeVisible();
+    await expect(page.getByText('Non configuré', { exact: true })).toBeVisible();
   });
 
   test('le login parle d’identifiant employé et non de code employé', async ({ page }) => {

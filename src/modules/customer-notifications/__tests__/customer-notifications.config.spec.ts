@@ -1,6 +1,7 @@
 import {
   CustomerNotificationsConfigurationError,
   DEFAULT_MONTHLY_CAP,
+  DEFAULT_RECEIPT_TIMEOUT_MINUTES,
   loadCustomerNotificationsConfig,
 } from '../customer-notifications.config';
 
@@ -17,6 +18,11 @@ describe('loadCustomerNotificationsConfig', () => {
     expect(config.mode).toBe('off');
     expect(config.monthlyCap).toBe(DEFAULT_MONTHLY_CAP);
     expect(config.approvedTemplates.size).toBe(0);
+    expect(config.receiptTimeoutMinutes).toBe(DEFAULT_RECEIPT_TIMEOUT_MINUTES);
+  });
+
+  it('délai d’accusé de réception configurable', () => {
+    expect(loadCustomerNotificationsConfig({ CUSTOMER_NOTIFICATIONS_RECEIPT_TIMEOUT_MINUTES: '120' }).receiptTimeoutMinutes).toBe(120);
   });
 
   it('live complet : modèles normalisés en minuscules, plafond explicite', () => {
@@ -38,6 +44,8 @@ describe('loadCustomerNotificationsConfig', () => {
     ['mode inconnu', { CUSTOMER_NOTIFICATIONS_MODE: 'prod' }],
     ['repli SMS demandé', { CUSTOMER_NOTIFICATIONS_SMS_FALLBACK: 'on' }],
     ['plafond invalide', { CUSTOMER_NOTIFICATIONS_MONTHLY_CAP: '-1' }],
+    ['délai d’accusé trop court', { CUSTOMER_NOTIFICATIONS_RECEIPT_TIMEOUT_MINUTES: '1' }],
+    ['délai d’accusé non entier', { CUSTOMER_NOTIFICATIONS_RECEIPT_TIMEOUT_MINUTES: '30m' }],
     ['modèle mal formé', { WHATSAPP_APPROVED_TEMPLATES: 'am_vehicle_ready_v1' }],
     ['live sans fournisseur Cloud', { ...LIVE, WHATSAPP_PROVIDER: 'simulator' }],
     ['live sans modèle approuvé', { ...LIVE, WHATSAPP_APPROVED_TEMPLATES: '' }],

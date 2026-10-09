@@ -2,7 +2,13 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { CustomerNotificationEvent, CustomerNotificationStatus } from '@prisma/client';
 import type { Queue } from 'bullmq';
-import { WHATSAPP_PROVIDER, type WhatsAppProvider } from '../messaging';
+import {
+  WHATSAPP_CLOUD_PROVIDER,
+  WHATSAPP_PROVIDER,
+  WHATSAPP_WEBHOOK_CONFIG,
+  type WhatsAppProvider,
+  type WhatsAppWebhookConfig,
+} from '../messaging';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { DEFAULT_TEMPLATE_LANGUAGE, NOTIFICATION_CATALOG, templateName } from './customer-notification-catalog';
 import { BILLABLE_STATUSES, monthStartInDouala } from './customer-notification.processor';
@@ -13,6 +19,7 @@ import {
   type CustomerNotificationsMode,
 } from './customer-notifications.config';
 import { CUSTOMER_NOTIFICATIONS_QUEUE, type DispatchJobData } from './customer-notifications.queue';
+import { CORRELATION_WINDOW_MS } from './whatsapp-status.service';
 
 /** Fenêtre d'observation des issues récentes. */
 export const HEALTH_WINDOW_HOURS = 24;
@@ -21,6 +28,8 @@ export const OUTBOX_BACKLOG_MS = 5 * 60_000;
 /** Part du plafond mensuel à partir de laquelle un garage est signalé. */
 export const QUOTA_WARNING_RATIO = 0.8;
 export const QUEUE_PROBE_TIMEOUT_MS = 2_000;
+/** Accusé Meta encore non appliqué au-delà de la fenêtre de corrélation + 5 min : le traitement est bloqué. */
+export const WEBHOOK_STUCK_MS = CORRELATION_WINDOW_MS + 5 * 60_000;
 const TOP_GARAGES = 10;
 
 export type HealthLevel = 'ok' | 'warning' | 'critical';
@@ -57,6 +66,18 @@ export type CustomerNotificationsHealth = {
     backlog: number;
     oldestPendingAt: string | null;
   };
+  /** Accusés Meta (lot 3). Compteurs seulement : ni numéro, ni contenu de message. */
+  webhook: {
+    configured: boolean;
+    receiptTimeoutMinutes: number;
+    /** Messages acceptés par Meta sans accusé depuis plus du délai : signalés, jamais renvoyés. */
+    acceptedWithoutReceipt: number;
+    pendingEvents: number;
+    stuckEvents: number;
+    unmatchedEvents: number;
+    optOuts: number;
+    lastEventAt: string | null;
+  };
   quota: {
     monthStart: string;
     cap: number;
@@ -78,6 +99,7 @@ export class CustomerNotificationsHealthService {
     @InjectQueue(CUSTOMER_NOTIFICATIONS_QUEUE) private readonly queue: Queue<DispatchJobData>,
     @Inject(CUSTOMER_NOTIFICATIONS_CONFIG) private readonly config: CustomerNotificationsConfig,
     @Inject(WHATSAPP_PROVIDER) private readonly whatsapp: WhatsAppProvider,
+    @Inject(WHATSAPP_WEBHOOK_CONFIG) private readonly webhookConfig: WhatsAppWebhookConfig,
   ) {}
 
   async getHealth(now: Date = new Date()): Promise<CustomerNotificationsHealth> {
@@ -118,6 +140,7 @@ export class CustomerNotificationsHealthService {
       }),
     ]);
 
+    const webhook = await this.webhookHealth(now, since);
     const garageNames = await this.garageNames(usage.map((row) => row.garageId));
     const cap = this.config.monthlyCap;
     const garages = usage.map((row) => ({
@@ -147,7 +170,7 @@ export class CustomerNotificationsHealthService {
       oldestPendingAt: oldestPending?.createdAt.toISOString() ?? null,
     };
 
-    const alerts = this.alerts({ queue, templates, outbox, garages });
+    const alerts = this.alerts({ queue, templates, outbox, garages, webhook });
     return {
       generatedAt: now.toISOString(),
       status: alerts.some((a) => a.level === 'critical') ? 'critical' : alerts.length > 0 ? 'warning' : 'ok',
@@ -162,6 +185,7 @@ export class CustomerNotificationsHealthService {
       templates,
       queue,
       outbox,
+      webhook,
       quota: { monthStart: monthStart.toISOString(), cap, garages },
     };
   }
@@ -171,6 +195,7 @@ export class CustomerNotificationsHealthService {
     templates: CustomerNotificationsHealth['templates'];
     outbox: CustomerNotificationsHealth['outbox'];
     garages: CustomerNotificationsHealth['quota']['garages'];
+    webhook: CustomerNotificationsHealth['webhook'];
   }): HealthAlert[] {
     const { mode } = this.config;
     const alerts: HealthAlert[] = [];
@@ -184,7 +209,29 @@ export class CustomerNotificationsHealthService {
         message: `${input.outbox.backlog} notification(s) en attente depuis plus de ${OUTBOX_BACKLOG_MS / 60_000} min.`,
       });
     }
+    if (input.webhook.stuckEvents > 0) {
+      alerts.push({
+        level: 'critical',
+        code: 'WEBHOOK_EVENTS_STUCK',
+        message: `${input.webhook.stuckEvents} accusé(s) Meta non traité(s) depuis plus de ${WEBHOOK_STUCK_MS / 60_000} min.`,
+      });
+    }
+    if (input.webhook.acceptedWithoutReceipt > 0) {
+      alerts.push({
+        level: 'warning',
+        code: 'ACCEPTED_WITHOUT_RECEIPT',
+        message: `${input.webhook.acceptedWithoutReceipt} message(s) accepté(s) par Meta sans accusé depuis plus de ${input.webhook.receiptTimeoutMinutes} min (aucun renvoi automatique).`,
+      });
+    }
     if (mode === 'off') return alerts;
+
+    if (this.whatsapp.name === WHATSAPP_CLOUD_PROVIDER && !input.webhook.configured) {
+      alerts.push({
+        level: 'warning',
+        code: 'WEBHOOK_NOT_CONFIGURED',
+        message: 'Webhook WhatsApp non configuré : aucun statut de remise ni « STOP » ne sera reçu.',
+      });
+    }
 
     if (mode === 'sandbox' && this.config.testRecipients.size === 0) {
       alerts.push({ level: 'warning', code: 'SANDBOX_NO_RECIPIENTS', message: 'Mode sandbox sans WHATSAPP_TEST_RECIPIENTS : tout envoi sera ignoré.' });
@@ -206,6 +253,35 @@ export class CustomerNotificationsHealthService {
       });
     }
     return alerts;
+  }
+
+  private async webhookHealth(now: Date, since: Date): Promise<CustomerNotificationsHealth['webhook']> {
+    const { receiptTimeoutMinutes } = this.config;
+    const events = this.prisma.whatsAppWebhookEvent;
+    const [acceptedWithoutReceipt, pendingEvents, stuckEvents, unmatchedEvents, optOuts, last] = await Promise.all([
+      this.prisma.customerNotification.count({
+        where: {
+          status: 'ACCEPTED',
+          provider: WHATSAPP_CLOUD_PROVIDER,
+          acceptedAt: { lt: new Date(now.getTime() - receiptTimeoutMinutes * 60_000) },
+        },
+      }),
+      events.count({ where: { processedAt: null } }),
+      events.count({ where: { processedAt: null, receivedAt: { lt: new Date(now.getTime() - WEBHOOK_STUCK_MS) } } }),
+      events.count({ where: { outcome: 'UNMATCHED', receivedAt: { gte: since } } }),
+      events.count({ where: { kind: 'INBOUND', outcome: 'APPLIED', receivedAt: { gte: since } } }),
+      events.findFirst({ orderBy: { receivedAt: 'desc' }, select: { receivedAt: true } }),
+    ]);
+    return {
+      configured: this.webhookConfig.enabled,
+      receiptTimeoutMinutes,
+      acceptedWithoutReceipt,
+      pendingEvents,
+      stuckEvents,
+      unmatchedEvents,
+      optOuts,
+      lastEventAt: last?.receivedAt.toISOString() ?? null,
+    };
   }
 
   private async probeQueue(): Promise<CustomerNotificationsHealth['queue']> {
