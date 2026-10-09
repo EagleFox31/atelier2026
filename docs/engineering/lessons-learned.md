@@ -458,3 +458,17 @@ Toute intégration externe : fixtures copiées d'échanges réels (sandbox) + jo
 **Prévention** : `permissions.guard.spec.ts`, bloc « routes réservées à la plateforme » (ADMIN refusé, même avec des permissions métier ; SUPER_ADMIN accepté ; route mixte inchangée).
 
 **Leçon généralisée** : un bypass de rôle se limite au périmètre de ce rôle. Chaque raccourci d'autorisation doit avoir un test qui vérifie ce qu'il n'ouvre pas.
+
+## LESSON-2026-016 — PR empilées mergées dans leur branche de base, pas dans `main`
+
+**Contexte** : lot 3 des notifications WhatsApp livré en trois PR empilées (#78 → `main`, #79 → #78, #80 → #79), mergées l'une après l'autre le 2026-10-09.
+
+**Échec (near miss)** : seule #78 a atteint `main`. #79 et #80 ont été mergées dans `feat/whatsapp-webhook-endpoint` et `feat/whatsapp-webhook-status`, restées en place. Les PR apparaissaient « Merged » et la PR de release #81 ne contenait que l'endpoint : une release aurait déployé un webhook sans traitement des statuts ni « STOP ». Rattrapé en relisant `git log origin/main` ; correctif par #82 (`feat/whatsapp-webhook-supervision` → `main`).
+
+**Cause racine** : GitHub ne recible une PR empilée vers `main` que si la branche de base est supprimée au merge. Le dépôt a `delete_branch_on_merge = false`, donc #79 et #80 ont gardé leur base d'origine.
+
+**Résolution** : nouvelle PR de la branche du haut de pile vers `main` (les commits revus, sans changement), CI verte, puis release.
+
+**Prévention** : activer *Settings → General → Automatically delete head branches* (recibrage automatique des PR empilées) ; à défaut, avant chaque merge d'une PR empilée, vérifier `gh pr view N --json baseRefName` = `main` (sinon `gh pr edit N --base main`). Après un merge, contrôler `git log origin/main` avant la release.
+
+**Leçon généralisée** : « Merged » ne dit pas *où*. Vérifier que la cible du merge est la branche déployée.
