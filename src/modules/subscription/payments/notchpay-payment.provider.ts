@@ -2,6 +2,7 @@ import {
   BadGatewayException,
   BadRequestException,
   Injectable,
+  Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'crypto';
@@ -100,6 +101,7 @@ function credentialForMode(kind: 'PUBLIC_KEY' | 'WEBHOOK_HASH'): string | undefi
 @Injectable()
 export class NotchPayPaymentProvider implements PaymentProvider {
   readonly name = 'notchpay';
+  private readonly logger = new Logger(NotchPayPaymentProvider.name);
 
   async initializePayment(input: InitializePaymentInput): Promise<InitializedPayment> {
     const payload = await this.request('/payments', {
@@ -155,8 +157,45 @@ export class NotchPayPaymentProvider implements PaymentProvider {
   }
 
   verifyWebhook(rawBody: Buffer, headers: WebhookHeaders): boolean {
-    const signature = headers['x-notch-signature'];
-    return this.verifyWebhookSignature(rawBody, Array.isArray(signature) ? signature[0] : signature);
+    const header = headers['x-notch-signature'];
+    const signature = Array.isArray(header) ? header[0] : header;
+    const valid = this.verifyWebhookSignature(rawBody, signature);
+    if (!valid) this.logSignatureDiagnostic(rawBody, signature);
+    return valid;
+  }
+
+  // Diagnostic temporaire (LESSON-2026-013) : booléens et longueurs uniquement, jamais de secret.
+  private logSignatureDiagnostic(rawBody: Buffer, signature: string | undefined): void {
+    const sig = signature?.trim().toLowerCase().replace(/^sha256=/, '') ?? '';
+    const keys: Record<string, string | undefined> = {
+      NOTCHPAY_TEST_WEBHOOK_HASH: process.env.NOTCHPAY_TEST_WEBHOOK_HASH?.trim(),
+      NOTCHPAY_LIVE_WEBHOOK_HASH: process.env.NOTCHPAY_LIVE_WEBHOOK_HASH?.trim(),
+      NOTCHPAY_WEBHOOK_HASH: process.env.NOTCHPAY_WEBHOOK_HASH?.trim(),
+    };
+    let reserialized: Buffer | null = null;
+    try {
+      reserialized = Buffer.from(JSON.stringify(JSON.parse(rawBody.toString('utf8'))));
+    } catch {
+      reserialized = null;
+    }
+    const matches: string[] = [];
+    for (const [name, key] of Object.entries(keys)) {
+      if (!key) continue;
+      const bodies: Array<[string, Buffer]> = [['raw', rawBody]];
+      if (reserialized) bodies.push(['reserialized', reserialized]);
+      for (const [label, body] of bodies) {
+        const expected = createHmac('sha256', key).update(body).digest('hex');
+        if (expected === sig) matches.push(`${name}/${label}`);
+      }
+    }
+    this.logger.warn(
+      `Diagnostic signature NotchPay : mode=${process.env.NOTCHPAY_MODE ?? 'test(defaut)'} ` +
+        `entete=${signature ? 'present' : 'absent'} longueur=${signature?.length ?? 0} ` +
+        `hex64=${/^[a-f0-9]{64}$/i.test(signature ?? '')} prefixeSha256=${/^sha256=/i.test(signature ?? '')} ` +
+        `cles=[${Object.entries(keys).filter(([, k]) => k).map(([n]) => n).join(',') || 'aucune'}] ` +
+        `corpsBrut=${rawBody.length}o corpsReserialise=${reserialized?.length ?? 'n/a'}o ` +
+        `correspondances=[${matches.join(',') || 'aucune'}]`,
+    );
   }
 
   verifyWebhookSignature(rawPayload: Buffer, signature: string | undefined): boolean {
