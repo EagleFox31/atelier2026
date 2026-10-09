@@ -68,6 +68,32 @@ describe('PermissionsGuard', () => {
     });
   });
 
+  describe('routes réservées à la plateforme (SUPER_ADMIN)', () => {
+    it('refuse un ADMIN de garage', () => {
+      const { reflector, mockContext } = makeContext(makeUser(['ADMIN']), undefined, ['SUPER_ADMIN']);
+      expect(() => new PermissionsGuard(reflector).canActivate(mockContext)).toThrow(ForbiddenException);
+    });
+
+    it('refuse un ADMIN même avec des permissions métier', () => {
+      const { reflector, mockContext } = makeContext(
+        makeUser(['ADMIN'], ['FAC_CREATE', 'STK_CREATE']),
+        undefined,
+        ['SUPER_ADMIN'],
+      );
+      expect(() => new PermissionsGuard(reflector).canActivate(mockContext)).toThrow(ForbiddenException);
+    });
+
+    it('autorise le SUPER_ADMIN', () => {
+      const { reflector, mockContext } = makeContext(makeUser(['SUPER_ADMIN']), undefined, ['SUPER_ADMIN']);
+      expect(new PermissionsGuard(reflector).canActivate(mockContext)).toBe(true);
+    });
+
+    it('garde le bypass ADMIN si la route accepte aussi un rôle de garage', () => {
+      const { reflector, mockContext } = makeContext(makeUser(['ADMIN']), undefined, ['SUPER_ADMIN', 'ADMIN']);
+      expect(new PermissionsGuard(reflector).canActivate(mockContext)).toBe(true);
+    });
+  });
+
   describe('contrôle par permissions', () => {
     it('autorise si l\'utilisateur possède la permission requise', () => {
       const { reflector, mockContext } = makeContext(

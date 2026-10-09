@@ -18,6 +18,8 @@ import { permissionGranted } from '../shared/rbac/permissions';
 import { PrismaService } from '../shared/prisma/prisma.service';
 import { JwtSecretsService } from '../modules/auth/jwt-secrets.service';
 
+const PLATFORM_ROLES = ['SUPER_ADMIN'];
+
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
@@ -118,9 +120,16 @@ export class PermissionsGuard implements CanActivate {
 
     const { user } = context.switchToHttp().getRequest();
     
-    // Bypass SUPER_ADMIN et ADMIN
     const userRoles = user.roles.map((ur: any) => ur.role.code);
-    if (userRoles.includes('SUPER_ADMIN') || userRoles.includes('ADMIN')) return true;
+    if (userRoles.includes('SUPER_ADMIN')) return true;
+
+    // Une route réservée à la plateforme n'est jamais ouverte par le bypass ADMIN :
+    // l'inscription libre-service crée un ADMIN, qui accéderait sinon à tous les tenants.
+    if (requiredRoles?.length && requiredRoles.every((role) => PLATFORM_ROLES.includes(role))) {
+      throw new ForbiddenException('Permissions insuffisantes');
+    }
+
+    if (userRoles.includes('ADMIN')) return true;
 
     // Vérification des rôles
     if (requiredRoles) {
