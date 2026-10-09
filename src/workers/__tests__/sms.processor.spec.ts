@@ -1,6 +1,7 @@
 import { ForbiddenException } from '@nestjs/common';
 import { UnrecoverableError } from 'bullmq';
 import { FakeSmsProvider } from '../../modules/messaging/testing/fake-sms.provider';
+import { SimulatorSmsProvider } from '../../modules/messaging/sms/simulator-sms.provider';
 import { SmsProcessor, type SmsJobData } from '../sms.processor';
 
 function makeProcessor() {
@@ -246,6 +247,37 @@ describe('SmsProcessor — fournisseur injecté (SMS_PROVIDER)', () => {
     expect(prisma.sMSNotification.update).toHaveBeenCalledWith({
       where: { id: 'n1' },
       data: { status: 'FAILED', errorMessage: expect.stringContaining('numéro') },
+    });
+  });
+});
+
+describe('SmsProcessor — fournisseur simulé', () => {
+  it('enregistre SIMULATED (jamais SENT ni DELIVERED) et marque quand même la relance', async () => {
+    const { prisma, subscriptions } = makeProcessor();
+    const processor = new SmsProcessor(prisma as never, subscriptions as never, new SimulatorSmsProvider());
+
+    await expect(
+      processor.process(job({ tenantId: 't1', garageId: 'g1', invoiceId: 'inv-1', invoiceReminder: 1 })),
+    ).resolves.toEqual({ sent: false, simulated: true });
+
+    const { data } = prisma.sMSNotification.create.mock.calls[0][0];
+    expect(data.status).toBe('SIMULATED');
+    expect(data).not.toHaveProperty('deliveredAt');
+    expect(prisma.invoice.update).toHaveBeenCalledWith({
+      where: { id: 'inv-1' },
+      data: { reminder1SentAt: expect.any(Date) },
+    });
+  });
+
+  it('met à jour une notification existante en SIMULATED', async () => {
+    const { prisma, subscriptions } = makeProcessor();
+    const processor = new SmsProcessor(prisma as never, subscriptions as never, new SimulatorSmsProvider());
+
+    await processor.process(job({ tenantId: 't1', notificationId: 'n-1' }));
+
+    expect(prisma.sMSNotification.update).toHaveBeenCalledWith({
+      where: { id: 'n-1' },
+      data: expect.objectContaining({ status: 'SIMULATED' }),
     });
   });
 });

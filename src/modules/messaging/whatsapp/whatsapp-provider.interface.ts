@@ -8,6 +8,9 @@
 export interface WhatsAppProvider {
   readonly name: string;
 
+  /** `true` si aucun message ne quitte le serveur (simulateur) → statut `SIMULATED`. */
+  readonly simulated: boolean;
+
   /** Message libre (autorisé uniquement dans une fenêtre de conversation ouverte chez Meta). */
   sendWhatsAppMessage(request: SendWhatsAppMessageRequest): Promise<SendWhatsAppResult>;
 
@@ -29,7 +32,20 @@ export type SendWhatsAppTemplateRequest = {
   language: string;
   /** Variables positionnelles du modèle, dans l'ordre. */
   variables: string[];
+  /** Boutons URL dynamiques du modèle (ex. lien de devis), dans l'ordre de déclaration chez Meta. */
+  buttons?: WhatsAppTemplateUrlButton[];
   idempotencyKey: string;
+};
+
+/**
+ * Bouton « URL » d'un modèle : seul le suffixe variable est envoyé (`{{1}}` de
+ * l'URL déclarée chez Meta), jamais l'URL complète.
+ */
+export type WhatsAppTemplateUrlButton = {
+  /** Position du bouton dans le modèle (0 à 9). */
+  index: number;
+  /** Partie variable de l'URL (ex. jeton opaque du lien de devis). */
+  urlSuffix: string;
 };
 
 export type SendWhatsAppResult = {

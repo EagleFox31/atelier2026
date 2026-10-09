@@ -61,6 +61,7 @@ export type SmsToConfig = {
  */
 export class SmsToSmsProvider implements SmsProvider {
   readonly name = 'smsto';
+  readonly simulated = false;
 
   private readonly fetchImpl: typeof fetch;
 

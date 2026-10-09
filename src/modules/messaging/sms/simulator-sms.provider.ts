@@ -26,6 +26,7 @@ const SIMULATED_ID_PREFIX = 'sim-';
  */
 export class SimulatorSmsProvider implements SmsProvider {
   readonly name = SIMULATOR_PROVIDER_NAME;
+  readonly simulated = true;
   private readonly logger = new Logger(SimulatorSmsProvider.name);
 
   async sendSms(request: SendSmsRequest): Promise<SendSmsResult> {

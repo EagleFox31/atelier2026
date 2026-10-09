@@ -5,8 +5,10 @@ export {
   MessagingError,
   PermanentMessagingError,
   TemporaryMessagingError,
+  classifyMessagingFailure,
   isPermanentMessagingError,
   type MessagingErrorCode,
+  type MessagingFailure,
   type PermanentMessagingErrorCode,
   type TemporaryMessagingErrorCode,
 } from './messaging.errors';
@@ -24,5 +26,6 @@ export type {
   SendWhatsAppResult,
   SendWhatsAppTemplateRequest,
   WhatsAppProvider,
+  WhatsAppTemplateUrlButton,
 } from './whatsapp/whatsapp-provider.interface';
 export { detectCameroonOperator, maskPhone, toE164, type CameroonOperator } from './shared/phone';

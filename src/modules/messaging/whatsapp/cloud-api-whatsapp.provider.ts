@@ -35,6 +35,7 @@ export type WhatsAppCloudConfig = {
  */
 export class WhatsAppCloudApiProvider implements WhatsAppProvider {
   readonly name = 'whatsapp-cloud';
+  readonly simulated = false;
 
   private readonly fetchImpl: typeof fetch;
 
@@ -67,10 +68,25 @@ export class WhatsAppCloudApiProvider implements WhatsAppProvider {
     return this.send(request.to, { type: 'text', text: { body: request.text, preview_url: false } });
   }
 
-  sendTemplate(request: SendWhatsAppTemplateRequest): Promise<SendWhatsAppResult> {
-    const components = request.variables.length
+  async sendTemplate(request: SendWhatsAppTemplateRequest): Promise<SendWhatsAppResult> {
+    const components: Record<string, unknown>[] = request.variables.length
       ? [{ type: 'body', parameters: request.variables.map((text) => ({ type: 'text', text })) }]
       : [];
+    for (const button of request.buttons ?? []) {
+      if (!Number.isInteger(button.index) || button.index < 0 || button.index > 9 || !button.urlSuffix.trim()) {
+        throw new PermanentMessagingError(
+          'CONTENT_REJECTED',
+          `Bouton URL de modèle invalide (index ${button.index}).`,
+          this.name,
+        );
+      }
+      components.push({
+        type: 'button',
+        sub_type: 'url',
+        index: String(button.index),
+        parameters: [{ type: 'text', text: button.urlSuffix }],
+      });
+    }
     return this.send(request.to, {
       type: 'template',
       template: { name: request.templateName, language: { code: request.language }, components },

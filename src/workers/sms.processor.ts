@@ -2,10 +2,9 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { ForbiddenException, Inject, Logger } from '@nestjs/common';
 import { Job, UnrecoverableError } from 'bullmq';
 import {
-  MessagingError,
   SMS_PROVIDER,
+  classifyMessagingFailure,
   detectCameroonOperator,
-  isPermanentMessagingError,
   maskPhone,
   toE164,
   type SendSmsResult,
@@ -37,7 +36,9 @@ export type SmsJobData = {
  * - numéro inexploitable ou refus définitif du fournisseur → `UnrecoverableError` ;
  * - panne temporaire du fournisseur → erreur relancée (retry BullMQ borné par
  *   `attempts`), notification FAILED à la dernière tentative ;
- * - relances de facture marquées UNIQUEMENT après un envoi accepté ;
+ * - relances de facture marquées UNIQUEMENT après un envoi accepté (ou simulé :
+ *   le drapeau évite que le planificateur réenfile la même relance en boucle) ;
+ * - fournisseur simulé (`simulated`) → statut `SIMULATED`, jamais `SENT` ;
  * - le fournisseur est injecté (`SMS_PROVIDER`), jamais importé directement.
  */
 @Processor('sms-notifications')
@@ -104,11 +105,12 @@ export class SmsProcessor extends WorkerHost {
     }
 
     const operator = result.operator ?? detectCameroonOperator(to);
-    const delivered = result.status === 'DELIVERED';
+    const simulated = this.smsProvider.simulated;
+    const delivered = !simulated && result.status === 'DELIVERED';
     const sentData = {
       operator,
       gatewayRef: result.providerMessageId,
-      status: delivered ? ('DELIVERED' as const) : ('SENT' as const),
+      status: simulated ? ('SIMULATED' as const) : delivered ? ('DELIVERED' as const) : ('SENT' as const),
       sentAt: new Date(),
       ...(delivered ? { deliveredAt: new Date() } : {}),
       templateCode: job.name,
@@ -145,7 +147,7 @@ export class SmsProcessor extends WorkerHost {
       });
     }
 
-    return { sent: true };
+    return simulated ? { sent: false, simulated: true } : { sent: true };
   }
 
   /**
@@ -162,21 +164,21 @@ export class SmsProcessor extends WorkerHost {
   private async handleSendFailure(job: Job<SmsJobData, unknown, string>, error: unknown): Promise<never> {
     const { notificationId, phone } = job.data;
 
-    if (isPermanentMessagingError(error)) {
-      const reason = `SMS non envoyé (${error.code}) : ${error.message}`;
-      this.logger.warn(`Échec définitif SMS ${job.name} pour ${maskPhone(phone)} via ${error.provider} : ${error.code}`);
+    const failure = classifyMessagingFailure(error, job);
+
+    if (failure.kind === 'permanent') {
+      const reason = `SMS non envoyé (${failure.code}) : ${failure.message}`;
+      this.logger.warn(`Échec définitif SMS ${job.name} pour ${maskPhone(phone)} via ${failure.provider} : ${failure.code}`);
       await this.markNotificationFailed(notificationId, reason);
       throw new UnrecoverableError(reason);
     }
 
     // Temporaire (ou erreur non typée, traitée comme temporaire) : BullMQ réessaie.
-    const attempt = (job.attemptsMade ?? 0) + 1;
-    const maxAttempts = job.opts?.attempts ?? 1;
-    const code = error instanceof MessagingError ? error.code : 'UNEXPECTED';
+    const { attempt, maxAttempts, code } = failure;
     const summary = `Échec temporaire SMS ${job.name} pour ${maskPhone(phone)} (${code}), tentative ${attempt}/${maxAttempts}`;
-    if (error instanceof MessagingError) this.logger.error(summary);
+    if (failure.typed) this.logger.error(summary);
     else this.logger.error(summary, error instanceof Error ? error.stack : String(error));
-    if (attempt >= maxAttempts) {
+    if (failure.exhausted) {
       await this.markNotificationFailed(
         notificationId,
         `SMS non envoyé (${code}) : fournisseur indisponible après ${attempt} tentative(s).`,

@@ -24,6 +24,7 @@ type Outcome =
  */
 export class FakeSmsProvider implements SmsProvider {
   readonly name = 'fake';
+  readonly simulated = false;
   readonly sent: SendSmsRequest[] = [];
   private queue: Outcome[] = [];
   private fallback: Outcome = { kind: 'success' };

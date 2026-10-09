@@ -69,3 +69,49 @@ export class TemporaryMessagingError extends MessagingError {
 export function isPermanentMessagingError(error: unknown): error is PermanentMessagingError {
   return error instanceof MessagingError && error.permanent;
 }
+
+/** Issue d'un envoi en échec, décidée une seule fois pour tous les workers (SMS, WhatsApp). */
+export type MessagingFailure =
+  | { kind: 'permanent'; code: PermanentMessagingErrorCode; provider: string; message: string }
+  | {
+      kind: 'temporary';
+      /** `UNEXPECTED` : erreur non typée, traitée comme temporaire. */
+      code: TemporaryMessagingErrorCode | 'UNEXPECTED';
+      /** Tentative en cours (1 = premier essai). */
+      attempt: number;
+      maxAttempts: number;
+      /** Dernière tentative autorisée : le worker doit marquer l'envoi FAILED. */
+      exhausted: boolean;
+      /** `false` pour une erreur non typée : journaliser la pile. */
+      typed: boolean;
+    };
+
+/**
+ * Classe une erreur d'envoi : définitive (ne jamais relancer) ou temporaire
+ * (relancer jusqu'à `maxAttempts`). Fonction pure : le worker garde la main sur
+ * la persistance et sur l'`UnrecoverableError` BullMQ.
+ */
+export function classifyMessagingFailure(
+  error: unknown,
+  job: { attemptsMade?: number; opts?: { attempts?: number } },
+): MessagingFailure {
+  if (isPermanentMessagingError(error)) {
+    return {
+      kind: 'permanent',
+      code: error.code as PermanentMessagingErrorCode,
+      provider: error.provider,
+      message: error.message,
+    };
+  }
+  const attempt = (job.attemptsMade ?? 0) + 1;
+  const maxAttempts = job.opts?.attempts ?? 1;
+  const typed = error instanceof MessagingError;
+  return {
+    kind: 'temporary',
+    code: typed ? (error.code as TemporaryMessagingErrorCode) : 'UNEXPECTED',
+    attempt,
+    maxAttempts,
+    exhausted: attempt >= maxAttempts,
+    typed,
+  };
+}

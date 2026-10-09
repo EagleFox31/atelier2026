@@ -196,10 +196,13 @@ export default function NotificationsPage() {
                             "text-[10px] px-1.5 py-0 border-none",
                             notif.status === 'DELIVERED' ? "bg-green-50 text-green-700 dark:bg-green-950/30" :
                               notif.status === 'SENT' ? "bg-brand-light text-brand-hover dark:bg-brand/20" :
-                                "bg-red-50 text-red-700 dark:bg-red-950/30"
+                                notif.status === 'SIMULATED' || notif.status === 'PENDING' ? "bg-muted text-muted-foreground" :
+                                  "bg-red-50 text-red-700 dark:bg-red-950/30"
                           )}>
                             {notif.status === 'DELIVERED' ? 'Délivré' :
-                              notif.status === 'SENT' ? 'Envoyé' : 'Échec'}
+                              notif.status === 'SENT' ? 'Envoyé' :
+                                notif.status === 'SIMULATED' ? 'Simulé (non envoyé)' :
+                                  notif.status === 'PENDING' ? 'En attente' : 'Échec'}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right text-xs text-muted-foreground">
