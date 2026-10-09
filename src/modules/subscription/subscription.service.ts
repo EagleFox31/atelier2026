@@ -77,6 +77,7 @@ export function subscriptionFeatures(status: SubscriptionStatus, plan: string): 
   return {
     sms: hasFeature({ status, plan }, 'sms'),
     branding: hasFeature({ status, plan }, 'branding'),
+    whatsapp: hasFeature({ status, plan }, 'whatsapp'),
   };
 }
 

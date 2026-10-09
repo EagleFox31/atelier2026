@@ -350,7 +350,7 @@ export interface SubscriptionSummary {
   readOnly: boolean;
   blocked: boolean;
   /** Droits du forfait, calculés côté API — source unique pour griser l'UI. */
-  features: { sms: boolean; branding: boolean };
+  features: { sms: boolean; branding: boolean; whatsapp?: boolean };
 }
 
 export type SubscriptionBillingCycle = 'monthly' | 'annual';

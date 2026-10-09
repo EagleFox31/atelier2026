@@ -45,6 +45,26 @@ describe('entitlements', () => {
     });
   });
 
+  describe('whatsapp (Pro / Business actif uniquement, refus par défaut)', () => {
+    it.each([
+      [SubscriptionStatus.ACTIVE, 'pro', true],
+      [SubscriptionStatus.ACTIVE, 'business', true],
+      [SubscriptionStatus.ACTIVE, 'essential', false],
+      [SubscriptionStatus.ACTIVE, 'enterprise', false],
+      [SubscriptionStatus.TRIAL, 'pro', false],
+      [SubscriptionStatus.GRACE_PERIOD, 'business', false],
+      [SubscriptionStatus.EXPIRED, 'pro', false],
+      [SubscriptionStatus.SUSPENDED, 'business', false],
+    ])('%s / "%s" → %s', (status, plan, expected) => {
+      expect(hasFeature({ status, plan }, 'whatsapp')).toBe(expected);
+    });
+
+    it('refus WhatsApp : errorCode WHATSAPP_SUBSCRIPTION_REQUIRED', () => {
+      const err = featureRequiredError('whatsapp', { status: SubscriptionStatus.TRIAL, plan: 'pro' });
+      expect(err.getResponse()).toMatchObject({ errorCode: 'WHATSAPP_SUBSCRIPTION_REQUIRED', feature: 'whatsapp' });
+    });
+  });
+
   it.each([
     ['starter', 'essential'],
     ['Essential', 'essential'],

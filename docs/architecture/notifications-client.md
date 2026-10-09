@@ -64,6 +64,15 @@ La première règle qui échoue donne `SKIPPED` avec sa raison :
 8. plafond mensuel du garage atteint → `QUOTA_EXCEEDED`
 9. sinon : envoi WhatsApp
 
+### Moteur (`src/modules/customer-notifications/`)
+
+- Catalogue unique (`customer-notification-catalog.ts`) : défaut par garage, modèle `am_<base>_v<version>`, variables positionnelles. Une variable manquante fait échouer l'émission (`emit`) ; `emitSafely` la journalise sans casser l'opération métier.
+- Prise en charge : `UPDATE … WHERE status = PENDING AND dispatch_started_at IS NULL`. Panne temporaire → prise en charge libérée, relance BullMQ (3 essais) ; dernière tentative → `FAILED`.
+- Balayeur : une prise en charge vieille de plus de 10 min (process mort pendant l'envoi) passe en `FAILED` / `UNKNOWN_OUTCOME`, **sans renvoi** : mieux vaut un message manqué qu'un doublon chez le client.
+- Plafond : messages `ACCEPTED`, `SENT`, `DELIVERED`, `READ` depuis le 1er du mois à Douala ; un message simulé ne compte pas.
+- Péremption (`notification-staleness.service.ts`) : RDV annulé, terminé, passé ou déplacé (horaire de la clé) ; OT annulé, clos ou pas encore prêt ; devis plus en `SENT` ; facture brouillon ou annulée (et, pour la relance, soldée) ; paiement non confirmé. Objet introuvable dans le garage = périmé.
+- Bouton URL du lien de devis : ajouté avec le lien sécurisé (PR 7), le jeton étant créé à l'envoi et jamais stocké en clair.
+
 ## Clés d'idempotence (unique par garage)
 
 | Événement | Clé |

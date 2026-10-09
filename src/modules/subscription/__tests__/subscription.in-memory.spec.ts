@@ -65,11 +65,11 @@ describe('resolveSubscriptionStatus (pure)', () => {
 
 describe('subscriptionFeatures (exposé au front)', () => {
   it.each([
-    [SubscriptionStatus.TRIAL, 'pro', { sms: false, branding: false }],
-    [SubscriptionStatus.ACTIVE, 'essential', { sms: false, branding: true }],
-    [SubscriptionStatus.ACTIVE, 'pro', { sms: true, branding: true }],
-    [SubscriptionStatus.ACTIVE, 'business', { sms: true, branding: true }],
-    [SubscriptionStatus.GRACE_PERIOD, 'business', { sms: false, branding: false }],
+    [SubscriptionStatus.TRIAL, 'pro', { sms: false, branding: false, whatsapp: false }],
+    [SubscriptionStatus.ACTIVE, 'essential', { sms: false, branding: true, whatsapp: false }],
+    [SubscriptionStatus.ACTIVE, 'pro', { sms: true, branding: true, whatsapp: true }],
+    [SubscriptionStatus.ACTIVE, 'business', { sms: true, branding: true, whatsapp: true }],
+    [SubscriptionStatus.GRACE_PERIOD, 'business', { sms: false, branding: false, whatsapp: false }],
   ])('%s / %s', (status, plan, expected) => {
     expect(subscriptionFeatures(status, plan)).toEqual(expected);
   });

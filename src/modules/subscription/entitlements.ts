@@ -12,7 +12,7 @@ import { SubscriptionStatus } from '@prisma/client';
  * ou de feature flags (OpenFeature/Unleash) serait disproportionnée pour une
  * table statique de quelques règles, sans état distant à synchroniser.
  */
-export type Feature = 'branding' | 'sms';
+export type Feature = 'branding' | 'sms' | 'whatsapp';
 
 export type PlanId = 'essential' | 'pro' | 'business';
 
@@ -35,11 +35,15 @@ const ENTITLEMENTS: Record<Feature, (ctx: EntitlementContext) => boolean> = {
   /** Logo personnalisé (app, devis, factures, PDF) : tout forfait payant actif. */
   branding: (ctx) => ctx.status === SubscriptionStatus.ACTIVE,
   /** SMS Orange / MTN : Pro ou Business actif (page tarifs). Refus par défaut sinon. */
-  sms: (ctx) => {
-    const plan = normalizePlan(ctx.plan);
-    return ctx.status === SubscriptionStatus.ACTIVE && (plan === 'pro' || plan === 'business');
-  },
+  sms: (ctx) => isActiveProOrBusiness(ctx),
+  /** Notifications client WhatsApp : même règle que le SMS (prix pouvant diverger). */
+  whatsapp: (ctx) => isActiveProOrBusiness(ctx),
 };
+
+function isActiveProOrBusiness(ctx: EntitlementContext): boolean {
+  const plan = normalizePlan(ctx.plan);
+  return ctx.status === SubscriptionStatus.ACTIVE && (plan === 'pro' || plan === 'business');
+}
 
 const FEATURE_REQUIRED: Record<Feature, { errorCode: string; message: string }> = {
   branding: {
@@ -50,6 +54,10 @@ const FEATURE_REQUIRED: Record<Feature, { errorCode: string; message: string }> 
   sms: {
     errorCode: 'SMS_SUBSCRIPTION_REQUIRED',
     message: 'Les SMS sont disponibles avec un abonnement Pro ou Business actif.',
+  },
+  whatsapp: {
+    errorCode: 'WHATSAPP_SUBSCRIPTION_REQUIRED',
+    message: 'Les notifications WhatsApp sont disponibles avec un abonnement Pro ou Business actif.',
   },
 };
 
