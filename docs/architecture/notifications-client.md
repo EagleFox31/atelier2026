@@ -72,7 +72,7 @@ La première règle qui échoue donne `SKIPPED` avec sa raison :
 - Plafond : messages `ACCEPTED`, `SENT`, `DELIVERED`, `READ` depuis le 1er du mois à Douala ; un message simulé ne compte pas.
 - Péremption (`notification-staleness.service.ts`) : RDV annulé, terminé, passé ou déplacé (horaire de la clé) ; OT annulé, clos ou pas encore prêt ; devis plus en `SENT` ; facture brouillon ou annulée (et, pour la relance, soldée) ; paiement non confirmé. Objet introuvable dans le garage = périmé.
 - Variables communes : `customerName` (raison sociale ou prénom + nom) et `garageName` (nom de l'atelier, sinon du garage) sont lues par l'émetteur ; les dates sont à l'heure de Douala et les montants écrits `119 250 FCFA` (`notification-format.ts`).
-- Bouton URL du lien de devis : ajouté avec le lien sécurisé (PR 7), le jeton étant créé à l'envoi et jamais stocké en clair.
+- Bouton URL du lien de devis : le processor crée le jeton juste avant l'envoi (`issueQuoteAccessToken`, `src/shared/billing/quote-access-token.ts`) et le passe en suffixe du bouton (index 0) ; l'URL du modèle Meta est `https://<domaine>/devis/{{1}}`. Devis introuvable = `FAILED` / `MISSING_VARIABLE`.
 
 ### Points d'émission (`emitInBackground`, après l'écriture métier, sans retarder la réponse)
 
@@ -83,7 +83,7 @@ La première règle qui échoue donne `SKIPPED` avec sa raison :
 | `VEHICLE_READY` | `WorkshopService` | transition vers `READY` (remplace l'ancien SMS `vehicle_ready`) |
 | `INVOICE_AVAILABLE` | `BillingService` | facture émise depuis un devis approuvé |
 | `PAYMENT_CONFIRMED` | `BillingService` | paiement enregistré (`CONFIRMED`) ; un doublon d'idempotence n'émet rien |
-| `QUOTE_APPROVAL_REQUESTED` | — | avec le lien sécurisé de devis (PR 7) |
+| `QUOTE_APPROVAL_REQUESTED` | `BillingService` | devis envoyé (`sendQuote`, `DRAFT → SENT`) ; une révision renvoyée = nouvelle clé |
 
 ### Rappels planifiés (`reminder-scheduler.service.ts`, fuseau Africa/Douala)
 
@@ -109,6 +109,20 @@ La première règle qui échoue donne `SKIPPED` avec sa raison :
 - Préférences : seules les valeurs effectives qui changent sont écrites ; un second appel identique n'écrit rien.
 - Client d'un autre garage : 404.
 - Écrans : carte « Notifications WhatsApp » de la fiche client (`CustomerWhatsAppCard`), onglet Paramètres → Notifications (`CustomerNotificationSettings`, verrou piloté par `features.whatsapp`). Garde-fous dans `e2e-ux/`.
+
+## Lien public de devis
+
+| Route (publique, limite par IP) | Rôle |
+|---|---|
+| `GET /public/quotes/:token` (30/min) | vue du devis sans identifiant interne ni coordonnée ; `canDecide` |
+| `POST /public/quotes/:token/approve` (5/min) | `SENT → APPROVED` (`clientApprovalMethod: DIGITAL`), mêmes effets que l'approbation au comptoir |
+| `POST /public/quotes/:token/reject` (5/min) | `SENT → REJECTED`, motif facultatif (500 car.) notifié en in-app à la réception, au chef et à l'admin |
+
+- Jeton : 32 octets aléatoires base64url (`opaque-token.ts`), seule l'empreinte SHA-256 est stockée. Validité 30 jours, bornée par la fin du jour `validUntil` du devis (Douala). Un nouvel envoi révoque les liens non utilisés du devis.
+- Erreurs : `QUOTE_LINK_INVALID` 404 (jeton mal formé ou inconnu, garage bloqué), `QUOTE_LINK_EXPIRED` 410 (révoqué, expiré, validité dépassée, ou garage en lecture seule pour une décision ; le message donne le motif), `QUOTE_ALREADY_DECIDED` 409.
+- Décision atomique sans transaction interactive : prise du jeton (`decidedAt IS NULL`) puis `updateMany` conditionnel sur `status: SENT` ; deux clics ou une approbation au comptoir simultanée ne décident qu'une fois.
+- Un devis déjà tranché reste consultable. Après un refus, l'OT reste en `QUOTE_PENDING` (l'atelier révise ou annule).
+- Écran : `app/devis/[token]/page.tsx` (page publique, sans compte).
 
 ## Clés d'idempotence (unique par garage)
 

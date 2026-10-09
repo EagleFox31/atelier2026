@@ -2,8 +2,9 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
 import type { CustomerNotificationStatus } from '@prisma/client';
 import { Job, UnrecoverableError } from 'bullmq';
+import { issueQuoteAccessToken } from '../../shared/billing/quote-access-token';
 import { PrismaService } from '../../shared/prisma/prisma.service';
-import { classifyMessagingFailure, maskPhone } from '../messaging';
+import { classifyMessagingFailure, maskPhone, type WhatsAppTemplateUrlButton } from '../messaging';
 import { hasFeature } from '../subscription/entitlements';
 import { SubscriptionService } from '../subscription/subscription.service';
 import {
@@ -130,11 +131,13 @@ export class CustomerNotificationProcessor extends WorkerHost {
     // Écrit avant l'appel : si le process meurt pendant l'envoi, l'issue reste traçable.
     await this.prisma.customerNotification.update({ where: { id: row.id }, data: base });
 
+    const buttons = await this.buildButtons(row, now);
     const result = await sender.provider.sendTemplate({
       to: decision.to,
       templateName: decision.templateName,
       language: decision.language,
       variables,
+      ...(buttons.length > 0 ? { buttons } : {}),
       idempotencyKey: `customer-notification:${row.id}`,
     });
 
@@ -155,6 +158,34 @@ export class CustomerNotificationProcessor extends WorkerHost {
       `Notification ${row.id} (${row.eventType}) ${simulated ? 'simulée' : 'acceptée'} pour ${maskPhone(decision.to)}`,
     );
     return { outcome: simulated ? 'SIMULATED' : 'ACCEPTED' };
+  }
+
+  /**
+   * Bouton URL du modèle. Le jeton du lien de devis est créé ici, juste avant l'envoi : une
+   * relance en émet un nouveau et révoque le précédent, jamais stocké en clair.
+   */
+  private async buildButtons(
+    row: { id: string; garageId: string; eventType: Parameters<typeof templateName>[0]; quoteId: string | null },
+    now: Date,
+  ): Promise<WhatsAppTemplateUrlButton[]> {
+    const button = NOTIFICATION_CATALOG[row.eventType].urlButton;
+    if (!button) return [];
+    const missingQuote = () =>
+      new MissingNotificationVariableError(row.eventType, [], `Devis introuvable pour le bouton de ${row.eventType}`);
+    if (!row.quoteId) throw missingQuote();
+    const quote = await this.prisma.quote.findFirst({
+      where: { id: row.quoteId, garageId: row.garageId },
+      select: { validUntil: true },
+    });
+    if (!quote) throw missingQuote();
+    const token = await issueQuoteAccessToken(this.prisma, {
+      garageId: row.garageId,
+      quoteId: row.quoteId,
+      notificationId: row.id,
+      validUntil: quote.validUntil,
+      now,
+    });
+    return [{ index: button.index, urlSuffix: token }];
   }
 
   private async decide(

@@ -8,6 +8,7 @@ export {
 export { notificationKeys } from './notification-keys';
 export { NOTIFICATION_CATALOG, type NotificationVariable } from './customer-notification-catalog';
 export {
+  customerDisplayName,
   formatNotificationAmount,
   formatNotificationDate,
   formatNotificationTime,

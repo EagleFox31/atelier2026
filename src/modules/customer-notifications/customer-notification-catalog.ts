@@ -26,6 +26,12 @@ export type CatalogEntry = {
   templateVersion: number;
   /** Variables du modèle, dans l'ordre `{{1}}`, `{{2}}`… */
   variables: readonly NotificationVariable[];
+  /**
+   * Bouton URL dynamique du modèle : `index` = position chez Meta, `source` = d'où vient le
+   * suffixe. `quoteAccessToken` : jeton du lien public de devis, créé à l'envoi (URL Meta
+   * `https://<domaine>/devis/{{1}}`).
+   */
+  urlButton?: { index: number; source: 'quoteAccessToken' };
 };
 
 export const NOTIFICATION_CATALOG: Record<CustomerNotificationEvent, CatalogEntry> = {
@@ -52,6 +58,7 @@ export const NOTIFICATION_CATALOG: Record<CustomerNotificationEvent, CatalogEntr
     templateBase: 'quote_approval',
     templateVersion: 1,
     variables: ['customerName', 'garageName', 'quoteNumber', 'amount'],
+    urlButton: { index: 0, source: 'quoteAccessToken' },
   },
   VEHICLE_READY: {
     defaultEnabled: true,
@@ -93,8 +100,8 @@ export function templateLanguages(customerLang: string | null | undefined): stri
 }
 
 export class MissingNotificationVariableError extends Error {
-  constructor(readonly event: CustomerNotificationEvent, readonly missing: NotificationVariable[]) {
-    super(`Variables manquantes pour ${event} : ${missing.join(', ')}`);
+  constructor(readonly event: CustomerNotificationEvent, readonly missing: NotificationVariable[], detail?: string) {
+    super(detail ?? `Variables manquantes pour ${event} : ${missing.join(', ')}`);
     this.name = 'MissingNotificationVariableError';
   }
 }
