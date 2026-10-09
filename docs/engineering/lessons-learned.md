@@ -444,3 +444,17 @@ Toute intégration externe : fixtures copiées d'échanges réels (sandbox) + jo
 **Prévention** : avant de pousser, exécuter les deux `tsc` (serveur et racine) dans l'ordre de la CI ; dans les specs, passer les environnements via un helper typé (`env()`), comme `messaging-providers.spec.ts`.
 
 **Leçon généralisée** : récidive de « Jest vert ≠ tsc vert » — la checklist de vérification locale doit refléter chaque étape de la CI.
+
+## LESSON-2026-015 — Le bypass ADMIN ouvrait les routes SUPER_ADMIN
+
+**Contexte** : préparation d'un endpoint de test WhatsApp réservé à la plateforme (2026-10-09), en relisant `PermissionsGuard`.
+
+**Échec (near miss, sécurité)** : `PermissionsGuard` laissait passer tout `ADMIN` avant de lire les rôles requis. `@RequireRole('SUPER_ADMIN')` (console `/admin/tenants/*`, leads `/demo-requests/*`) acceptait donc l'ADMIN de n'importe quel garage. Comme l'inscription libre-service crée un ADMIN, un inconnu pouvait lister tous les tenants, en suspendre un, et lire ou modifier les leads de démo.
+
+**Cause racine** : le raccourci « ADMIN = tout dans son garage » était appliqué à toutes les routes, y compris celles de la plateforme, qui ne sont pas scopées par garage. Aucun test ne couvrait le cas ADMIN contre une route SUPER_ADMIN.
+
+**Résolution** : une route dont tous les rôles requis sont des rôles plateforme (`PLATFORM_ROLES`) refuse l'ADMIN. Le bypass ADMIN reste valable pour les routes de garage.
+
+**Prévention** : `permissions.guard.spec.ts`, bloc « routes réservées à la plateforme » (ADMIN refusé, même avec des permissions métier ; SUPER_ADMIN accepté ; route mixte inchangée).
+
+**Leçon généralisée** : un bypass de rôle se limite au périmètre de ce rôle. Chaque raccourci d'autorisation doit avoir un test qui vérifie ce qu'il n'ouvre pas.
