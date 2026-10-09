@@ -32,6 +32,8 @@ export const RATE_LIMITS = {
   quoteLinkDecide: { default: { ttl: MINUTE, limit: 5 } },
   /** Envoi WhatsApp de contrôle (SUPER_ADMIN) : chaque appel coûte un message réel. */
   whatsappTest: { default: { ttl: MINUTE, limit: 5 } },
+  /** Vérification d'abonnement du webhook WhatsApp (GET Meta) : rare, cible de devinette du jeton. */
+  webhookVerify: { default: { ttl: MINUTE, limit: 10 } },
 } as const;
 
 export function isRateLimitEnabled(env: NodeJS.ProcessEnv = process.env): boolean {

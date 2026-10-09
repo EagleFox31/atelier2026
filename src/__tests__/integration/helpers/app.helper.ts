@@ -6,6 +6,7 @@ import { AllExceptionsFilter } from '../../../filters/all-exceptions.filter';
 import { JwtAuthGuard, PermissionsGuard } from '../../../guards/auth.guard';
 import { PrismaService } from '../../../shared/prisma/prisma.service';
 import { AuditService } from '../../../shared/audit/audit.service';
+import { applyBodyParsers } from '../../../shared/http/body-parsers';
 import { JwtSecretsService } from '../../../modules/auth/jwt-secrets.service';
 
 // Même valeur que JwtSecretsService.DEV_FALLBACK_SECRET
@@ -92,8 +93,10 @@ export async function createTestApp(options: {
   controllers?: any[];
   extraProviders?: any[];
   prismaOverride: ReturnType<typeof makeIntegrationPrismaMock>;
+  /** Parsers de `main.ts` (corps brut des webhooks signés) au lieu de ceux de Nest. */
+  productionBodyParsers?: boolean;
 }): Promise<{ app: INestApplication; moduleRef: TestingModule }> {
-  const { moduleImports = [], controllers = [], extraProviders = [], prismaOverride } = options;
+  const { moduleImports = [], controllers = [], extraProviders = [], prismaOverride, productionBodyParsers = false } = options;
 
   const moduleRef = await Test.createTestingModule({
     imports: [
@@ -115,7 +118,8 @@ export async function createTestApp(options: {
     .useValue(prismaOverride)
     .compile();
 
-  const app = moduleRef.createNestApplication();
+  const app = moduleRef.createNestApplication({ bodyParser: !productionBodyParsers });
+  if (productionBodyParsers) applyBodyParsers(app);
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );

@@ -19,6 +19,8 @@ import { NotificationPreferencesService } from './notification-preferences.servi
 import { NotificationStalenessService } from './notification-staleness.service';
 import { ReminderSchedulerService } from './reminder-scheduler.service';
 import { WhatsAppSenderResolver } from './whatsapp-sender.resolver';
+import { WhatsAppWebhookController } from './whatsapp-webhook.controller';
+import { WhatsAppWebhookService } from './whatsapp-webhook.service';
 
 /**
  * Notifications client (WhatsApp d'abord) — voir docs/architecture/notifications-client.md.
@@ -31,7 +33,12 @@ import { WhatsAppSenderResolver } from './whatsapp-sender.resolver';
     MessagingModule,
     SubscriptionModule,
   ],
-  controllers: [CustomerNotificationsController, NotificationSettingsController, CustomerNotificationsAdminController],
+  controllers: [
+    CustomerNotificationsController,
+    NotificationSettingsController,
+    CustomerNotificationsAdminController,
+    WhatsAppWebhookController,
+  ],
   providers: [
     { provide: CUSTOMER_NOTIFICATIONS_CONFIG, useFactory: () => loadCustomerNotificationsConfig() },
     CustomerConsentService,
@@ -44,6 +51,7 @@ import { WhatsAppSenderResolver } from './whatsapp-sender.resolver';
     NotificationStalenessService,
     ReminderSchedulerService,
     WhatsAppSenderResolver,
+    WhatsAppWebhookService,
   ],
   exports: [CustomerNotificationEmitter],
 })

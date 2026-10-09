@@ -1,6 +1,6 @@
 /** Point d'entrée public du module de messagerie (contrats, jetons, erreurs, utilitaires). */
 export { MessagingModule } from './messaging.module';
-export { SMS_PROVIDER, WHATSAPP_PROVIDER } from './messaging.tokens';
+export { SMS_PROVIDER, WHATSAPP_PROVIDER, WHATSAPP_WEBHOOK_CONFIG } from './messaging.tokens';
 export {
   MessagingError,
   PermanentMessagingError,
@@ -29,3 +29,17 @@ export type {
   WhatsAppTemplateUrlButton,
 } from './whatsapp/whatsapp-provider.interface';
 export { detectCameroonOperator, maskPhone, toE164, type CameroonOperator } from './shared/phone';
+export {
+  MAX_WEBHOOK_BODY_BYTES,
+  MetaWebhookPayloadError,
+  WhatsAppWebhookConfigurationError,
+  loadWhatsAppWebhookConfig,
+  parseMetaWebhook,
+  signMetaPayload,
+  verifyMetaSignature,
+  verifySubscription,
+  type MetaDeliveryStatus,
+  type MetaStatusEvent,
+  type ParsedMetaWebhook,
+  type WhatsAppWebhookConfig,
+} from './whatsapp/meta-webhook';

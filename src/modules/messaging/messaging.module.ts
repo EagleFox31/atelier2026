@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { createSmsProvider, createWhatsAppProvider } from './messaging.config';
-import { SMS_PROVIDER, WHATSAPP_PROVIDER } from './messaging.tokens';
+import { SMS_PROVIDER, WHATSAPP_PROVIDER, WHATSAPP_WEBHOOK_CONFIG } from './messaging.tokens';
+import { loadWhatsAppWebhookConfig } from './whatsapp/meta-webhook';
 
 /**
  * Couche d'abstraction des fournisseurs de messagerie (issue #18).
@@ -14,7 +15,8 @@ import { SMS_PROVIDER, WHATSAPP_PROVIDER } from './messaging.tokens';
   providers: [
     { provide: SMS_PROVIDER, useFactory: () => createSmsProvider() },
     { provide: WHATSAPP_PROVIDER, useFactory: () => createWhatsAppProvider() },
+    { provide: WHATSAPP_WEBHOOK_CONFIG, useFactory: () => loadWhatsAppWebhookConfig() },
   ],
-  exports: [SMS_PROVIDER, WHATSAPP_PROVIDER],
+  exports: [SMS_PROVIDER, WHATSAPP_PROVIDER, WHATSAPP_WEBHOOK_CONFIG],
 })
 export class MessagingModule {}

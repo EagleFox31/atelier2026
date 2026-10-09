@@ -8,9 +8,9 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import compression from 'compression';
-import { json, urlencoded } from 'express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
+import { applyBodyParsers } from './shared/http/body-parsers';
 import { apiHelmetOptions } from './shared/security/http-security';
 
 let isBootstrapped = false;
@@ -28,18 +28,8 @@ async function bootstrap() {
   // Sans ça, une requête d'écriture coupée en plein vol peut être rejouée → doublon.
   app.enableShutdownHooks();
 
-  // Les logos sont envoyés en data URL (<= 500 KB fichier). On remplace
-  // explicitement le parser Nest/Express par une limite cohérente avec cette règle.
-  app.use(json({
-    limit: '1mb',
-    verify: (request, _response, buffer) => {
-      const url = String(request.url ?? '');
-      if (url.startsWith('/api/subscription/webhooks/')) {
-        (request as typeof request & { rawBody?: Buffer }).rawBody = Buffer.from(buffer);
-      }
-    },
-  }));
-  app.use(urlencoded({ limit: '1mb', extended: true }));
+  // Parser Nest/Express remplacé : limite 1 Mo, corps brut conservé pour les webhooks signés.
+  applyBodyParsers(app);
 
   // Sécurité et Performance (Point 2) — CSP Helmet active, compatible Swagger UI
   app.use(helmet(apiHelmetOptions()));
