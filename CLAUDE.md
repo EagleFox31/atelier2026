@@ -108,6 +108,7 @@ Règles prod :
 | `WHATSAPP_TEST_RECIPIENTS` | Numéros E.164 (virgules) autorisés pour l'envoi WhatsApp de contrôle et le mode `sandbox` ; vide = envoi de test refusé |
 | `CUSTOMER_NOTIFICATIONS_MODE` | Notifications client WhatsApp : `off` (défaut) / `sandbox` / `live` ; valeur inconnue = l'API refuse de démarrer |
 | `WHATSAPP_APPROVED_TEMPLATES` / `CUSTOMER_NOTIFICATIONS_MONTHLY_CAP` | Modèles Meta approuvés (`nom:langue`, virgules) / plafond mensuel par garage (défaut 300, obligatoire en `live`) |
+| `WHATSAPP_WEBHOOK_VERIFY_TOKEN` / `WHATSAPP_APP_SECRET` | Webhook Meta `GET\|POST /api/webhooks/whatsapp` : jeton du challenge (aléatoire, à nous) / secret d'application Meta (signature `X-Hub-Signature-256`) ; les deux ou aucun (aucun = route 404) ; ≠ `WHATSAPP_ACCESS_TOKEN` |
 
 ---
 
