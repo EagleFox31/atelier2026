@@ -10,6 +10,9 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
  *   code d'erreur) : aucun contenu de conversation, aucun numéro de client.
  */
 
+/** Nom du fournisseur Cloud API : `CustomerNotification.provider` des lignes envoyées par Meta. */
+export const WHATSAPP_CLOUD_PROVIDER = 'whatsapp-cloud';
+
 export type WhatsAppWebhookConfig =
   | { enabled: false }
   | { enabled: true; verifyToken: string; appSecret: string };

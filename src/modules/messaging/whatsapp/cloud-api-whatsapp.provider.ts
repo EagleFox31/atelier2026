@@ -4,6 +4,7 @@ import {
   type PermanentMessagingErrorCode,
 } from '../messaging.errors';
 import { maskPhone, toE164 } from '../shared/phone';
+import { WHATSAPP_CLOUD_PROVIDER } from './meta-webhook';
 import type {
   SendWhatsAppMessageRequest,
   SendWhatsAppResult,
@@ -31,16 +32,21 @@ export type WhatsAppCloudConfig = {
  * - Hors fenêtre de conversation de 24 h, Meta refuse le texte libre (131047) :
  *   erreur définitive `CONTENT_REJECTED`, il faut un modèle approuvé (`sendTemplate`).
  * - Pas de clé d'idempotence côté Meta : un retry après timeout peut dupliquer.
- * - Statut renvoyé : `QUEUED` (les accusés sent/delivered/read arrivent par webhook, non branché).
+ * - Statut renvoyé : `QUEUED` (les accusés sent/delivered/read arrivent par le webhook Meta).
  */
 export class WhatsAppCloudApiProvider implements WhatsAppProvider {
-  readonly name = 'whatsapp-cloud';
+  readonly name = WHATSAPP_CLOUD_PROVIDER;
   readonly simulated = false;
 
   private readonly fetchImpl: typeof fetch;
 
   constructor(private readonly config: WhatsAppCloudConfig) {
     this.fetchImpl = config.fetchImpl ?? fetch;
+  }
+
+  /** Numéro émetteur Meta (`phone_number_id`) : identifiant public, rattache les accusés du webhook. */
+  get accountRef(): string {
+    return this.config.phoneNumberId;
   }
 
   static fromEnv(env: NodeJS.ProcessEnv, fetchImpl?: typeof fetch): WhatsAppCloudApiProvider {

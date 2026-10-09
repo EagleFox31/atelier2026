@@ -19,8 +19,12 @@ import { NotificationPreferencesService } from './notification-preferences.servi
 import { NotificationStalenessService } from './notification-staleness.service';
 import { ReminderSchedulerService } from './reminder-scheduler.service';
 import { WhatsAppSenderResolver } from './whatsapp-sender.resolver';
+import { WhatsAppStatusService } from './whatsapp-status.service';
 import { WhatsAppWebhookController } from './whatsapp-webhook.controller';
+import { WhatsAppWebhookEventProcessor } from './whatsapp-webhook-event.processor';
+import { WHATSAPP_WEBHOOK_EVENTS_QUEUE } from './whatsapp-webhook.queue';
 import { WhatsAppWebhookService } from './whatsapp-webhook.service';
+import { WhatsAppWebhookSweeper } from './whatsapp-webhook.sweeper';
 
 /**
  * Notifications client (WhatsApp d'abord) — voir docs/architecture/notifications-client.md.
@@ -29,7 +33,7 @@ import { WhatsAppWebhookService } from './whatsapp-webhook.service';
  */
 @Module({
   imports: [
-    BullModule.registerQueue({ name: CUSTOMER_NOTIFICATIONS_QUEUE }),
+    BullModule.registerQueue({ name: CUSTOMER_NOTIFICATIONS_QUEUE }, { name: WHATSAPP_WEBHOOK_EVENTS_QUEUE }),
     MessagingModule,
     SubscriptionModule,
   ],
@@ -51,7 +55,10 @@ import { WhatsAppWebhookService } from './whatsapp-webhook.service';
     NotificationStalenessService,
     ReminderSchedulerService,
     WhatsAppSenderResolver,
+    WhatsAppStatusService,
+    WhatsAppWebhookEventProcessor,
     WhatsAppWebhookService,
+    WhatsAppWebhookSweeper,
   ],
   exports: [CustomerNotificationEmitter],
 })
