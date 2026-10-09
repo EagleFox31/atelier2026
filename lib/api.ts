@@ -155,6 +155,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 const get  = <T>(path: string)                  => request<T>(path, { method: 'GET' });
 const post = <T>(path: string, body?: unknown)  => request<T>(path, { method: 'POST',  body: JSON.stringify(body) });
 const patch = <T>(path: string, body?: unknown) => request<T>(path, { method: 'PATCH', body: JSON.stringify(body) });
+const put  = <T>(path: string, body?: unknown)  => request<T>(path, { method: 'PUT',   body: JSON.stringify(body) });
 const del  = <T>(path: string)                  => request<T>(path, { method: 'DELETE' });
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
@@ -197,6 +198,22 @@ export const customersApi = {
   create: (body: unknown) => post('/customers', body),
   update: (id: string, body: unknown) => patch(`/customers/${id}`, body),
   delete: (id: string) => del(`/customers/${id}`),
+};
+
+// ─── Notifications client (consentement, historique, préférences) ─────────
+export const customerNotificationsApi = {
+  consents: (customerId: string) =>
+    get<import('./customer-notifications').CustomerConsents>(`/customers/${customerId}/notification-consents`),
+  recordConsent: (customerId: string, body: import('./customer-notifications').RecordConsentBody) =>
+    put<{ changed: boolean; consent: import('./customer-notifications').ChannelConsent }>(
+      `/customers/${customerId}/notification-consents/WHATSAPP`, body),
+  history: (customerId: string, limit?: number) =>
+    get<import('./customer-notifications').CustomerNotificationRow[]>(
+      `/customers/${customerId}/notifications${toQuery({ limit })}`),
+  settings: () =>
+    get<import('./customer-notifications').NotificationPreference[]>('/settings/notifications'),
+  updateSettings: (settings: { eventType: import('./customer-notifications').CustomerNotificationEvent; enabled: boolean }[]) =>
+    patch<import('./customer-notifications').NotificationPreference[]>('/settings/notifications', { settings }),
 };
 
 // ─── Vehicles ──────────────────────────────────────────────────────────────

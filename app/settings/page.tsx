@@ -13,7 +13,6 @@ import {
   Bell,
   ShieldCheck,
   Save,
-  Smartphone,
   Percent,
   Clock,
   Loader2,
@@ -24,7 +23,6 @@ import {
   Trash2,
   Check,
   X,
-  LockKeyhole,
   CreditCard,
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
@@ -35,6 +33,7 @@ import type { WorkshopSettings } from '@/lib/workshop-settings';
 import { toast } from 'sonner';
 import { useTrialStatus } from '@/hooks/use-trial-status';
 import { SubscriptionCheckoutButton } from '@/components/subscription/SubscriptionCheckoutButton';
+import { CustomerNotificationSettings } from '@/components/settings/CustomerNotificationSettings';
 
 type GeneralForm = Pick<
   WorkshopSettings,
@@ -50,18 +49,20 @@ export default function SettingsPage() {
   const { data: subscription } = useTrialStatus(Boolean(user?.tenantId));
   // Droits calculés par l'API (entitlements.ts) : aucune règle de forfait dupliquée ici.
   const brandingLocked = Boolean(user?.tenantId) && subscription?.features?.branding === false;
-  const smsLocked = Boolean(user?.tenantId) && subscription?.features?.sms !== true;
+  const whatsappLocked = Boolean(user?.tenantId) && subscription?.features?.whatsapp !== true;
   // Pendant le pilote vs après (grâce, expiré…) : le verrou est le même, pas le message.
   const inPilot = subscription?.status === 'TRIAL';
-  const smsLockMessage = !subscription
-    ? 'Vérification de votre abonnement en cours.'
-    : subscription.status === 'TRIAL'
-      ? 'Les SMS sont désactivés pendant le pilote gratuit afin d’éviter des frais opérateur.'
-      : subscription.status === 'GRACE_PERIOD'
-        ? 'Les SMS sont suspendus pendant la période de grâce.'
-        : subscription.status === 'ACTIVE'
-          ? 'Les SMS sont réservés aux forfaits Pro et Business.'
-          : 'Les SMS nécessitent un abonnement Pro ou Business actif.';
+  const whatsappLockMessage = !whatsappLocked
+    ? null
+    : !subscription
+      ? 'Vérification de votre abonnement en cours.'
+      : subscription.status === 'TRIAL'
+        ? 'Les messages WhatsApp sont désactivés pendant le pilote gratuit afin d’éviter des frais.'
+        : subscription.status === 'GRACE_PERIOD'
+          ? 'Les messages WhatsApp sont suspendus pendant la période de grâce.'
+          : subscription.status === 'ACTIVE'
+            ? 'Les messages WhatsApp sont réservés aux forfaits Pro et Business.'
+            : 'Les messages WhatsApp nécessitent un abonnement Pro ou Business actif.';
 
   const [loading, setLoading] = useState(true);
   const [savingGeneral, setSavingGeneral] = useState(false);
@@ -492,69 +493,7 @@ export default function SettingsPage() {
             </TabsContent>
 
             <TabsContent value="notifications">
-              <Card className="border-none shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    Configuration SMS & Alertes
-                    {smsLocked && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
-                        <LockKeyhole size={11} />
-                        Abonnement actif requis
-                      </span>
-                    )}
-                  </CardTitle>
-                  <CardDescription>
-                    Gérez l&apos;envoi automatique de SMS à vos clients.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {smsLocked && (
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                      {smsLockMessage} Ils deviennent disponibles avec un abonnement Pro ou Business actif.
-                    </div>
-                  )}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
-                          <Smartphone size={20} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-900">SMS de réception véhicule</p>
-                          <p className="text-xs text-slate-500">Envoyé dès qu&apos;un OT est créé.</p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={smsLocked}
-                        title={smsLocked ? 'Disponible avec un abonnement Pro ou Business actif' : undefined}
-                      >
-                        Configurer le template
-                      </Button>
-                    </div>
-                    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-green-50 text-green-600 flex items-center justify-center">
-                          <Smartphone size={20} />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-900">SMS véhicule prêt</p>
-                          <p className="text-xs text-slate-500">Envoyé quand le statut passe à &quot;PRÊT&quot;.</p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={smsLocked}
-                        title={smsLocked ? 'Disponible avec un abonnement Pro ou Business actif' : undefined}
-                      >
-                        Configurer le template
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <CustomerNotificationSettings canEdit={canEdit} lockMessage={whatsappLockMessage} />
             </TabsContent>
 
             {canManageSubscription && (

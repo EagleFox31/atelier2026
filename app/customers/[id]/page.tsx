@@ -11,6 +11,7 @@ import { User, Mail, Phone, MapPin, History, ArrowLeft, Car, FileText, Plus, Mes
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { VehicleForm } from "@/components/forms/VehicleForm";
 import { CustomerForm, CUSTOMER_FORM_DIALOG_CLASS } from "@/components/forms/CustomerForm";
+import { CustomerWhatsAppCard } from "@/components/customers/CustomerWhatsAppCard";
 import { customersApi } from "@/lib/api";
 import { useApi } from "@/hooks/use-api";
 import { useAuth } from "@/contexts/auth-context";
@@ -215,6 +216,8 @@ export default function CustomerDetailPage() {
               }
             </CardContent>
           </Card>
+
+          <CustomerWhatsAppCard customerId={id} phonePrimary={customer.phonePrimary} canEdit={canEdit} />
 
           {/* Historique OT */}
           <Card className="border-border shadow-sm">

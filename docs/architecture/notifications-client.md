@@ -73,6 +73,21 @@ La première règle qui échoue donne `SKIPPED` avec sa raison :
 - Péremption (`notification-staleness.service.ts`) : RDV annulé, terminé, passé ou déplacé (horaire de la clé) ; OT annulé, clos ou pas encore prêt ; devis plus en `SENT` ; facture brouillon ou annulée (et, pour la relance, soldée) ; paiement non confirmé. Objet introuvable dans le garage = périmé.
 - Bouton URL du lien de devis : ajouté avec le lien sécurisé (PR 7), le jeton étant créé à l'envoi et jamais stocké en clair.
 
+## API et écrans (consentement, préférences, historique)
+
+| Route | Droit | Rôle |
+|---|---|---|
+| `GET /customers/:customerId/notification-consents` | `VEH_VIEW` | état par canal + 20 derniers événements de preuve + texte de consentement en vigueur |
+| `PUT /customers/:customerId/notification-consents/WHATSAPP` | `VEH_CREATE` | accord ou retrait (`status`, `source`, `phone?`, `note?`) |
+| `GET /customers/:customerId/notifications?limit=` | `VEH_VIEW` | historique du client (1-100, défaut 50), sans variables ni id fournisseur |
+| `GET /settings/notifications` | connecté | valeur effective de chaque événement du catalogue |
+| `PATCH /settings/notifications` | ADMIN | `{ settings: [{ eventType, enabled }] }` |
+
+- Consentement : numéro normalisé en E.164 (absent = numéro principal ; retrait = numéro du consentement), sinon 400 `CONSENT_PHONE_INVALID`. Même statut et même numéro = aucune écriture (`changed: false`). Sinon état et événement de preuve dans une seule écriture imbriquée, avec la version du texte (`consent-text.ts` : tout changement de texte = nouvelle version).
+- Préférences : seules les valeurs effectives qui changent sont écrites ; un second appel identique n'écrit rien.
+- Client d'un autre garage : 404.
+- Écrans : carte « Notifications WhatsApp » de la fiche client (`CustomerWhatsAppCard`), onglet Paramètres → Notifications (`CustomerNotificationSettings`, verrou piloté par `features.whatsapp`). Garde-fous dans `e2e-ux/`.
+
 ## Clés d'idempotence (unique par garage)
 
 | Événement | Clé |
