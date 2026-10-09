@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AppointmentStatus } from '@prisma/client';
+import { AppointmentStatus, type Appointment } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import {
   assertAppointmentInGarage,
@@ -8,11 +8,26 @@ import {
   garageWhere,
   requireGarageId,
 } from '../../shared/garage/garage-scope';
+import {
+  CustomerNotificationEmitter,
+  formatNotificationDate,
+  formatNotificationTime,
+  notificationKeys,
+} from '../customer-notifications';
 import { CreateAppointmentDto, UpdateAppointmentDto } from './dto/planning.dto';
+
+/** RDV encore à venir : seuls ceux-là donnent lieu à une confirmation client. */
+const ACTIVE_APPOINTMENT_STATUSES = new Set<AppointmentStatus>([
+  AppointmentStatus.SCHEDULED,
+  AppointmentStatus.CONFIRMED,
+]);
 
 @Injectable()
 export class PlanningService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly customerNotifications: CustomerNotificationEmitter,
+  ) {}
 
   async create(data: CreateAppointmentDto, garageId?: string | null) {
     const g = requireGarageId(garageId);
@@ -20,9 +35,11 @@ export class PlanningService {
     if (data.vehicleId) {
       await assertVehicleInGarage(this.prisma, data.vehicleId, g);
     }
-    return this.prisma.appointment.create({
+    const appointment = await this.prisma.appointment.create({
       data: { ...data, garageId: g },
     });
+    this.notifyAppointmentConfirmed(appointment);
+    return appointment;
   }
 
   findAll(garageId?: string | null, date?: string, status?: AppointmentStatus) {
@@ -45,11 +62,32 @@ export class PlanningService {
 
   async update(id: string, data: UpdateAppointmentDto, garageId?: string | null) {
     await assertAppointmentInGarage(this.prisma, id, garageId);
-    return this.prisma.appointment.update({ where: { id }, data });
+    const appointment = await this.prisma.appointment.update({ where: { id }, data });
+    // Replanifié ou confirmé : nouvelle confirmation (la clé porte l'horaire, un
+    // même horaire n'est jamais confirmé deux fois).
+    if (data.scheduledAt !== undefined || data.status === AppointmentStatus.CONFIRMED) {
+      this.notifyAppointmentConfirmed(appointment);
+    }
+    return appointment;
   }
 
   async remove(id: string, garageId?: string | null) {
     await assertAppointmentInGarage(this.prisma, id, garageId);
     return this.prisma.appointment.delete({ where: { id } });
+  }
+
+  private notifyAppointmentConfirmed(appointment: Appointment) {
+    if (!ACTIVE_APPOINTMENT_STATUSES.has(appointment.status)) return;
+    this.customerNotifications.emitInBackground('APPOINTMENT_CONFIRMED', async () => ({
+      garageId: appointment.garageId,
+      eventType: 'APPOINTMENT_CONFIRMED',
+      idempotencyKey: notificationKeys.appointmentConfirmed(appointment.id, appointment.scheduledAt),
+      customerId: appointment.customerId,
+      refs: { appointmentId: appointment.id },
+      variables: {
+        date: formatNotificationDate(appointment.scheduledAt),
+        time: formatNotificationTime(appointment.scheduledAt),
+      },
+    }));
   }
 }

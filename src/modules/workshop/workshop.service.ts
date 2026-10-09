@@ -5,11 +5,8 @@ import { AuditService } from '../../shared/audit/audit.service';
 import { NotificationsService, OT_CREATED_NOTIFY_ROLES } from '../notifications/notifications.service';
 import { PartsFlowService } from '../stock/parts-flow.service';
 import type { PartReconciliationItem } from '../stock/parts-flow.service';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { maskPhone } from '../messaging';
-import { smsJobOptions } from '../../workers/sms-job.options';
 import { OTStatus, PartStatus } from '@prisma/client';
+import { CustomerNotificationEmitter, notificationKeys } from '../customer-notifications';
 import {
   CreateServiceOrderDto,
   UpdateOTDto,
@@ -86,7 +83,7 @@ export class WorkshopService {
     private audit: AuditService,
     private notifications: NotificationsService,
     private partsFlow: PartsFlowService,
-    @InjectQueue('sms-notifications') private smsQueue: Queue,
+    private customerNotifications: CustomerNotificationEmitter,
     @Optional() private events?: EventsService,
   ) {}
 
@@ -194,6 +191,10 @@ export class WorkshopService {
 
       return created;
     });
+
+    if (ot.status === OTStatus.RECEIVED) {
+      this.notifyServiceOrderReceived(ot.id, ot.customerId, ot.garageId);
+    }
 
     // Notifier les chefs d'atelier qu'un nouvel OT a été créé
     setImmediate(async () => {
@@ -634,36 +635,32 @@ export class WorkshopService {
       metadata: { reason: data.reason, automated: options?.automated ?? false },
     });
 
-    // 6. SMS + notification in-app si READY
+    if (targetStatus === OTStatus.RECEIVED) {
+      this.notifyServiceOrderReceived(otId, ot.customerId, ot.garageId);
+    }
+
+    // 6. Notification client WhatsApp + notification in-app si READY
     if (targetStatus === OTStatus.READY) {
+      // Une transition READY = une version d'OT (verrou optimiste) : une clé par passage en READY.
+      const readyVersion = ot.version + 1;
+      const plateNumber = ot.vehicle?.plateNumber;
+      this.customerNotifications.emitInBackground('VEHICLE_READY', async () =>
+        plateNumber
+          ? {
+              garageId: ot.garageId,
+              eventType: 'VEHICLE_READY',
+              idempotencyKey: notificationKeys.vehicleReady(otId, readyVersion),
+              customerId: ot.customerId,
+              refs: { serviceOrderId: otId },
+              variables: { plate: plateNumber },
+            }
+          : null,
+      );
+
       const customer = await this.prisma.customer.findUnique({
         where: { id: ot.customerId },
-        select: { phonePrimary: true, firstName: true, lastName: true, lang: true, id: true },
+        select: { firstName: true, lastName: true },
       });
-
-      if (customer?.phonePrimary) {
-        const nom = [customer.firstName, customer.lastName].filter(Boolean).join(' ');
-        setImmediate(async () => {
-          try {
-            await this.smsQueue.add(
-              'vehicle_ready',
-              {
-                phone: customer.phonePrimary,
-                message: `Bonjour ${nom}, votre véhicule est prêt. Vous pouvez venir le récupérer à l'atelier. Merci pour votre confiance.`,
-                customerId: customer.id,
-                serviceOrderId: otId,
-                lang: customer.lang ?? 'fr',
-              },
-              // Une transition READY = une version d'OT (verrou optimiste) → jobId unique
-              // par passage en READY, stable si la mise en file est rejouée.
-              smsJobOptions(`vehicle-ready_${otId}_v${ot.version + 1}`),
-            );
-            this.logger.log(`SMS "véhicule prêt" mis en file pour ${maskPhone(customer.phonePrimary)} (OT ${otId})`);
-          } catch (err) {
-            this.logger.error(`Échec SMS véhicule prêt pour OT ${otId}`, err);
-          }
-        });
-      }
 
       // Notification in-app — réceptionniste ET caissier (deux envois distincts)
       setImmediate(async () => {
@@ -942,6 +939,25 @@ export class WorkshopService {
         ...(data.vehicleId       !== undefined && { vehicleId: data.vehicleId }),
         ...(data.customerId      !== undefined && { customerId: data.customerId }),
       },
+    });
+  }
+
+  /** « OT pris en charge » (désactivé par défaut côté garage) : une seule fois par OT. */
+  private notifyServiceOrderReceived(otId: string, customerId: string, garageId: string | null) {
+    this.customerNotifications.emitInBackground('SERVICE_ORDER_RECEIVED', async () => {
+      const order = await this.prisma.serviceOrder.findUnique({
+        where: { id: otId },
+        select: { reference: true, vehicle: { select: { plateNumber: true } } },
+      });
+      if (!order?.reference || !order.vehicle?.plateNumber) return null;
+      return {
+        garageId,
+        eventType: 'SERVICE_ORDER_RECEIVED',
+        idempotencyKey: notificationKeys.serviceOrderReceived(otId),
+        customerId,
+        refs: { serviceOrderId: otId },
+        variables: { plate: order.vehicle.plateNumber, orderNumber: order.reference },
+      };
     });
   }
 }

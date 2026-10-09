@@ -19,6 +19,9 @@ function makeEmitter(options: { enabled?: boolean; existing?: { id: string; stat
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       findMany: jest.fn().mockResolvedValue([]),
     },
+    customer: { findFirst: jest.fn().mockResolvedValue(null) },
+    workshopSettings: { findUnique: jest.fn().mockResolvedValue(null) },
+    garage: { findUnique: jest.fn().mockResolvedValue(null) },
   };
   const preferences = { isEnabled: jest.fn().mockResolvedValue(options.enabled ?? true) };
   const queue = { add: jest.fn().mockResolvedValue({}) };
@@ -80,6 +83,61 @@ describe('CustomerNotificationEmitter', () => {
     const { emitter } = makeEmitter();
     await expect(emitter.emitSafely({ ...INPUT, variables: {} })).resolves.toBeNull();
     await expect(emitter.emit({ ...INPUT, variables: {} })).rejects.toThrow('Variables manquantes');
+  });
+
+  it('complète le nom du client et du garage quand l’appelant ne les fournit pas', async () => {
+    const { emitter, prisma } = makeEmitter();
+    prisma.customer.findFirst.mockResolvedValue({ customerType: 'COMPANY', companyName: 'SOTRACAM', firstName: null, lastName: null });
+    prisma.workshopSettings.findUnique.mockResolvedValue({ shopName: 'Garage Central' });
+
+    await emitter.emit({ ...INPUT, variables: { plate: 'LT 123 AB' } });
+
+    expect(prisma.customer.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'c1', garageId: 'g1' } }));
+    expect(prisma.customerNotification.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          variables: { plate: 'LT 123 AB', customerName: 'SOTRACAM', garageName: 'Garage Central' },
+        }),
+      }),
+    );
+  });
+
+  it('sans paramètres d’atelier : nom du garage ; variables fournies : aucune lecture', async () => {
+    const { emitter, prisma } = makeEmitter();
+    prisma.customer.findFirst.mockResolvedValue({ customerType: 'INDIVIDUAL', firstName: 'Jean', lastName: 'Mbarga' });
+    prisma.garage.findUnique.mockResolvedValue({ name: 'Garage du Centre' });
+
+    await emitter.emit({ ...INPUT, variables: { plate: 'LT 123 AB' } });
+    expect(prisma.customerNotification.create.mock.calls[0][0].data.variables).toMatchObject({
+      customerName: 'Jean Mbarga',
+      garageName: 'Garage du Centre',
+    });
+
+    prisma.customer.findFirst.mockClear();
+    await emitter.emit(INPUT);
+    expect(prisma.customer.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('événement désactivé : aucune lecture des variables', async () => {
+    const { emitter, prisma } = makeEmitter({ enabled: false });
+    await emitter.emit({ ...INPUT, variables: { plate: 'LT 123 AB' } });
+    expect(prisma.customer.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('emitInBackground : émet le résultat du builder, ne propage aucune erreur', async () => {
+    const { emitter, prisma } = makeEmitter();
+    const flush = () => new Promise((resolve) => setImmediate(resolve));
+
+    emitter.emitInBackground('test', async () => INPUT);
+    await flush();
+    expect(prisma.customerNotification.create).toHaveBeenCalledTimes(1);
+
+    emitter.emitInBackground('rien', async () => null);
+    emitter.emitInBackground('panne', async () => {
+      throw new Error('lecture impossible');
+    });
+    await flush();
+    expect(prisma.customerNotification.create).toHaveBeenCalledTimes(1);
   });
 });
 

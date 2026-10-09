@@ -1,4 +1,6 @@
 import request from 'supertest';
+import { CustomerNotificationEmitter } from '../../modules/customer-notifications';
+import { RecordingCustomerNotificationEmitter } from '../../modules/customer-notifications/testing/recording-emitter';
 import { INestApplication } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { BillingController } from '../../modules/billing/billing.controller';
@@ -91,6 +93,7 @@ describe('Billing — intégration HTTP', () => {
       controllers: [BillingController],
       extraProviders: [
         BillingService,
+        { provide: CustomerNotificationEmitter, useValue: new RecordingCustomerNotificationEmitter() },
         { provide: WorkshopService, useValue: workshopMock },
         { provide: NotificationsService, useValue: { getUserIdsByRoles: jest.fn().mockResolvedValue([]), createInApp: jest.fn().mockResolvedValue([]) } },
         { provide: PartsFlowService, useValue: { onQuoteApproved: jest.fn(), consumeReservedParts: jest.fn(), releaseReservationsForOrder: jest.fn(), reconcilePartsAtQc: jest.fn() } },

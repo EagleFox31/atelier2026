@@ -891,7 +891,7 @@ Fonction : `fn_next_ref(prefix TEXT, seq_name TEXT)` — appelée via `dbgenerat
 
 | Queue | Jobs | Déclencheur | Worker |
 |-------|------|-------------|--------|
-| `sms-notifications` | `vehicle_ready` | `PATCH /workshop/ot/:id/status` → `READY` | `src/workers/` (simule SMS MTN/Orange) |
+| `customer-notifications` | `dispatch` | outbox `customer_notifications` (RDV confirmé, OT reçu / prêt, facture, paiement) + balayeur 1 min | `CustomerNotificationProcessor` (WhatsApp) |
 | `sms-notifications` | Job manuel | `POST /notifications/sms/send` | Idem |
 | `stock-alerts` | `low-stock` | `POST /stock/movement` si stock ≤ seuil | Worker d'alerte stock |
 

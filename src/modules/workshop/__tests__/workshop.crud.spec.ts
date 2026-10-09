@@ -2,6 +2,8 @@ const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { OTStatus } from '@prisma/client';
 import { WorkshopService } from '../workshop.service';
+import { RecordingCustomerNotificationEmitter } from '../../customer-notifications/testing/recording-emitter';
+
 
 function makeDeps() {
   const txMock = {
@@ -51,10 +53,10 @@ function makeDeps() {
   };
   const auditMock         = { log: jest.fn() };
   const notifMock         = { notifyUsers: jest.fn(), getInbox: jest.fn(), getUnreadCount: jest.fn(), markRead: jest.fn(), markAllRead: jest.fn(), getUserIdsByRoles: jest.fn().mockResolvedValue([]), createInApp: jest.fn().mockResolvedValue({}) };
-  const smsQueueMock      = { add: jest.fn() };
+  const emitter           = new RecordingCustomerNotificationEmitter();
   const partsFlowMock     = { onQuoteApproved: jest.fn(), consumeReservedParts: jest.fn(), releaseReservationsForOrder: jest.fn(), reconcilePartsAtQc: jest.fn() };
-  const service = new WorkshopService(prismaMock as any, auditMock as any, notifMock as any, partsFlowMock as any, smsQueueMock as any);
-  return { service, prismaMock, txMock, auditMock, smsQueueMock };
+  const service = new WorkshopService(prismaMock as any, auditMock as any, notifMock as any, partsFlowMock as any, emitter as any);
+  return { service, prismaMock, txMock, auditMock, emitter };
 }
 
 // ─── listOTs() ────────────────────────────────────────────────────────────────
@@ -241,6 +243,36 @@ describe('WorkshopService.createOT()', () => {
         data: expect.objectContaining({ status: OTStatus.RECEIVED, mileageIn: 45000 }),
       }),
     );
+  });
+
+  it('OT reçu : émet SERVICE_ORDER_RECEIVED (plaque + référence) ; brouillon : rien', async () => {
+    const { service, txMock, prismaMock, emitter } = makeDeps();
+    prismaMock.serviceOrder.findUnique = jest.fn().mockResolvedValue({
+      reference: 'OT-2026-0042',
+      vehicle: { plateNumber: 'LT 123 AB' },
+    });
+
+    txMock.serviceOrder.create.mockResolvedValue({ id: 'ot-draft', status: OTStatus.DRAFT, customerId: 'cust-1', garageId: TEST_GARAGE_ID });
+    await service.createOT({ vehicleId: 'veh-1', customerId: 'cust-1', clientComplaint: 'Bruit' }, 'user-1', TEST_GARAGE_ID);
+    expect(emitter.builds).toHaveLength(0);
+
+    txMock.serviceOrder.create.mockResolvedValue({ id: 'ot-new', status: OTStatus.RECEIVED, customerId: 'cust-1', garageId: TEST_GARAGE_ID });
+    await service.createOT(
+      { vehicleId: 'veh-1', customerId: 'cust-1', clientComplaint: 'Révision', mileageIn: 45000 },
+      'user-1',
+      TEST_GARAGE_ID,
+    );
+
+    await expect(emitter.inputs()).resolves.toEqual([
+      {
+        garageId: TEST_GARAGE_ID,
+        eventType: 'SERVICE_ORDER_RECEIVED',
+        idempotencyKey: 'ot.received:ot-new',
+        customerId: 'cust-1',
+        refs: { serviceOrderId: 'ot-new' },
+        variables: { plate: 'LT 123 AB', orderNumber: 'OT-2026-0042' },
+      },
+    ]);
   });
 
   it('enregistre openedBy avec l\'id de l\'utilisateur', async () => {

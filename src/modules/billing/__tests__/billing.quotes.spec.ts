@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { BillingService } from '../billing.service';
+import { RecordingCustomerNotificationEmitter } from '../../customer-notifications/testing/recording-emitter';
 
 const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
 
@@ -32,6 +33,7 @@ function makeDeps() {
     workshopMock as any,
     notifMock as any,
     partsFlowMock as any,
+    new RecordingCustomerNotificationEmitter() as any,
   );
   return { service, prismaMock, partsFlowMock, notifMock };
 }

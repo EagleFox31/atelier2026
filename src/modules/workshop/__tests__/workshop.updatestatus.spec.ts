@@ -2,10 +2,10 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { OTStatus, PartStatus } from '@prisma/client';
+import { RecordingCustomerNotificationEmitter } from '../../customer-notifications/testing/recording-emitter';
 import { WorkshopService } from '../workshop.service';
 
 const TEST_GARAGE_ID = '52221808-e45d-41a9-9a37-933695560f6c';
@@ -81,16 +81,16 @@ function makeDeps() {
     releaseReservationsForOrder: jest.fn().mockResolvedValue(undefined),
     reconcilePartsAtQc: jest.fn().mockResolvedValue({ reconciled: 0 }),
   };
-  const smsQueueMock = { add: jest.fn() };
+  const emitter = new RecordingCustomerNotificationEmitter();
 
   const service = new WorkshopService(
     prismaMock as any,
     auditMock as any,
     notifMock as any,
     partsFlowMock as any,
-    smsQueueMock as any,
+    emitter as any,
   );
-  return { service, prismaMock, auditMock, notifMock, smsQueueMock, partsFlowMock };
+  return { service, prismaMock, auditMock, notifMock, emitter, partsFlowMock };
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
@@ -561,39 +561,43 @@ describe('WorkshopService — flux QC', () => {
     );
   });
 
-  it('READY met le SMS « véhicule prêt » en file avec relances et jobId par version, sans numéro en clair dans les logs', async () => {
-    const logSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
-    const { service, prismaMock, smsQueueMock } = makeDeps();
+  it('READY émet VEHICLE_READY (WhatsApp) avec une clé par version d’OT, sans SMS', async () => {
+    const { service, prismaMock, emitter } = makeDeps();
     prismaMock.customer = {
-      findUnique: jest.fn().mockResolvedValue({
-        id: 'cust-1', phonePrimary: '+237699123456', firstName: 'Awa', lastName: 'Ngono', lang: 'fr',
-      }),
+      findUnique: jest.fn().mockResolvedValue({ firstName: 'Awa', lastName: 'Ngono' }),
     };
-    prismaMock.serviceOrder.findUnique.mockResolvedValue(makeOT({ status: OTStatus.QC_PENDING, version: 3 }));
+    prismaMock.serviceOrder.findUnique.mockResolvedValue(
+      makeOT({ status: OTStatus.QC_PENDING, version: 3, vehicle: { plateNumber: 'LT 123 AB' } }),
+    );
     prismaMock.$executeRaw.mockResolvedValue(1);
 
-    try {
-      await service.updateStatus('ot-1', OTStatus.READY, makeUser(['CHEF_ATELIER']), {});
-      await new Promise((r) => setImmediate(r));
-      await new Promise((r) => setImmediate(r));
+    await service.updateStatus('ot-1', OTStatus.READY, makeUser(['CHEF_ATELIER']), {});
 
-      expect(smsQueueMock.add).toHaveBeenCalledWith(
-        'vehicle_ready',
-        expect.objectContaining({ phone: '+237699123456', serviceOrderId: 'ot-1', customerId: 'cust-1' }),
-        {
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 60_000 },
-          removeOnComplete: { age: 7 * 24 * 60 * 60 },
-          removeOnFail: { age: 7 * 24 * 60 * 60 },
-          jobId: 'vehicle-ready_ot-1_v4',
-        },
-      );
-      const logged = logSpy.mock.calls.map((call) => String(call[0])).join('\n');
-      expect(logged).toContain('+2376******56');
-      expect(logged).not.toContain('699123456');
-    } finally {
-      logSpy.mockRestore();
-    }
+    await expect(emitter.inputs()).resolves.toEqual([
+      {
+        garageId: TEST_GARAGE_ID,
+        eventType: 'VEHICLE_READY',
+        idempotencyKey: 'ot.ready:ot-1:v4',
+        customerId: 'cust-1',
+        refs: { serviceOrderId: 'ot-1' },
+        variables: { plate: 'LT 123 AB' },
+      },
+    ]);
+  });
+
+  it('DRAFT → RECEIVED émet SERVICE_ORDER_RECEIVED', async () => {
+    const { service, prismaMock, emitter } = makeDeps();
+    prismaMock.serviceOrder.findUnique
+      .mockResolvedValueOnce(makeOT({ status: OTStatus.DRAFT, mileageIn: 12000 }))
+      .mockResolvedValue({ reference: 'OT-2026-0001', vehicle: { plateNumber: 'LT 123 AB' } });
+    prismaMock.$executeRaw.mockResolvedValue(1);
+
+    await service.updateStatus('ot-1', OTStatus.RECEIVED, makeUser(['RECEPTIONNISTE']), {});
+
+    const inputs = await emitter.inputs();
+    expect(inputs.map((input) => [input.eventType, input.idempotencyKey])).toEqual([
+      ['SERVICE_ORDER_RECEIVED', 'ot.received:ot-1'],
+    ]);
   });
 
   it('QC_REJECTED → IN_PROGRESS (itération qualité)', async () => {
@@ -714,9 +718,9 @@ describe('WorkshopService.removeWorkItem()', () => {
     };
     const auditMock    = { log: jest.fn() };
     const notifMock    = { notifyUsers: jest.fn(), getUserIdsByRoles: jest.fn().mockResolvedValue([]), createInApp: jest.fn().mockResolvedValue({}) };
-    const smsQueueMock = { add: jest.fn() };
+    const emitter = new RecordingCustomerNotificationEmitter();
     const partsFlowMock = { onQuoteApproved: jest.fn(), consumeReservedParts: jest.fn(), releaseReservationsForOrder: jest.fn(), reconcilePartsAtQc: jest.fn() };
-    const service = new WorkshopService(prismaMock as any, auditMock as any, notifMock as any, partsFlowMock as any, smsQueueMock as any);
+    const service = new WorkshopService(prismaMock as any, auditMock as any, notifMock as any, partsFlowMock as any, emitter as any);
 
     await service.removeWorkItem('ot-1', 'wi-1', TEST_GARAGE_ID);
 

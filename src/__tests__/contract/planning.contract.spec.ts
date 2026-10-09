@@ -1,4 +1,6 @@
 import request from 'supertest';
+import { CustomerNotificationEmitter } from '../../modules/customer-notifications';
+import { RecordingCustomerNotificationEmitter } from '../../modules/customer-notifications/testing/recording-emitter';
 import { INestApplication } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PlanningController } from '../../modules/planning/planning.controller';
@@ -78,7 +80,7 @@ describe('Planning — contrats de réponse HTTP', () => {
     });
     ({ app } = await createTestApp({
       controllers: [PlanningController],
-      extraProviders: [PlanningService],
+      extraProviders: [PlanningService, { provide: CustomerNotificationEmitter, useValue: new RecordingCustomerNotificationEmitter() }],
       prismaOverride: prisma,
     }));
   });

@@ -3,7 +3,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Prisma, type CustomerNotificationEvent } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../shared/prisma/prisma.service';
-import { orderedTemplateVariables, type NotificationVariable } from './customer-notification-catalog';
+import {
+  NOTIFICATION_CATALOG,
+  orderedTemplateVariables,
+  type NotificationVariable,
+} from './customer-notification-catalog';
+import { customerDisplayName } from './notification-format';
 import {
   CUSTOMER_NOTIFICATIONS_QUEUE,
   DISPATCH_JOB,
@@ -56,14 +61,15 @@ export class CustomerNotificationEmitter {
       this.logger.warn(`Notification ${eventType} ignorée : objet sans garage (${idempotencyKey}).`);
       return { outcome: 'IGNORED_NO_GARAGE' };
     }
-    // Échec immédiat si l'émetteur oublie une variable du modèle.
-    orderedTemplateVariables(eventType, input.variables);
-
     if (!(await this.preferences.isEnabled(garageId, eventType))) {
       return { outcome: 'DISABLED_BY_GARAGE' };
     }
 
-    const { row, created } = await this.insertOnce(garageId, input);
+    const variables = await this.withCommonVariables(garageId, input);
+    // Échec immédiat si l'émetteur oublie une variable du modèle.
+    orderedTemplateVariables(eventType, variables);
+
+    const { row, created } = await this.insertOnce(garageId, { ...input, variables });
     if (row.status === 'PENDING') {
       await this.enqueue(row.id);
     }
@@ -83,6 +89,18 @@ export class CustomerNotificationEmitter {
     }
   }
 
+  /**
+   * Pour les services métier : construit et émet la notification sans retarder
+   * ni faire échouer la réponse. `build` renvoie `null` quand il n'y a rien à émettre.
+   */
+  emitInBackground(label: string, build: () => Promise<CustomerNotificationInput | null>): void {
+    void build()
+      .then((input) => (input ? this.emitSafely(input) : null))
+      .catch((error) =>
+        this.logger.error(`Notification ${label} non construite`, error instanceof Error ? error.stack : String(error)),
+      );
+  }
+
   /** Mise en file idempotente (`jobId` déterministe) ; Redis absent = rattrapé par le balayeur. */
   async enqueue(notificationId: string): Promise<boolean> {
     try {
@@ -94,6 +112,35 @@ export class CustomerNotificationEmitter {
       );
       return false;
     }
+  }
+
+  /**
+   * Complète `customerName` et `garageName` quand le modèle les demande et que
+   * l'appelant ne les a pas fournis : un seul endroit pour les lire.
+   */
+  private async withCommonVariables(
+    garageId: string,
+    input: CustomerNotificationInput,
+  ): Promise<Partial<Record<NotificationVariable, string>>> {
+    const needed = NOTIFICATION_CATALOG[input.eventType].variables;
+    const variables = { ...input.variables };
+
+    if (needed.includes('customerName') && !variables.customerName) {
+      const customer = await this.prisma.customer.findFirst({
+        where: { id: input.customerId, garageId },
+        select: { customerType: true, companyName: true, firstName: true, lastName: true },
+      });
+      if (customer) variables.customerName = customerDisplayName(customer);
+    }
+    if (needed.includes('garageName') && !variables.garageName) {
+      const [settings, garage] = await Promise.all([
+        this.prisma.workshopSettings.findUnique({ where: { garageId }, select: { shopName: true } }),
+        this.prisma.garage.findUnique({ where: { id: garageId }, select: { name: true } }),
+      ]);
+      const name = settings?.shopName?.trim() || garage?.name?.trim();
+      if (name) variables.garageName = name;
+    }
+    return variables;
   }
 
   private async insertOnce(

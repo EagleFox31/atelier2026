@@ -18,6 +18,11 @@ import {
   QUOTE_DEFAULT_APPROVAL_METHOD,
   type QuoteClientApprovalMethod,
 } from '../../shared/billing/quote-approval.constants';
+import {
+  CustomerNotificationEmitter,
+  formatNotificationAmount,
+  notificationKeys,
+} from '../customer-notifications';
 import { CreateQuoteDto } from './dto/billing.dto';
 
 @Injectable()
@@ -29,6 +34,7 @@ export class BillingService {
     private workshopService: WorkshopService,
     private notifications: NotificationsService,
     private partsFlow: PartsFlowService,
+    private customerNotifications: CustomerNotificationEmitter,
   ) {}
 
   /**
@@ -368,6 +374,15 @@ export class BillingService {
       data: { status: 'BILLED' },
     });
 
+    this.customerNotifications.emitInBackground('INVOICE_AVAILABLE', async () => ({
+      garageId: invoice.garageId,
+      eventType: 'INVOICE_AVAILABLE',
+      idempotencyKey: notificationKeys.invoiceIssued(invoice.id),
+      customerId: invoice.customerId,
+      refs: { invoiceId: invoice.id, serviceOrderId: invoice.serviceOrderId ?? undefined },
+      variables: { invoiceNumber: invoice.reference, amount: formatNotificationAmount(invoice.totalXaf) },
+    }));
+
     return invoice;
   }
 
@@ -419,6 +434,7 @@ export class BillingService {
         status: true,
         garageId: true,
         serviceOrderId: true,
+        customerId: true,
         serviceOrder: { select: { reference: true } },
         customer: { select: { firstName: true, lastName: true, companyName: true, customerType: true } },
       },
@@ -455,6 +471,15 @@ export class BillingService {
         this.logger.warn(`Auto-CLOSED ignoré pour OT ${autoClosedOtId}: ${(err as Error).message}`);
       }
     }
+
+    this.customerNotifications.emitInBackground('PAYMENT_CONFIRMED', async () => ({
+      garageId: payment.garageId,
+      eventType: 'PAYMENT_CONFIRMED',
+      idempotencyKey: notificationKeys.paymentConfirmed(payment.id),
+      customerId: invoice.customerId,
+      refs: { paymentId: payment.id, invoiceId: invoice.id },
+      variables: { amount: formatNotificationAmount(payment.amountXaf), invoiceNumber: invoice.reference },
+    }));
 
     setImmediate(async () => {
       try {
