@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.16.0](https://github.com/EagleFox31/atelier2026/compare/v1.15.0...v1.16.0) (2026-10-10)
+
+
+### Features
+
+* **notifications:** durable and monotonic WhatsApp delivery statuses from Meta webhook ([d7d9c9d](https://github.com/EagleFox31/atelier2026/commit/d7d9c9d53e6913e2705eb520e590412d4d6d8d71))
+* **notifications:** Meta WhatsApp webhook endpoint with challenge and HMAC signature ([0f80965](https://github.com/EagleFox31/atelier2026/commit/0f809650cac390a8b8844eb3a5d5900c12638dce))
+* **notifications:** Meta WhatsApp webhook endpoint with challenge and HMAC signature ([b91c93f](https://github.com/EagleFox31/atelier2026/commit/b91c93f666fe3a09b7b60ba62882b3d92eec1b13))
+* **notifications:** WhatsApp delivery statuses, webhook supervision and STOP opt-out ([dd6a43e](https://github.com/EagleFox31/atelier2026/commit/dd6a43e22b71e77287f11b2f8cc968735ec81f4c))
+* **notifications:** WhatsApp webhook supervision, receipt reconciliation and STOP opt-out ([298742e](https://github.com/EagleFox31/atelier2026/commit/298742eb6b969f1e6ec9d161f0aaf50f9972d7e2))
+
 ## [1.15.0](https://github.com/EagleFox31/atelier2026/compare/v1.14.0...v1.15.0) (2026-10-09)
 
 
