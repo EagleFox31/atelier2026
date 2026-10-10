@@ -72,7 +72,7 @@ Guide complet → **[infra/aws/README.md](infra/aws/README.md)**
 | `infra/aws/bootstrap-github-oidc.yml` | Pile CloudFormation lancée **une fois à la main** : rôles IAM OIDC pour GitHub |
 | `infra/aws/atelier-maitre.yml` | Pile `atelier-maitre-prod` : EC2 `t3.micro` Ubuntu 24.04, IP fixe, SSM (pas de SSH) |
 | `deploy/docker/docker-compose.aws.yml` | Caddy + Next + NestJS + Redis sur l'EC2 |
-| `deploy/scripts/aws-ssm-deploy.sh` | Exécuté via SSM : pull GHCR du commit exact + `up`, check `/api/health` |
+| `deploy/scripts/aws-ssm-deploy.sh` | Exécuté via SSM : pull GHCR des images `sha-<commit>` (`IMAGE_TAG`) + `up`, vérifie que `/api/health` renvoie le commit livré (`EXPECTED_COMMIT`) |
 
 Règles prod :
 - **`/api/*` routé par Caddy** vers NestJS (pas le rewrite Next / `BACKEND_URL` au build)
@@ -225,6 +225,7 @@ PR → CI + UX guardrails (mêmes gates) ; Issue/PR → Project automation (boar
 - **UX guardrails** (`.github/workflows/ux-guardrails.yml`) : sur chaque PR vers `main`, Playwright `test:ux` seulement si le gate `ux-guardrails` est requis (plus de filtre `paths:`)
 - **Release** (`.github/workflows/release.yml`) : appelle le workflow partagé AppFactory `reusable-release.yml@v1` (voir Versioning)
 - **Deploy** (`.github/workflows/deploy.yml`) : **à la release, pas à chaque merge** (une seule coupure, au moment choisi). Après chaque CI verte sur `main`, le job `Release gate` vérifie si le commit modifie `version.txt` (= merge de la PR de release). Sinon : arrêt, rien n'est déployé (résumé explicite). Si oui, ou via **Run workflow** (correctif urgent, déploie `main`) : déploiement **complet** — pile CloudFormation, les deux images GHCR (le cache Docker garde une image inchangée identique, son conteneur n'est pas recréé), puis **SSM** (pas de SSH). Plus de détection de chemins par regex (LESSON-2026-011)
+- **Lire un run Deploy** : le titre porte le commit évalué (`Deploy AWS · gate · …`). Un run vert dont seul `Release gate` a tourné n'a **rien livré** (résumé « aucun déploiement »). Preuve de livraison = résumé « déployé et vérifié » + `version`/`commit` de `/api/health`. Règles du gate : `scripts/ci/release-gate.mjs` (testé par `src/ci/release-gate.spec.ts`) ; une release remplacée sur `main` n'est jamais redéployée (#83)
 - **Conséquence** : la prod suit la **dernière release**, pas `main`. Un correctif mergé n'est en ligne qu'après le merge de la PR de release (ou un Run workflow) ; la QA quotidienne contre la prod teste donc la dernière release
 - **QA UX** (`.github/workflows/qa-ux.yml`) : `npm run test:qa` contre la prod, du lundi au vendredi à 5 h UTC, ou lancé à la main (`base_url`, `allow_mutations`). Secrets `QA_EMAIL` / `QA_PASSWORD` (compte QA dédié)
 - **Project automation** (`.github/workflows/project-automation.yml` + `.github/project-config.json`) : Issues/PR synchronisées sur le GitHub Project « Atelier Maître Product Development » (auth `broker-user`, zéro PAT). Mise en service unique : `docs/engineering/appfactory.md`

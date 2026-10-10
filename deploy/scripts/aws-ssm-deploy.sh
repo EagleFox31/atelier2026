@@ -7,6 +7,10 @@ GHCR_TOKEN_PARAMETER="${GHCR_TOKEN_PARAMETER:-/atelier-maitre/prod/ghcr-token}"
 GHCR_USERNAME="${GHCR_USERNAME:-EagleFox31}"
 COMPOSE_FILE="deploy/docker/docker-compose.aws.yml"
 ENV_FILE="deploy/.env.aws"
+# Posés par deploy.yml : tag immuable des images (sha-<commit>) et commit attendu
+# dans /api/health. Absents (lancement à la main) : images latest, pas de contrôle.
+export IMAGE_TAG="${IMAGE_TAG:-latest}"
+EXPECTED_COMMIT="${EXPECTED_COMMIT:-}"
 
 cd "$APP_ROOT"
 
@@ -52,22 +56,33 @@ if [ "$caddy_reloaded" != true ]; then
   echo "Caddy reload failed: the previous Caddy config is still active." >&2
   exit 1
 fi
-docker image prune -f
+# -a : les images sha-<commit> des releases précédentes restent taguées ; sans
+# -a, elles s'accumuleraient sur le disque. Les images en service sont gardées.
+# Sortie écartée : SSM tronque la sortie standard, la ligne DEPLOYED_HEALTH doit tenir.
+docker image prune -af >/dev/null
 
 healthy=false
+health=""
 for attempt in $(seq 1 30); do
-  if curl --fail --silent --show-error http://127.0.0.1/api/health >/dev/null; then
-    healthy=true
-    break
+  if health=$(curl --fail --silent --show-error http://127.0.0.1/api/health); then
+    if [ -z "$EXPECTED_COMMIT" ] || printf '%s' "$health" | grep -q "\"commit\":\"$EXPECTED_COMMIT\""; then
+      healthy=true
+      break
+    fi
+    echo "API healthy but serving another commit ($attempt/30): $health"
+  else
+    echo "Waiting for the API health check ($attempt/30)..."
   fi
-  echo "Waiting for the API health check ($attempt/30)..."
   sleep 10
 done
 
 if [ "$healthy" != true ]; then
   docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" logs --no-log-prefix --tail=150 api
+  echo "Deployment not verified: expected commit ${EXPECTED_COMMIT:-any}, last health: ${health:-none}" >&2
   exit 1
 fi
 
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
 echo "Atelier Maitre deployment is healthy."
+# Ligne lue par deploy.yml pour le résumé du run (version effectivement servie).
+echo "DEPLOYED_HEALTH=$health"

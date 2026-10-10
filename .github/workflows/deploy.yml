@@ -1,4 +1,10 @@
 name: Deploy AWS
+# Le titre porte le commit évalué (issue #83) : sans lui, la liste des runs montre
+# le SHA de main au lancement et un run « gate seul » ressemble à un déploiement.
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch'
+      && format('Deploy AWS · manuel · {0}', github.ref_name)
+      || format('Deploy AWS · gate · {0}', github.event.workflow_run.display_title) }}
 
 # Déploiement À LA RELEASE, pas à chaque merge (une seule coupure de 30 à 60 s,
 # au moment choisi) :
@@ -56,9 +62,9 @@ jobs:
           ref: ${{ env.DEPLOY_SHA }}
           fetch-depth: 2
 
-      # Commit de release = version.txt modifié par rapport au 1er parent (couvre
-      # squash ET merge commit de la PR de release). version.txt n'est jamais
-      # édité à la main : seule la PR de release AppFactory le change.
+      # Règles dans scripts/ci/release-gate.mjs (testées par src/ci/release-gate.spec.ts) :
+      # commit de release = version.txt modifié par rapport au 1er parent ; une
+      # release déjà remplacée sur main n'est pas redéployée (re-run d'un vieux CI).
       - name: Decide
         id: decide
         shell: bash
@@ -66,23 +72,17 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            reason="déploiement manuel (Run workflow)"
-            deploy=true
-          elif ! git diff --quiet HEAD^1 HEAD -- version.txt; then
-            reason="release v$(tr -d '[:space:]' < version.txt)"
-            deploy=true
-          else
-            reason="commit hors release : la prod sera mise à jour au merge de la PR de release (ou via Run workflow)"
-            deploy=false
-          fi
-          echo "deploy=$deploy" >> "$GITHUB_OUTPUT"
+          git fetch --quiet --depth 1 origin "+refs/heads/main:refs/remotes/origin/main"
+          node scripts/ci/release-gate.mjs --event "$EVENT_NAME" --main-ref origin/main
           {
-            echo "### Release gate"
-            echo "- Commit : \`${DEPLOY_SHA}\`"
-            echo "- Déploiement : **$deploy** — $reason"
+            if grep -q '^deploy=true$' "$GITHUB_OUTPUT"; then
+              echo "### Release gate : déploiement lancé"
+            else
+              echo "### Release gate : aucun déploiement (succès du run ≠ version livrée)"
+            fi
+            echo "- Commit évalué : \`${DEPLOY_SHA}\`"
+            sed -n 's/^reason=/- Motif : /p' "$GITHUB_OUTPUT"
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "deploy=$deploy ($reason)"
 
   provision:
     name: Provision AWS infrastructure
@@ -186,7 +186,13 @@ jobs:
           file: deploy/docker/Dockerfile.api
           push: true
           platforms: linux/amd64
-          tags: ${{ env.API_IMAGE }}:latest
+          # sha-<commit> : tag immuable que le déploiement tire (latest = commodité).
+          tags: |
+            ${{ env.API_IMAGE }}:sha-${{ env.DEPLOY_SHA }}
+            ${{ env.API_IMAGE }}:latest
+          build-args: |
+            APP_VERSION=${{ env.APP_VERSION }}
+            APP_COMMIT=${{ env.DEPLOY_SHA }}
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
 
@@ -197,7 +203,9 @@ jobs:
           file: deploy/docker/Dockerfile.web
           push: true
           platforms: linux/amd64
-          tags: ${{ env.WEB_IMAGE }}:latest
+          tags: |
+            ${{ env.WEB_IMAGE }}:sha-${{ env.DEPLOY_SHA }}
+            ${{ env.WEB_IMAGE }}:latest
           build-args: NEXT_PUBLIC_APP_VERSION=${{ env.APP_VERSION }}
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
@@ -254,7 +262,7 @@ jobs:
               "git -C /opt/atelier-maitre/repo fetch --depth 1 origin ${DEPLOY_SHA}",
               "git -C /opt/atelier-maitre/repo checkout --force ${DEPLOY_SHA}",
               "chmod +x /opt/atelier-maitre/repo/deploy/scripts/aws-ssm-deploy.sh",
-              "/opt/atelier-maitre/repo/deploy/scripts/aws-ssm-deploy.sh"
+              "IMAGE_TAG=sha-${DEPLOY_SHA} EXPECTED_COMMIT=${DEPLOY_SHA} /opt/atelier-maitre/repo/deploy/scripts/aws-ssm-deploy.sh"
             ]
           }
           EOF
@@ -297,9 +305,20 @@ jobs:
             exit 1
           fi
 
-      - name: Publish deployment URL
+          # Réponse de /api/health relevée par aws-ssm-deploy.sh après la mise en service.
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id "$INSTANCE_ID" \
+            --query 'StandardOutputContent' \
+            --output text | sed -n 's/^DEPLOYED_HEALTH=//p' | tail -n 1 > deployed-health.json
+
+      - name: Publish deployed version
         env:
           PUBLIC_IP: ${{ needs.provision.outputs.public-ip }}
         run: |
-          echo "### Atelier Maitre deployed" >> "$GITHUB_STEP_SUMMARY"
-          echo "Temporary URL: http://$PUBLIC_IP" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Atelier Maitre déployé et vérifié"
+            echo "- Commit livré : \`${DEPLOY_SHA}\` (images \`sha-${DEPLOY_SHA}\`)"
+            echo "- /api/health après déploiement : \`$(cat deployed-health.json)\`"
+            echo "- Temporary URL: http://$PUBLIC_IP"
+          } >> "$GITHUB_STEP_SUMMARY"

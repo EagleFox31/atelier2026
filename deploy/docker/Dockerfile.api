@@ -46,6 +46,11 @@ COPY prisma/full_schema.sql ./prisma/full_schema.sql
 COPY deploy/docker/api-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# Identité du build, renvoyée par /api/health (en dernier : ne casse pas le cache).
+ARG APP_VERSION=dev
+ARG APP_COMMIT=unknown
+ENV APP_VERSION=$APP_VERSION APP_COMMIT=$APP_COMMIT
+
 EXPOSE 3001
 
 HEALTHCHECK --interval=15s --timeout=10s --start-period=300s --retries=10 \
