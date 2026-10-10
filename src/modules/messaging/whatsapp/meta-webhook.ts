@@ -10,6 +10,9 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
  *   code d'erreur) : aucun contenu de conversation, aucun numéro de client.
  */
 
+/** Nom du fournisseur Cloud API : `CustomerNotification.provider` des lignes envoyées par Meta. */
+export const WHATSAPP_CLOUD_PROVIDER = 'whatsapp-cloud';
+
 export type WhatsAppWebhookConfig =
   | { enabled: false }
   | { enabled: true; verifyToken: string; appSecret: string };
@@ -116,9 +119,32 @@ export type MetaStatusEvent = {
   errorCode: number | null;
 };
 
+/**
+ * Demande de désabonnement (« STOP ») reçue d'un client. Seul le mot-clé est reconnu ;
+ * le texte du message n'est ni conservé ni renvoyé.
+ */
+export type MetaOptOutEvent = {
+  phoneNumberId: string;
+  messageId: string;
+  /** Numéro de l'expéditeur, E.164 (`+` + `wa_id`). */
+  fromE164: string;
+  occurredAt: Date;
+};
+
+/** Mots-clés reconnus, après normalisation (majuscules, sans accents ni ponctuation finale). */
+export const OPT_OUT_KEYWORDS: ReadonlySet<string> = new Set([
+  'STOP',
+  'ARRET',
+  'ARRETER',
+  'DESABONNER',
+  'DESINSCRIRE',
+  'UNSUBSCRIBE',
+]);
+
 export type ParsedMetaWebhook = {
   statuses: MetaStatusEvent[];
-  /** Éléments présents mais non pris en charge (autre champ, statut inconnu, élément invalide). */
+  optOuts: MetaOptOutEvent[];
+  /** Éléments présents mais non pris en charge (autre champ, statut inconnu, message ordinaire, élément invalide). */
   ignored: number;
 };
 
@@ -135,6 +161,8 @@ export class MetaWebhookPayloadError extends Error {
 const PHONE_NUMBER_ID_PATTERN = /^\d{1,32}$/;
 const MESSAGE_ID_PATTERN = /^[A-Za-z0-9._=+/:-]{1,256}$/;
 const TIMESTAMP_PATTERN = /^\d{1,12}$/;
+const WA_ID_PATTERN = /^\d{8,15}$/;
+const MAX_KEYWORD_TEXT_LENGTH = 64;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -173,6 +201,35 @@ function parseStatus(raw: unknown, phoneNumberId: string): MetaStatusEvent | nul
   };
 }
 
+/** `true` seulement si tout le texte est un mot-clé de désabonnement (« Stop. », « arrêter ! »…). */
+export function isOptOutKeyword(text: unknown): boolean {
+  if (typeof text !== 'string' || text.length > MAX_KEYWORD_TEXT_LENGTH) return false;
+  const normalized = text
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toUpperCase()
+    .replace(/^[\s.!?,;:]+|[\s.!?,;:]+$/g, '');
+  return OPT_OUT_KEYWORDS.has(normalized);
+}
+
+/** Texte d'un message entrant : saisie libre ou bouton de réponse rapide d'un modèle. */
+function inboundText(raw: Record<string, unknown>): unknown {
+  if (raw.type === 'text' && isRecord(raw.text)) return raw.text.body;
+  if (raw.type === 'button' && isRecord(raw.button)) return raw.button.text;
+  return undefined;
+}
+
+function parseOptOut(raw: unknown, phoneNumberId: string): MetaOptOutEvent | null {
+  if (!isRecord(raw)) return null;
+  const { id, from, timestamp } = raw;
+  if (typeof id !== 'string' || !MESSAGE_ID_PATTERN.test(id)) return null;
+  if (typeof from !== 'string' || !WA_ID_PATTERN.test(from)) return null;
+  if (!isOptOutKeyword(inboundText(raw))) return null;
+  const occurredAt = parseTimestamp(timestamp);
+  if (!occurredAt) return null;
+  return { phoneNumberId, messageId: id, fromE164: `+${from}`, occurredAt };
+}
+
 /**
  * Lit une notification déjà authentifiée. Structure inattendue au niveau racine → erreur
  * (400) ; élément inconnu ou invalide plus bas → ignoré et compté (Meta ajoute des champs).
@@ -196,6 +253,7 @@ export function parseMetaWebhook(rawBody: Buffer): ParsedMetaWebhook {
   }
 
   const statuses: MetaStatusEvent[] = [];
+  const optOuts: MetaOptOutEvent[] = [];
   let ignored = 0;
   let seen = 0;
   for (const entry of entries) {
@@ -211,11 +269,15 @@ export function parseMetaWebhook(rawBody: Buffer): ParsedMetaWebhook {
       if (seen > MAX_WEBHOOK_STATUSES) {
         throw new MetaWebhookPayloadError('TOO_LARGE', `Plus de ${MAX_WEBHOOK_STATUSES} éléments refusés.`);
       }
-      // Messages entrants : pas encore traités ici (aucun contenu conservé).
-      ignored += rawMessages.length;
       if (typeof phoneNumberId !== 'string' || !PHONE_NUMBER_ID_PATTERN.test(phoneNumberId)) {
-        ignored += rawStatuses.length;
+        ignored += rawStatuses.length + rawMessages.length;
         continue;
+      }
+      // Messages entrants : seul « STOP » est retenu ; tout autre message est ignoré, sans contenu conservé.
+      for (const raw of rawMessages) {
+        const parsed = parseOptOut(raw, phoneNumberId);
+        if (parsed) optOuts.push(parsed);
+        else ignored += 1;
       }
       for (const raw of rawStatuses) {
         const parsed = parseStatus(raw, phoneNumberId);
@@ -224,5 +286,5 @@ export function parseMetaWebhook(rawBody: Buffer): ParsedMetaWebhook {
       }
     }
   }
-  return { statuses, ignored };
+  return { statuses, optOuts, ignored };
 }

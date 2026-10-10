@@ -158,6 +158,24 @@ export default function CustomerNotificationsHealthPage() {
               )}
             </Section>
 
+            {health.webhook && (
+              <Section title="Accusés Meta (webhook)">
+                <Row label="Webhook" value={health.webhook.configured ? 'Configuré' : 'Non configuré'} />
+                <Row
+                  label={`Acceptés sans accusé (> ${health.webhook.receiptTimeoutMinutes} min)`}
+                  value={health.webhook.acceptedWithoutReceipt}
+                />
+                <Row label="Accusés à traiter" value={health.webhook.pendingEvents} />
+                <Row label="Accusés bloqués" value={health.webhook.stuckEvents} />
+                <Row label={`Sans notification (${health.outbox.windowHours} h)`} value={health.webhook.unmatchedEvents} />
+                <Row label={`Désabonnements « STOP » (${health.outbox.windowHours} h)`} value={health.webhook.optOuts} />
+                <Row
+                  label="Dernier accusé reçu"
+                  value={health.webhook.lastEventAt ? new Date(health.webhook.lastEventAt).toLocaleString('fr-FR') : '—'}
+                />
+              </Section>
+            )}
+
             <Section title="Non envoyées et échecs">
               {health.outbox.skippedByReason.length === 0 && health.outbox.failedByCode.length === 0 ? (
                 <Empty>Rien à signaler.</Empty>

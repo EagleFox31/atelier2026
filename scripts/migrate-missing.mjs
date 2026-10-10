@@ -130,6 +130,8 @@ async function main() {
   await migratePasswordSecurity();
   await migrateTeamInvitations();
   await migrateCustomerNotifications();
+  await migrateWhatsAppWebhookEvents();
+  await migrateWhatsAppWebhookOptOut();
 
   console.log('\n✅ Migration terminée.');
 }
@@ -694,6 +696,19 @@ async function migrateCustomerNotifications() {
   const sqlPath = join(__dirname, '../prisma/migrations/20261010_customer_notifications/migration.sql');
   await q(readFileSync(sqlPath, 'utf8'));
   console.log('   ✅ Notifications client (historique, consentement, préférences, lien devis) présentes');
+}
+
+/** Webhook WhatsApp Meta : boîte de réception des accusés de remise (après les notifications client). */
+async function migrateWhatsAppWebhookEvents() {
+  const sqlPath = join(__dirname, '../prisma/migrations/20261011_whatsapp_webhook_events/migration.sql');
+  await q(readFileSync(sqlPath, 'utf8'));
+  console.log('   ✅ Boîte de réception du webhook WhatsApp présente');
+}
+
+async function migrateWhatsAppWebhookOptOut() {
+  const sqlPath = join(__dirname, '../prisma/migrations/20261012_whatsapp_webhook_opt_out/migration.sql');
+  await q(readFileSync(sqlPath, 'utf8'));
+  console.log('   ✅ Désabonnement « STOP » du webhook WhatsApp pris en charge');
 }
 
 main()

@@ -1215,6 +1215,7 @@ model CustomerNotification {
   fallbackOf        CustomerNotification?  @relation("NotificationFallback", fields: [fallbackOfId], references: [id], onDelete: SetNull)
   fallbacks         CustomerNotification[] @relation("NotificationFallback")
   quoteAccessTokens QuoteAccessToken[]
+  webhookEvents     WhatsAppWebhookEvent[]
 
   @@unique([garageId, idempotencyKey])
   @@unique([provider, providerMessageId])
@@ -1223,6 +1224,49 @@ model CustomerNotification {
   @@index([serviceOrderId])
   @@index([status, createdAt])
   @@map("customer_notifications")
+}
+
+enum WhatsAppWebhookEventKind {
+  STATUS
+  INBOUND
+
+  @@map("whatsapp_webhook_event_kind_t")
+}
+
+enum WhatsAppWebhookEventOutcome {
+  APPLIED
+  NO_CHANGE
+  UNMATCHED
+  IGNORED
+
+  @@map("whatsapp_webhook_event_outcome_t")
+}
+
+/// Boîte de réception du webhook Meta : écrite avant la réponse 200, traitée ensuite (idempotent par dedupKey).
+/// Ni numéro du client, ni contenu de message : identifiants Meta, statut, horodatage et code d'erreur seulement.
+model WhatsAppWebhookEvent {
+  id                String                       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  kind              WhatsAppWebhookEventKind
+  provider          String
+  phoneNumberId     String                       @map("phone_number_id")
+  providerMessageId String                       @map("provider_message_id")
+  status            CustomerNotificationStatus?
+  occurredAt        DateTime                     @map("occurred_at") @db.Timestamptz
+  errorCode         String?                      @map("error_code")
+  /// Expéditeur d'un « STOP » (E.164), effacé dès le traitement de l'événement.
+  senderE164        String?                      @map("sender_e164")
+  dedupKey          String                       @unique @map("dedup_key")
+  notificationId    String?                      @map("notification_id") @db.Uuid
+  outcome           WhatsAppWebhookEventOutcome?
+  attempts          Int                          @default(0) @db.SmallInt
+  receivedAt        DateTime                     @default(now()) @map("received_at") @db.Timestamptz
+  processedAt       DateTime?                    @map("processed_at") @db.Timestamptz
+
+  notification CustomerNotification? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+
+  @@index([processedAt, receivedAt])
+  @@index([notificationId])
+  @@map("whatsapp_webhook_events")
 }
 
 /// État courant du consentement par client et canal ; l'historique est dans CustomerConsentEvent.

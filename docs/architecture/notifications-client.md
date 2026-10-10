@@ -1,6 +1,6 @@
 # Notifications client multicanal (WhatsApp d'abord)
 
-Statut : lot 2 terminé (2026-10-09). Lot 3 = webhooks Meta, statuts de remise, réconciliation.
+Statut : lot 2 terminé (2026-10-09). Lot 3 (webhook Meta, statuts de remise, réconciliation, « STOP ») livré dans le code, en attente de la recette Meta (application Meta encore en développement, numéro de test) : voir « Lot 3 : webhook WhatsApp Meta ».
 
 ## Règles produit
 
@@ -134,6 +134,7 @@ La première règle qui échoue donne `SKIPPED` avec sa raison :
 | `templates` | chaque modèle du catalogue en `fr`, approuvé ou non |
 | `queue` | compteurs BullMQ (attente, en cours, différés, échecs) ; Redis muet 2 s = `available: false`, jamais une 500 |
 | `outbox` | sur 24 h : nombre par statut, `SKIPPED` par raison, `FAILED` par code ; PENDING de plus de 5 min ; plus ancien PENDING |
+| `webhook` | webhook configuré ou non ; `ACCEPTED` sans accusé au-delà du délai ; accusés à traiter, bloqués, sans notification (24 h) ; « STOP » appliqués (24 h) ; dernier accusé reçu |
 | `quota` | 10 garages les plus consommateurs depuis le 1er du mois (Douala), statuts facturables seulement |
 
 Alertes (`status` = pire niveau) :
@@ -142,12 +143,15 @@ Alertes (`status` = pire niveau) :
 |---|---|---|
 | `QUEUE_UNAVAILABLE` | critique | Redis injoignable |
 | `OUTBOX_BACKLOG` | critique | PENDING de plus de 5 min (le balayeur tourne chaque minute : la file ne consomme plus) |
+| `WEBHOOK_EVENTS_STUCK` | critique | accusé Meta non traité depuis plus de 20 min (fenêtre de rattachement 15 min + 5 min) |
+| `ACCEPTED_WITHOUT_RECEIPT` | avertissement | message `whatsapp-cloud` resté `ACCEPTED` au-delà de `CUSTOMER_NOTIFICATIONS_RECEIPT_TIMEOUT_MINUTES` (signalé, **jamais renvoyé**) |
+| `WEBHOOK_NOT_CONFIGURED` | avertissement | mode ≠ `off`, fournisseur `whatsapp-cloud`, secrets du webhook absents |
 | `SANDBOX_NO_RECIPIENTS` | avertissement | mode `sandbox` sans `WHATSAPP_TEST_RECIPIENTS` |
 | `TEMPLATES_NOT_APPROVED` | avertissement | mode ≠ `off` et modèle actif par défaut absent de `WHATSAPP_APPROVED_TEMPLATES` |
 | `RECENT_FAILURES` | avertissement | au moins un `FAILED` sur 24 h |
 | `QUOTA_NEAR_LIMIT` | avertissement | garage à 80 % ou plus du plafond |
 
-En mode `off`, seules les alertes de file comptent (les autres sont attendues).
+En mode `off`, seules les alertes de file et du webhook (accusés bloqués, acceptés sans accusé) comptent ; les autres sont attendues.
 
 ## Exploitation
 
@@ -165,6 +169,8 @@ Incidents :
 
 - `QUEUE_UNAVAILABLE` / `OUTBOX_BACKLOG` : vérifier le conteneur Redis (`docker ps`, `docker logs`). Les notifications restent en base et le balayeur les réenfile au retour de Redis ; celles prises en charge depuis plus de 10 min passent en `FAILED` / `UNKNOWN_OUTCOME` sans renvoi.
 - `FAILED` avec un code Meta : modèle refusé ou désactivé, jeton expiré (renouveler `WHATSAPP_ACCESS_TOKEN` dans SSM), numéro invalide.
+- `ACCEPTED_WITHOUT_RECEIPT` : vérifier dans Meta for Developers que le webhook est abonné au champ `messages` et que « Dernier accusé reçu » avance. Aucun renvoi automatique : un message accepté a pu être remis sans accusé, le renvoyer risquerait un doublon chez le client.
+- `WEBHOOK_EVENTS_STUCK` : vérifier Redis et les journaux `WhatsAppWebhookSweeper` ; le balayeur réapplique chaque minute les accusés de plus de 2 min.
 - Ajout ou nouvelle version de modèle : l'approuver chez Meta d'abord, puis l'ajouter à `WHATSAPP_APPROVED_TEMPLATES` ; jamais l'inverse (sinon `FAILED` côté Meta au lieu de `SKIPPED`).
 
 ## Clés d'idempotence (unique par garage)
@@ -189,6 +195,7 @@ Tables (migration `prisma/migrations/20261010_customer_notifications`) :
 - `garage_notification_settings` : surcharge par garage et par événement (absence de ligne = défaut du code).
 - `quote_access_tokens` : lien public de devis, seule l'empreinte SHA-256 du jeton est stockée.
 - `sms_notifications` reste inchangée ; `sms_status_t` gagne `SIMULATED`.
+- `whatsapp_webhook_events` (lot 3, migrations `20261011_whatsapp_webhook_events` et `20261012_whatsapp_webhook_opt_out`) : boîte de réception des accusés Meta et des « STOP ». Aucun contenu de message ; le numéro de l'expéditeur d'un « STOP » (`sender_e164`) est effacé dès le traitement ; lignes traitées purgées après 30 jours.
 
 Contrainte de déploiement : en prod, `prisma db push` tourne avant `migrate-missing.mjs`. Le SQL utilise donc exactement les noms d'objets générés par Prisma, et toute règle hors du schéma Prisma (trigger) doit vivre dans le SQL.
 
@@ -201,6 +208,11 @@ Contrainte de déploiement : en prod, `prisma db push` tourne avant `migrate-mis
 | `WHATSAPP_APPROVED_TEMPLATES` | modèles approuvés, `am_vehicle_ready_v1:fr,…` |
 | `CUSTOMER_NOTIFICATIONS_MONTHLY_CAP` | plafond mensuel par garage (défaut 300) |
 | `CUSTOMER_NOTIFICATIONS_SMS_FALLBACK` | `off` ; toute autre valeur est refusée au lot 2 |
+| `CUSTOMER_NOTIFICATIONS_RECEIPT_TIMEOUT_MINUTES` | délai avant l'alerte `ACCEPTED_WITHOUT_RECEIPT` (défaut 30, de 5 à 10080) |
+| `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | jeton de vérification saisi chez Meta (16 caractères au moins), SSM seulement |
+| `WHATSAPP_APP_SECRET` | « Clé secrète » de l'application Meta, vérifie `X-Hub-Signature-256` (16 caractères au moins), SSM seulement |
+
+Webhook : aucun des deux secrets = webhook désactivé (route en 404) ; un seul, ou trop court = l'API refuse de démarrer.
 
 `live` exige `WHATSAPP_PROVIDER=whatsapp-cloud`, au moins un modèle approuvé et un plafond explicite.
 
@@ -223,6 +235,64 @@ Compte WhatsApp par garage (plus tard) : `WhatsAppSenderResolver.resolve(garageI
 7. Lien sécurisé de devis.
 8. Supervision SUPER_ADMIN, garde-fou UX, documentation d'exploitation.
 
-## Lot 3 (esquisse)
+## Lot 3 : webhook WhatsApp Meta
 
-Webhook Meta signé (`X-Hub-Signature-256`, secret dans SSM), statuts monotones par `provider_message_id`, « STOP » → retrait du consentement, synchronisation des modèles approuvés depuis l'API Graph, réconciliation des `ACCEPTED` sans accusé, comptes WhatsApp par garage, repli SMS, quotas facturés, purge des données.
+### Routes
+
+| Route | Rôle | Protection |
+|---|---|---|
+| `GET /api/webhooks/whatsapp` | vérification d'abonnement : renvoie `hub.challenge` si `hub.verify_token` est exact | publique, comparaison à temps constant, 10 essais / min / IP (429) |
+| `POST /api/webhooks/whatsapp` | notifications Meta (statuts, messages entrants) | publique, signature HMAC SHA-256 de l'App Secret sur le **corps brut** vérifiée (temps constant) avant toute lecture ; jamais limitée en débit |
+
+Réponses : 200 `{ received, optOuts, ignored }` ; 401 `INVALID_WHATSAPP_SIGNATURE` ; 400 / 413 `INVALID_WHATSAPP_WEBHOOK` ; 403 `WHATSAPP_WEBHOOK_VERIFICATION_FAILED` ; 404 `WHATSAPP_WEBHOOK_DISABLED` (secrets absents). Journaux : raison du refus et compteurs, jamais le corps, un secret ou un numéro.
+
+### Traitement
+
+```
+POST signé ─► parse (statuts + « STOP » seulement) ─► INSERT whatsapp_webhook_events (dédoublonné) ─► 200
+                                                        │ échec d'écriture = 500, Meta renverra
+                                                        ▼
+                         file whatsapp-webhook-events (jobId wwe_<id>, 3 essais) ── Redis absent ─► balayeur (1 min)
+                                                        ▼
+                                          WhatsAppStatusService.apply
+                                   STATUS ─► notification   INBOUND ─► WhatsAppOptOutService
+```
+
+- **Rattachement** : fournisseur + `wamid` + compte émetteur (`phone_number_id`, ou `platform` pour les lignes du compte de la plateforme). Le garage vient de la notification trouvée, jamais de la charge Meta. Accusé arrivé avant l'enregistrement du `wamid` : réessayé pendant 15 min, puis `UNMATCHED`.
+- **Monotonie** : `ACCEPTED → SENT → DELIVERED → READ`, jamais de recul ; `FAILED` seulement depuis `ACCEPTED` / `SENT`, puis figé (code `META_<code>`, message générique). Écritures conditionnelles : rejouer un accusé ne change rien, deux accusés concurrents ne se marchent pas dessus.
+- **Réconciliation** : un `ACCEPTED` sans accusé au-delà du délai est signalé dans la supervision (`ACCEPTED_WITHOUT_RECEIPT`), **jamais renvoyé** ni passé en échec.
+- **« STOP »** : message texte ou bouton de réponse rapide dont tout le contenu est `STOP`, `ARRET`, `ARRETER`, `DESABONNER`, `DESINSCRIRE` ou `UNSUBSCRIBE` (casse, accents et ponctuation finale ignorés). Le consentement WhatsApp `GRANTED` à ce numéro est retiré pour chaque client à qui ce compte émetteur a réellement écrit à ce numéro (preuve : source `CUSTOMER_MESSAGE`, sans auteur, `wamid` en note). Un numéro jamais contacté depuis ce compte ne touche rien (`UNMATCHED`). Aucune réponse automatique, aucun texte conservé. Compte de la plateforme partagé : un « STOP » vaut pour tous les garages qui ont écrit à ce numéro (c'est ce compte que le client voit). Tout autre message entrant est ignoré.
+
+### Recette Meta (application en développement, numéro de test)
+
+Tant que l'application Meta est en mode développement, seuls les numéros ajoutés comme destinataires de test reçoivent des messages : le webhook n'est **pas** encore en service pour de vrais clients. Garder `CUSTOMER_NOTIFICATIONS_MODE=off` tant que la recette n'est pas validée.
+
+1. **Secrets dans SSM**, sans remplacer les autres variables de `/atelier-maitre/prod/env` (un seul SecureString multiligne) :
+   ```bash
+   umask 077; f=$(mktemp)
+   aws ssm get-parameter --region eu-west-3 --name /atelier-maitre/prod/env --with-decryption \
+     --query Parameter.Value --output text > "$f"
+   before=$(grep -c '=' "$f")
+   sed -i '/^WHATSAPP_WEBHOOK_VERIFY_TOKEN=/d;/^WHATSAPP_APP_SECRET=/d' "$f"
+   printf 'WHATSAPP_WEBHOOK_VERIFY_TOKEN=%s\n' "$(openssl rand -hex 32)" >> "$f"
+   read -rs -p 'App Secret Meta : ' s; printf 'WHATSAPP_APP_SECRET=%s\n' "$s" >> "$f"; unset s; echo
+   echo "avant : $before, après : $(grep -c '=' "$f")"   # attendu : avant + 2 (ou égal si les clés existaient)
+   aws ssm put-parameter --region eu-west-3 --name /atelier-maitre/prod/env --type SecureString \
+     --overwrite --value "file://$f"
+   grep '^WHATSAPP_WEBHOOK_VERIFY_TOKEN=' "$f" | cut -d= -f2   # à coller chez Meta, puis effacer le terminal
+   shred -u "$f" 2>/dev/null || rm -f "$f"
+   ```
+   App Secret : Meta for Developers → l'application → Paramètres de l'application → Général → Clé secrète. Ne jamais le coller dans un ticket, un commit, une capture ou un journal.
+2. **Redémarrer l'API** (Deploy AWS → Run workflow) : le `.env` est relu depuis SSM. `/admin/notifications` doit afficher « Webhook : Configuré ».
+3. **Abonnement** : Meta for Developers → WhatsApp → Configuration → Webhook → URL de rappel `https://atelier.trigenys.com/api/webhooks/whatsapp`, jeton de vérification = valeur générée à l'étape 1 → « Vérifier et enregistrer ». Puis s'abonner au champ **`messages`** (seul champ traité).
+4. **Contrôles** :
+   - « Tester » le champ `messages` depuis Meta : 200 attendu, « Dernier accusé reçu » mis à jour ; l'exemple Meta ne correspond à aucune notification et finit `UNMATCHED` après 15 min (normal).
+   - Mode `sandbox` sur le garage de test, consentement d'un numéro de test, OT passé à « Prêt » : la ligne passe `ACCEPTED → SENT → DELIVERED → READ` dans l'historique du client.
+   - Depuis ce numéro de test, répondre « STOP » : le consentement WhatsApp du client passe à « Retiré » (source « Message du client »), aucun message n'est renvoyé.
+   - Signature fausse (`curl -X POST https://atelier.trigenys.com/api/webhooks/whatsapp -H 'Content-Type: application/json' -H 'X-Hub-Signature-256: sha256=00' -d '{}'`) : 401, rien d'écrit.
+   - Revenir en mode `off` à la fin de la recette.
+5. **Retour arrière** : retirer les deux variables de SSM (même procédure, sans les `printf`) et redémarrer : route en 404, aucun autre effet. Les accusés déjà reçus restent en base.
+
+### Reste à faire (lot 4)
+
+Synchronisation des modèles approuvés depuis l'API Graph, comptes WhatsApp par garage, repli SMS, quotas facturés, purge des données de notification.

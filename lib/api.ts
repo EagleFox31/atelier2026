@@ -634,6 +634,17 @@ export interface CustomerNotificationsHealth {
     backlog: number;
     oldestPendingAt: string | null;
   };
+  /** Absent sur une API antérieure au webhook Meta. */
+  webhook?: {
+    configured: boolean;
+    receiptTimeoutMinutes: number;
+    acceptedWithoutReceipt: number;
+    pendingEvents: number;
+    stuckEvents: number;
+    unmatchedEvents: number;
+    optOuts: number;
+    lastEventAt: string | null;
+  };
   quota: {
     monthStart: string;
     cap: number;
