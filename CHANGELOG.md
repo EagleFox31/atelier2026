@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.16.1](https://github.com/EagleFox31/atelier2026/compare/v1.16.0...v1.16.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **ci:** make production deployments traceable and verified ([2866be2](https://github.com/EagleFox31/atelier2026/commit/2866be206bec0fd9fddcc195aac1e3ac305920d9))
+* **ci:** make production deployments traceable and verified ([7682d28](https://github.com/EagleFox31/atelier2026/commit/7682d28fe7e425ded6c9990825016d1314b69d94)), closes [#83](https://github.com/EagleFox31/atelier2026/issues/83)
+* **deploy:** roll back to the previous images when a deployment is not verified ([77ee766](https://github.com/EagleFox31/atelier2026/commit/77ee766c1ab17f707a2eb1326e8c89277be696a8)), closes [#83](https://github.com/EagleFox31/atelier2026/issues/83)
+
 ## [1.16.0](https://github.com/EagleFox31/atelier2026/compare/v1.15.0...v1.16.0) (2026-10-10)
 
 
