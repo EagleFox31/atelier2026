@@ -16,8 +16,10 @@ services:
     volumes:
       - redis_data:/data
 
+  # IMAGE_TAG = sha-<commit> (tag immuable posé par deploy.yml / aws-ssm-deploy.sh) ;
+  # latest par défaut pour un lancement à la main.
   api:
-    image: ghcr.io/eaglefox31/atelier2026-api:latest
+    image: ghcr.io/eaglefox31/atelier2026-api:${IMAGE_TAG:-latest}
     restart: unless-stopped
     # Laisse NestJS finir les requêtes en cours (enableShutdownHooks) avant SIGKILL.
     stop_grace_period: 30s
@@ -48,7 +50,7 @@ services:
       - '3001'
 
   web:
-    image: ghcr.io/eaglefox31/atelier2026-web:latest
+    image: ghcr.io/eaglefox31/atelier2026-web:${IMAGE_TAG:-latest}
     restart: unless-stopped
     stop_grace_period: 30s
     environment:
