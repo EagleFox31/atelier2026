@@ -46,7 +46,18 @@ health=""
 wait_healthy() {
   local expected="${1:-}"
   for attempt in $(seq 1 30); do
-    if health=$(curl --fail --silent --show-error http://127.0.0.1/api/health); then
+    # Ne pas sonder Caddy en HTTP : avec APP_DOMAIN il répond 308 vers HTTPS,
+    # et curl --fail accepte ce statut sans récupérer le JSON de /api/health.
+    # La sonde directe vérifie que l'API active sert bien le commit attendu.
+    if health=$(compose exec -T api node -e '
+      (async () => {
+        const response = await fetch("http://127.0.0.1:3001/api/health");
+        if (!response.ok) process.exit(1);
+        const payload = await response.json();
+        if (payload.status !== "ok") process.exit(1);
+        process.stdout.write(JSON.stringify(payload));
+      })().catch(() => process.exit(1));
+    '); then
       if [ -z "$expected" ] || printf '%s' "$health" | grep -q "\"commit\":\"$expected\""; then
         return 0
       fi
