@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.16.1](https://github.com/EagleFox31/atelier2026/compare/v1.16.0...v1.16.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* **ci:** make production deployments traceable and verified ([2866be2](https://github.com/EagleFox31/atelier2026/commit/2866be206bec0fd9fddcc195aac1e3ac305920d9))
+* **ci:** make production deployments traceable and verified ([7682d28](https://github.com/EagleFox31/atelier2026/commit/7682d28fe7e425ded6c9990825016d1314b69d94)), closes [#83](https://github.com/EagleFox31/atelier2026/issues/83)
+* **ci:** preserve git parent history for release gate ([65e766e](https://github.com/EagleFox31/atelier2026/commit/65e766efe30146905569cbbbd946ee60ef3c5959))
+* **deploy:** éviter le faux échec Caddy 308 et réparer le gate Git ([b603ec4](https://github.com/EagleFox31/atelier2026/commit/b603ec477320258161f81c9cf475dc88a18da66b))
+* **deploy:** probe API container directly to avoid Caddy HTTP redirect ([d5a51d5](https://github.com/EagleFox31/atelier2026/commit/d5a51d515e00ee63cc9074ce9b5162fa1851272e))
+* **deploy:** roll back to the previous images when a deployment is not verified ([77ee766](https://github.com/EagleFox31/atelier2026/commit/77ee766c1ab17f707a2eb1326e8c89277be696a8)), closes [#83](https://github.com/EagleFox31/atelier2026/issues/83)
+
 ## [1.16.0](https://github.com/EagleFox31/atelier2026/compare/v1.15.0...v1.16.0) (2026-10-10)
 
 
