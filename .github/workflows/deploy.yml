@@ -60,7 +60,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.DEPLOY_SHA }}
-          fetch-depth: 2
+          fetch-depth: 0
 
       # Règles dans scripts/ci/release-gate.mjs (testées par src/ci/release-gate.spec.ts) :
       # commit de release = version.txt modifié par rapport au 1er parent ; une
@@ -72,7 +72,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          git fetch --quiet --depth 1 origin "+refs/heads/main:refs/remotes/origin/main"
+          git fetch --quiet origin "+refs/heads/main:refs/remotes/origin/main"
           node scripts/ci/release-gate.mjs --event "$EVENT_NAME" --main-ref origin/main
           {
             if grep -q '^deploy=true$' "$GITHUB_OUTPUT"; then
