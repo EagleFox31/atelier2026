@@ -296,3 +296,83 @@ Tant que l'application Meta est en mode développement, seuls les numéros ajout
 ### Reste à faire (lot 4)
 
 Synchronisation des modèles approuvés depuis l'API Graph, comptes WhatsApp par garage, repli SMS, quotas facturés, purge des données de notification.
+
+## Variante centralisée Trigenys Notify (optionnelle, désactivée par défaut)
+
+**Code ajouté sans activation ni bascule du service en production.**
+Trigenys Notify possède désormais la route privée
+`POST /v1/dispatch/atelier/whatsapp` et l'adaptateur officiel Meta Cloud API
+([contrat du service mutualisé](https://github.com/Trigenys/trigenys-notify/blob/main/docs/meta-cloud-atelier.md)).
+Atelier Maître expose `WHATSAPP_PROVIDER=trigenys-notify` comme **alternative**
+au fournisseur historique `whatsapp-cloud`. Aucune modification du choix
+par défaut, et `CUSTOMER_NOTIFICATIONS_MODE=off` reste le comportement sûr.
+
+### Invariants non négociables
+
+- Le moteur Atelier (consentements et retraits STOP, modèles approuvés, quotas
+  par garage, `resolveDispatch`, idempotence et outbox PostgreSQL/BullMQ)
+  est inchangé. Le provider Notify se contente d'envoyer un **modèle Utility**
+  déjà validé, sans texte libre ni campagne marketing.
+- La requête serveur à serveur est authentifiée par une clé propre à Atelier ;
+  sa destination est épinglée au Worker staging de Notify. Aucun numéro,
+  message, secret ou token client dans les journaux et aucune route navigateur.
+- Même avec le proxy, le fournisseur métier reste nommé `whatsapp-cloud` et
+  `senderAccountRef` vaut **le même** `phone_number_id` Meta ; cela permet
+  au webhook signé d'Atelier de corréler les événements `sent/delivered/read`
+  et d'appliquer STOP. Le webhook Meta n'est pas déplacé à ce stade.
+- La réponse Notify `202 QUEUED` n'est acceptée qu'avec l'ID `wamid` attendu
+  et le numéro émetteur attendu. HTTP 202 ne signifie pas « livré ».
+- En cas d'échec réseau, d'acceptation sans ID, ou de 5xx amont Meta, l'issue
+  est `UNKNOWN_OUTCOME` (**échec sans réessai automatique**) pour ne pas
+  risquer deux messages. Les limites de débit explicitement reconnues
+  peuvent être relancées par la file Atelier.
+
+### Configuration pour une recette contrôlée
+
+Dans le SecureString SSM d'Atelier (jamais dans Git ni le navigateur) :
+
+```dotenv
+# Ne pas activer tant que Notify et Meta ne sont pas provisionnés et vérifiés.
+WHATSAPP_PROVIDER=trigenys-notify
+TRIGENYS_NOTIFY_API_URL=https://trigenys-notify-staging-api.lawrynnjennifer.workers.dev
+TRIGENYS_NOTIFY_INGEST_KEY=<clé serveur propre à Atelier>
+TRIGENYS_NOTIFY_PHONE_NUMBER_ID=<phone_number_id Meta du webhook Atelier>
+CUSTOMER_NOTIFICATIONS_MODE=sandbox
+# Autoriser uniquement les numéros pilotes ayant donné leur consentement.
+WHATSAPP_TEST_RECIPIENTS=<numéro de test E.164>
+WHATSAPP_APPROVED_TEMPLATES=am_vehicle_ready_v1:fr
+```
+
+Côté Worker Cloudflare **Trigenys Notify**, la même clé est enregistrée
+dans `ATELIER_NOTIFY_INGEST_KEY` ; le même compte est déclaré dans
+`META_CLOUD_PHONE_NUMBER_ID`, avec le token de fournisseur Meta dans
+`META_CLOUD_ACCESS_TOKEN`, une version Graph supportée dans
+`META_CLOUD_API_VERSION`, et une liste de modèles approuvés
+`ATELIER_META_APPROVED_TEMPLATES`. Son interrupteur
+`ATELIER_META_DISPATCH_ENABLED` reste `false` hors fenêtre de tests.
+
+**Ne jamais activer simultanément deux expéditeurs pour la même notification.**
+L'API de test de texte libre ne fonctionne pas avec le provider Notify :
+les envois passent par les événements métiers et leurs modèles approuvés.
+
+### Bascule et retour arrière
+
+1. Tester le fournisseur avec mocks et compilation API ; conserver
+   `WHATSAPP_PROVIDER=whatsapp-cloud` en production.
+2. Enregistrer la puce MTN choisie dans Meta, récupérer le `phone_number_id`
+   et le token, et faire approuver les modèles Utility.
+3. Provisionner les secrets Notify, commencer avec le mode sandbox et un numéro
+   de test consentant. Vérifier un seul événement métier, son `wamid`, le webhook
+   signé, les statuts et l'absence de réémission.
+4. Après validation, choisir **un seul chemin d'envoi** en modifiant
+   `WHATSAPP_PROVIDER` et redémarrer l'API. Garder le webhook et les quotas.
+5. En cas d'incident, repasser `CUSTOMER_NOTIFICATIONS_MODE=off` puis
+   redémarrer ; rétablir le provider direct uniquement après vérification des
+   notifications `ACCEPTED` et `UNKNOWN_OUTCOME`, pour éviter les doublons.
+6. Retirer `WHATSAPP_ACCESS_TOKEN` de SSM Atelier après la bascule validée,
+   **pas** les secrets `WHATSAPP_WEBHOOK_VERIFY_TOKEN` et
+   `WHATSAPP_APP_SECRET` tant que Meta livre à Atelier.
+
+Le Worker visé par le code est **staging** et son hôte est volontairement
+épinglé. Un domaine Notify de production devra être explicitement autorisé
+après revue, et non ouvert à n'importe quelle URL fournie par l'environnement.
