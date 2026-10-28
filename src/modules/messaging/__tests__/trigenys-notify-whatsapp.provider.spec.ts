@@ -120,6 +120,21 @@ describe('TrigenysNotifyWhatsAppProvider — contrat serveur à serveur', () => 
     });
   });
 
+  it('supporte le bouton de contact d’une facture avec un jeton opaque uniquement', async () => {
+    const { http, provider } = withResponse(202, RESPONSE);
+    await provider.sendTemplate({
+      ...VEHICLE_READY,
+      templateName: 'am_invoice_available_v1',
+      variables: ['Ada', 'FAC-2026-1', '25 000 FCFA', 'Garage Akwa'],
+      buttons: [{ index: 0, urlSuffix: 'A'.repeat(43) }],
+    });
+    const [, init] = http.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      eventType: 'INVOICE_AVAILABLE',
+      buttons: [{ index: 0, urlSuffix: 'A'.repeat(43) }],
+    });
+  });
+
   it('refuse le texte libre, les modèles marketing, les paramètres et destinations invalides sans réseau', async () => {
     const { http, provider } = withResponse(202, RESPONSE);
     await expect(provider.sendWhatsAppMessage({
