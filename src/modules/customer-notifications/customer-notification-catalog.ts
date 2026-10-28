@@ -31,7 +31,7 @@ export type CatalogEntry = {
    * suffixe. `quoteAccessToken` : jeton du lien public de devis, créé à l'envoi (URL Meta
    * `https://<domaine>/devis/{{1}}`).
    */
-  urlButton?: { index: number; source: 'quoteAccessToken' };
+  urlButton?: { index: number; source: 'quoteAccessToken' | 'garageContactToken' };
 };
 
 export const NOTIFICATION_CATALOG: Record<CustomerNotificationEvent, CatalogEntry> = {
@@ -71,6 +71,7 @@ export const NOTIFICATION_CATALOG: Record<CustomerNotificationEvent, CatalogEntr
     templateBase: 'invoice_available',
     templateVersion: 1,
     variables: ['customerName', 'invoiceNumber', 'amount', 'garageName'],
+    urlButton: { index: 0, source: 'garageContactToken' },
   },
   INVOICE_PAYMENT_REMINDER: {
     defaultEnabled: true,
