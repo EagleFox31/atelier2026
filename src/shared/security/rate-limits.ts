@@ -28,6 +28,8 @@ export const RATE_LIMITS = {
   invitationAccept: { default: { ttl: MINUTE, limit: 5 } },
   /** Lecture d'un devis par son lien public (client). */
   quoteLinkRead: { default: { ttl: MINUTE, limit: 30 } },
+  /** Public, opaque and time-limited link to the garage's contact details. */
+  garageContactRead: { default: { ttl: MINUTE, limit: 30 } },
   /** Validation ou refus d'un devis par son lien public. */
   quoteLinkDecide: { default: { ttl: MINUTE, limit: 5 } },
   /** Envoi WhatsApp de contrôle (SUPER_ADMIN) : chaque appel coûte un message réel. */
