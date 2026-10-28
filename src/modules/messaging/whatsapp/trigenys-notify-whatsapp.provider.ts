@@ -172,7 +172,7 @@ export class TrigenysNotifyWhatsAppProvider implements WhatsAppProvider {
       result.provider === WHATSAPP_CLOUD_PROVIDER && result.status === 'QUEUED' &&
       result.accountRef === this.accountRef &&
       typeof result.providerMessageId === 'string' &&
-      /^wamid\.[A-Za-z0-9._=+/-]{1,240}$/.test(result.providerMessageId)) {
+      /^wamid\.[A-Za-z0-9._=+\/-]{1,240}$/.test(result.providerMessageId)) {
       return { providerMessageId: result.providerMessageId, status: 'QUEUED' };
     }
     if (response.ok) {
@@ -193,7 +193,10 @@ export class TrigenysNotifyWhatsAppProvider implements WhatsAppProvider {
       throw new TemporaryMessagingError('RATE_LIMITED', 'Limite d’envoi WhatsApp atteinte.', this.name);
     }
     if (code === 'PROVIDER_UNAVAILABLE') {
-      throw new TemporaryMessagingError('UNAVAILABLE', 'Fournisseur Meta indisponible.', this.name);
+      // Meta 5xx may be post-acceptance: fail closed instead of duplicating.
+      throw new PermanentMessagingError(
+        'UNKNOWN_OUTCOME', 'Résultat Meta incertain : réessai automatique interdit.', this.name,
+      );
     }
     if (code === 'UNKNOWN_OUTCOME' || response.status >= 500) {
       throw new PermanentMessagingError(
