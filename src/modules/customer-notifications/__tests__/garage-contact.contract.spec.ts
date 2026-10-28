@@ -43,7 +43,7 @@ describe('GET public/garage-contact — HTTP contract', () => {
     expect(r.headers['cache-control']).toContain('no-store');
     expect(r.body).toEqual({
       garageName:'Garage Akwa', city:'Douala', address:'Akwa',
-      phone:'690000001', dialNumber:'690000001',
+      phone:'690000001', dialNumber:'+237690000001',
     });
   });
 
