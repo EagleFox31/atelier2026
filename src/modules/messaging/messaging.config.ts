@@ -5,6 +5,7 @@ import { SmsToSmsProvider } from './sms/smsto-sms.provider';
 import { UnimtxSmsProvider } from './sms/unimtx-sms.provider';
 import { WhatsAppCloudApiProvider } from './whatsapp/cloud-api-whatsapp.provider';
 import { SimulatorWhatsAppProvider } from './whatsapp/simulator-whatsapp.provider';
+import { TrigenysNotifyWhatsAppProvider } from './whatsapp/trigenys-notify-whatsapp.provider';
 import type { WhatsAppProvider } from './whatsapp/whatsapp-provider.interface';
 
 /**
@@ -27,6 +28,7 @@ const SMS_PROVIDERS: Record<string, (env: NodeJS.ProcessEnv) => SmsProvider> = {
 const WHATSAPP_PROVIDERS: Record<string, (env: NodeJS.ProcessEnv) => WhatsAppProvider> = {
   simulator: () => new SimulatorWhatsAppProvider(),
   'whatsapp-cloud': (env) => WhatsAppCloudApiProvider.fromEnv(env),
+  'trigenys-notify': (env) => TrigenysNotifyWhatsAppProvider.fromEnv(env),
 };
 
 export const DEFAULT_PROVIDER = 'simulator';
