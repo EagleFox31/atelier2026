@@ -38,7 +38,7 @@ const ROW = {
   invoiceId: null,
   paymentId: null,
   variables: { customerName: 'Jean', plate: 'LT 123 AB', garageName: 'Garage Central' },
-  garage: { tenantId: 't1' },
+  garage: { tenantId: 't1', phone: '690000001', status: 'active' },
   customer: { lang: 'fr' },
 };
 
