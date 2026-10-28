@@ -1,0 +1,267 @@
+{
+  "schemaVersion": 1,
+  "product": "Atelier Maître",
+  "metaCategory": "UTILITY",
+  "approvalState": "DRAFT_NOT_SUBMITTED",
+  "languageCodes": [
+    "fr",
+    "en"
+  ],
+  "note": "Drafts only. Confirm Meta approval on the real Trigenys Group WABA. Never auto-fill approved template allowlists from this file.",
+  "templates": [
+    {
+      "eventType": "APPOINTMENT_CONFIRMED",
+      "name": "am_appointment_confirmed_v1",
+      "category": "UTILITY",
+      "variableKeys": [
+        "customerName",
+        "garageName",
+        "date",
+        "time"
+      ],
+      "languages": {
+        "fr": {
+          "body": "Bonjour {{1}}, votre rendez-vous chez {{2}} est confirmé pour le {{3}} à {{4}}. Contactez l'atelier si vous devez modifier l'horaire.",
+          "exampleValues": [
+            "Amina N.",
+            "Garage Central Douala",
+            "29 octobre 2026",
+            "10 h 30"
+          ]
+        },
+        "en": {
+          "body": "Hello {{1}}, your appointment at {{2}} is confirmed for {{3}} at {{4}}. Please contact the workshop if you need to reschedule.",
+          "exampleValues": [
+            "Amina N.",
+            "Garage Central Douala",
+            "29 October 2026",
+            "10:30 AM"
+          ]
+        }
+      }
+    },
+    {
+      "eventType": "APPOINTMENT_REMINDER",
+      "name": "am_appointment_reminder_v1",
+      "category": "UTILITY",
+      "variableKeys": [
+        "customerName",
+        "garageName",
+        "date",
+        "time"
+      ],
+      "languages": {
+        "fr": {
+          "body": "Bonjour {{1}}, rappel de votre rendez-vous chez {{2}} le {{3}} à {{4}}. Si vous ne pouvez pas venir, contactez l'atelier.",
+          "exampleValues": [
+            "Amina N.",
+            "Garage Central Douala",
+            "29 octobre 2026",
+            "10 h 30"
+          ]
+        },
+        "en": {
+          "body": "Hello {{1}}, this is a reminder of your appointment at {{2}} on {{3}} at {{4}}. Please contact the workshop if you cannot attend.",
+          "exampleValues": [
+            "Amina N.",
+            "Garage Central Douala",
+            "29 October 2026",
+            "10:30 AM"
+          ]
+        }
+      }
+    },
+    {
+      "eventType": "SERVICE_ORDER_RECEIVED",
+      "name": "am_service_order_received_v1",
+      "category": "UTILITY",
+      "variableKeys": [
+        "customerName",
+        "garageName",
+        "plate",
+        "orderNumber"
+      ],
+      "languages": {
+        "fr": {
+          "body": "Bonjour {{1}}, {{2}} a bien pris en charge votre véhicule immatriculé {{3}} (ordre de travail {{4}}). Nous vous informerons de son avancement.",
+          "exampleValues": [
+            "Amina N.",
+            "Garage Central Douala",
+            "LT 123 AB",
+            "OT-2026-0042"
+          ]
+        },
+        "en": {
+          "body": "Hello {{1}}, {{2}} has received your vehicle with registration {{3}} (work order {{4}}). We will keep you updated on its progress.",
+          "exampleValues": [
+            "Amina N.",
+            "Garage Central Douala",
+            "LT 123 AB",
+            "OT-2026-0042"
+          ]
+        }
+      }
+    },
+    {
+      "eventType": "QUOTE_APPROVAL_REQUESTED",
+      "name": "am_quote_approval_v1",
+      "category": "UTILITY",
+      "variableKeys": [
+        "customerName",
+        "garageName",
+        "quoteNumber",
+        "amount"
+      ],
+      "languages": {
+        "fr": {
+          "body": "Bonjour {{1}}, {{2}} a préparé votre devis n° {{3}} d'un montant de {{4}}. Consultez-le avec le bouton ci-dessous pour l'accepter ou le refuser.",
+          "exampleValues": [
+            "Amina N.",
+            "Garage Central Douala",
+            "DEV-2026-0107",
+            "85 000 FCFA"
+          ]
+        },
+        "en": {
+          "body": "Hello {{1}}, {{2}} has prepared your quote {{3}} for {{4}}. Use the button below to review, approve or decline it.",
+          "exampleValues": [
+            "Amina N.",
+            "Garage Central Douala",
+            "DEV-2026-0107",
+            "85 000 FCFA"
+          ]
+        }
+      },
+      "urlButton": {
+        "index": 0,
+        "text": {
+          "fr": "Consulter le devis",
+          "en": "View quote"
+        },
+        "url": "https://atelier.trigenys.com/devis/{{1}}",
+        "exampleSuffix": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      }
+    },
+    {
+      "eventType": "VEHICLE_READY",
+      "name": "am_vehicle_ready_v1",
+      "category": "UTILITY",
+      "variableKeys": [
+        "customerName",
+        "plate",
+        "garageName"
+      ],
+      "languages": {
+        "fr": {
+          "body": "Bonjour {{1}}, votre véhicule immatriculé {{2}} est prêt chez {{3}}. Contactez l'atelier pour organiser sa récupération.",
+          "exampleValues": [
+            "Amina N.",
+            "LT 123 AB",
+            "Garage Central Douala"
+          ]
+        },
+        "en": {
+          "body": "Hello {{1}}, your vehicle with registration {{2}} is ready at {{3}}. Please contact the workshop to arrange collection.",
+          "exampleValues": [
+            "Amina N.",
+            "LT 123 AB",
+            "Garage Central Douala"
+          ]
+        }
+      }
+    },
+    {
+      "eventType": "INVOICE_AVAILABLE",
+      "name": "am_invoice_available_v1",
+      "category": "UTILITY",
+      "variableKeys": [
+        "customerName",
+        "invoiceNumber",
+        "amount",
+        "garageName"
+      ],
+      "languages": {
+        "fr": {
+          "body": "Bonjour {{1}}, votre facture n° {{2}} d'un montant de {{3}} est disponible auprès de {{4}}. Contactez l'atelier pour en obtenir les détails.",
+          "exampleValues": [
+            "Amina N.",
+            "FAC-2026-0107",
+            "85 000 FCFA",
+            "Garage Central Douala"
+          ]
+        },
+        "en": {
+          "body": "Hello {{1}}, your invoice {{2}} for {{3}} is available from {{4}}. Contact the workshop if you need a copy or further details.",
+          "exampleValues": [
+            "Amina N.",
+            "FAC-2026-0107",
+            "85 000 FCFA",
+            "Garage Central Douala"
+          ]
+        }
+      }
+    },
+    {
+      "eventType": "INVOICE_PAYMENT_REMINDER",
+      "name": "am_invoice_reminder_v1",
+      "category": "UTILITY",
+      "variableKeys": [
+        "customerName",
+        "invoiceNumber",
+        "amount",
+        "garageName"
+      ],
+      "languages": {
+        "fr": {
+          "body": "Bonjour {{1}}, pour votre facture {{2}}, le solde de {{3}} reste à régler auprès de {{4}}. Si vous avez déjà payé, ignorez ce rappel.",
+          "exampleValues": [
+            "Amina N.",
+            "FAC-2026-0107",
+            "85 000 FCFA",
+            "Garage Central Douala"
+          ]
+        },
+        "en": {
+          "body": "Hello {{1}}, for invoice {{2}}, the outstanding balance of {{3}} is still due to {{4}}. If you have already paid, please disregard this reminder.",
+          "exampleValues": [
+            "Amina N.",
+            "FAC-2026-0107",
+            "85 000 FCFA",
+            "Garage Central Douala"
+          ]
+        }
+      }
+    },
+    {
+      "eventType": "PAYMENT_CONFIRMED",
+      "name": "am_payment_confirmed_v1",
+      "category": "UTILITY",
+      "variableKeys": [
+        "customerName",
+        "amount",
+        "invoiceNumber",
+        "garageName"
+      ],
+      "languages": {
+        "fr": {
+          "body": "Bonjour {{1}}, nous confirmons la réception de votre paiement de {{2}} pour la facture {{3}} chez {{4}}. Merci.",
+          "exampleValues": [
+            "Amina N.",
+            "85 000 FCFA",
+            "FAC-2026-0107",
+            "Garage Central Douala"
+          ]
+        },
+        "en": {
+          "body": "Hello {{1}}, we confirm receipt of your payment of {{2}} for invoice {{3}} at {{4}}. Thank you.",
+          "exampleValues": [
+            "Amina N.",
+            "85 000 FCFA",
+            "FAC-2026-0107",
+            "Garage Central Douala"
+          ]
+        }
+      }
+    }
+  ]
+}
