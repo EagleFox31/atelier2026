@@ -20,7 +20,8 @@ export type PermanentMessagingErrorCode =
   | 'SENDER_REJECTED' // nom d'expéditeur refusé / non provisionné
   | 'INSUFFICIENT_CREDIT' // solde fournisseur épuisé
   | 'CONTENT_REJECTED' // contenu refusé (spam, type de message invalide)
-  | 'PROVIDER_CONFIGURATION'; // token invalide, scope manquant, abonnement inactif
+  | 'PROVIDER_CONFIGURATION' // token invalide, scope manquant, abonnement inactif
+  | 'UNKNOWN_OUTCOME'; // appel potentiellement accepté : aucun renvoi automatique
 
 /** Échecs passagers : un nouvel essai plus tard peut réussir. */
 export type TemporaryMessagingErrorCode =
