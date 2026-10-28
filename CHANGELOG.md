@@ -1,5 +1,45 @@
 # Changelog
 
+## [1.17.0](https://github.com/EagleFox31/atelier2026/compare/v1.16.1...v1.17.0) (2026-10-28)
+
+
+### Features
+
+* **atelier:** add guarded Trigenys Notify WhatsApp provider ([4a458aa](https://github.com/EagleFox31/atelier2026/commit/4a458aae0fbce11735627eaa7e2ee77ae11f1bfa))
+* **messaging:** select Trigenys Notify behind explicit provider setting ([4f3a56c](https://github.com/EagleFox31/atelier2026/commit/4f3a56c8a17d1af5742b1dbcea8ef54da7f67946))
+* **notifications:** preserve live safeguards with Notify provider ([7fba8f6](https://github.com/EagleFox31/atelier2026/commit/7fba8f64ce41d047edfeaf640e15687459c5511b))
+* **ui:** responsive public garage contact page with click-to-call ([68352fe](https://github.com/EagleFox31/atelier2026/commit/68352fe66a771bd7689586e1e877824a07c53dd6))
+* **whatsapp:** connect invoice contact button and secure contact route ([0121d20](https://github.com/EagleFox31/atelier2026/commit/0121d2026586e48f483ebc8d123732bbeaa95064))
+* **whatsapp:** connect invoice contact button and secure contact route ([a691610](https://github.com/EagleFox31/atelier2026/commit/a691610a8839461cffb6bd7d5f5e7f565dfb534c))
+* **whatsapp:** connect invoice contact button and secure contact route ([f58e74a](https://github.com/EagleFox31/atelier2026/commit/f58e74abc413d6da742d5fe928b877a12571c3a0))
+* **whatsapp:** connect invoice contact button and secure contact route ([63626d5](https://github.com/EagleFox31/atelier2026/commit/63626d516591618778511d2b9e24b9c59f33a74f))
+* **whatsapp:** connect invoice contact button and secure contact route ([77656c4](https://github.com/EagleFox31/atelier2026/commit/77656c421f8a532e8001ae687cdef46aee25de1c))
+* **whatsapp:** connect invoice contact button and secure contact route ([1242412](https://github.com/EagleFox31/atelier2026/commit/1242412a31fab99fddfb40ea6f3408063f267a1b))
+* **whatsapp:** connect invoice contact button and secure contact route ([1c2e54d](https://github.com/EagleFox31/atelier2026/commit/1c2e54daa74b84129ad207830076ce2ef1d792a9))
+* **whatsapp:** connect invoice contact button and secure contact route ([dfbed7a](https://github.com/EagleFox31/atelier2026/commit/dfbed7aa6ecff8f7a12665536c974a2429a0f1a1))
+* **whatsapp:** connect invoice contact button and secure contact route ([f69801d](https://github.com/EagleFox31/atelier2026/commit/f69801dd9d0cbb6cd403c7939fbe65cd076624ca))
+* **whatsapp:** draft bilingual Meta Utility template manifest ([95c2d97](https://github.com/EagleFox31/atelier2026/commit/95c2d97bf836aaf9a310c2960546bf257915a6f1))
+* **whatsapp:** page de contact multigarage et bouton facture sécurisé ([72819dd](https://github.com/EagleFox31/atelier2026/commit/72819ddec659a629ec002b8e1439679e5a3b479b))
+* **whatsapp:** préparer 8 modèles Utility bilingues pour validation Meta ([b456ffa](https://github.com/EagleFox31/atelier2026/commit/b456ffadb18355a530434245f03491355845db2d))
+* **whatsapp:** raccorder Atelier Maître à Trigenys Notify sans bascule ([ef584d2](https://github.com/EagleFox31/atelier2026/commit/ef584d22d2d1b28f8c90ae24348b39d894ee144d))
+* **whatsapp:** secure per-garage public contact links ([1b414b9](https://github.com/EagleFox31/atelier2026/commit/1b414b914486b226137bb4c5ae95753700f12689))
+* **whatsapp:** secure per-garage public contact links ([2203505](https://github.com/EagleFox31/atelier2026/commit/2203505e39a316e7f4ef4f30b045df346ab6fa5b))
+* **whatsapp:** secure per-garage public contact links ([f6e42a3](https://github.com/EagleFox31/atelier2026/commit/f6e42a35a0520d94e82ffca4b2bbe28db544fc14))
+* **whatsapp:** secure per-garage public contact links ([d213831](https://github.com/EagleFox31/atelier2026/commit/d21383160b606da9ac398a2a3c72265ac706636f))
+
+
+### Bug Fixes
+
+* **ci:** pin UX Playwright runner to supported Ubuntu 24.04 ([4155478](https://github.com/EagleFox31/atelier2026/commit/415547803d5d944e7ad62a3583a174dd340f4201))
+* **messaging:** distinguish ambiguous delivery from retryable errors ([eeb210d](https://github.com/EagleFox31/atelier2026/commit/eeb210da66bd4374eec5c7dc2ea07de0f9dbf8f4))
+* **notify:** reject ambiguous provider errors without automatic duplicate sends ([8b7607e](https://github.com/EagleFox31/atelier2026/commit/8b7607e7c9891ad1eb120495668e9ab1b0e89ef9))
+* **security:** prevent referrer and indexing leaks for opaque garage-contact URLs ([212b70e](https://github.com/EagleFox31/atelier2026/commit/212b70ebdc5feec44cbbb8e0a2f1297bf4836720))
+* **ui:** use supported anchor styling for phone CTA ([8d79a70](https://github.com/EagleFox31/atelier2026/commit/8d79a70ec06d0eb596837f7ce12dc0de3dfa4a8b))
+* **whatsapp:** validate garage phone before creating contact link and normalize tel CTA ([0166e44](https://github.com/EagleFox31/atelier2026/commit/0166e4453fb2006ce8fadf47fbc43030efcc9939))
+* **whatsapp:** validate garage phone before creating contact link and normalize tel CTA ([5f27cd7](https://github.com/EagleFox31/atelier2026/commit/5f27cd7bbfbb060f6b5dde39d81544284aaa50c5))
+* **whatsapp:** validate garage phone before creating contact link and normalize tel CTA ([8fc42b5](https://github.com/EagleFox31/atelier2026/commit/8fc42b5562b45f1d03ebfe6fd7f03fadb32b87af))
+* **whatsapp:** validate garage phone before creating contact link and normalize tel CTA ([d4e88fd](https://github.com/EagleFox31/atelier2026/commit/d4e88fdcdf46dd2bf123b48cafddefbe9cef0f86))
+
 ## [1.16.1](https://github.com/EagleFox31/atelier2026/compare/v1.16.0...v1.16.1) (2026-10-13)
 
 
