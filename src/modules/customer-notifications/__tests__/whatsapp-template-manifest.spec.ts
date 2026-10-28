@@ -66,7 +66,10 @@ describe('Meta WhatsApp Utility templates FR/EN — proposition non approuvée',
       if (canonical.urlButton) {
         expect(draft.urlButton).toBeDefined();
         expect(draft.urlButton?.index).toBe(canonical.urlButton.index);
-        expect(draft.urlButton?.url).toBe('https://atelier.trigenys.com/devis/{{1}}');
+        const expectedUrl = canonical.urlButton.source === 'garageContactToken'
+          ? 'https://atelier.trigenys.com/contact/{{1}}'
+          : 'https://atelier.trigenys.com/devis/{{1}}';
+        expect(draft.urlButton?.url).toBe(expectedUrl);
         expect(draft.urlButton?.exampleSuffix).toMatch(/^[A-Za-z0-9_-]{16,256}$/);
         expect(draft.urlButton?.text.fr).toBeTruthy();
         expect(draft.urlButton?.text.en).toBeTruthy();
