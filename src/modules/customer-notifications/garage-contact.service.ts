@@ -1,5 +1,6 @@
 import { GoneException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
+import { toE164 } from '../messaging/shared/phone';
 import { hashOpaqueToken, isWellFormedOpaqueToken } from '../../shared/security/opaque-token';
 
 const invalid = () => new NotFoundException({
@@ -27,10 +28,9 @@ export class GarageContactService {
     if (!access || !access.garage || access.garage.status !== 'active') throw invalid();
     if (access.revokedAt || access.expiresAt <= now) throw expired();
     const phone = access.garage.phone.trim();
-    // Only reveal dialable business numbers; no user or customer phone ever leaves this endpoint.
-    if (!/^\+?[0-9\s().-]{8,25}$/.test(phone)) throw invalid();
-    const dialNumber = phone.replace(/[^\d+]/g, '');
-    if (!/^\+?[0-9]{8,15}$/.test(dialNumber)) throw invalid();
+    // Reuse the WhatsApp phone formatter, including local Cameroon numbers.
+    const dialNumber = toE164(phone);
+    if (!dialNumber) throw invalid();
     return {
       garageName: access.garage.name,
       city: access.garage.city,
