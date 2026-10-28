@@ -3,6 +3,7 @@ import { Inject, Logger } from '@nestjs/common';
 import type { CustomerNotificationStatus } from '@prisma/client';
 import { Job, UnrecoverableError } from 'bullmq';
 import { issueQuoteAccessToken } from '../../shared/billing/quote-access-token';
+import { issueGarageContactToken } from '../../shared/garage/garage-contact-token';
 import { PrismaService } from '../../shared/prisma/prisma.service';
 import { classifyMessagingFailure, maskPhone, type WhatsAppTemplateUrlButton } from '../messaging';
 import { hasFeature } from '../subscription/entitlements';
@@ -170,6 +171,12 @@ export class CustomerNotificationProcessor extends WorkerHost {
   ): Promise<WhatsAppTemplateUrlButton[]> {
     const button = NOTIFICATION_CATALOG[row.eventType].urlButton;
     if (!button) return [];
+    if (button.source === 'garageContactToken') {
+      const token = await issueGarageContactToken(this.prisma, {
+        garageId: row.garageId, notificationId: row.id, now,
+      });
+      return [{ index: button.index, urlSuffix: token }];
+    }
     const missingQuote = () =>
       new MissingNotificationVariableError(row.eventType, [], `Devis introuvable pour le bouton de ${row.eventType}`);
     if (!row.quoteId) throw missingQuote();
