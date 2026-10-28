@@ -3,6 +3,8 @@ import { Module } from '@nestjs/common';
 import { MessagingModule } from '../messaging';
 import { SubscriptionModule } from '../subscription/subscription.module';
 import { CustomerConsentService } from './customer-consent.service';
+import { GarageContactController } from './garage-contact.controller';
+import { GarageContactService } from './garage-contact.service';
 import { CustomerNotificationEmitter } from './customer-notification.emitter';
 import { CustomerNotificationHistoryService } from './customer-notification-history.service';
 import { CustomerNotificationProcessor } from './customer-notification.processor';
@@ -43,10 +45,12 @@ import { WhatsAppWebhookSweeper } from './whatsapp-webhook.sweeper';
     NotificationSettingsController,
     CustomerNotificationsAdminController,
     WhatsAppWebhookController,
+    GarageContactController,
   ],
   providers: [
     { provide: CUSTOMER_NOTIFICATIONS_CONFIG, useFactory: () => loadCustomerNotificationsConfig() },
     CustomerConsentService,
+    GarageContactService,
     CustomerNotificationEmitter,
     CustomerNotificationHistoryService,
     CustomerNotificationProcessor,
