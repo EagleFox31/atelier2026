@@ -23,6 +23,10 @@ const VEHICLE_READY = {
   variables: ['Ada', 'CE-123-AA', 'Garage pilote'],
   idempotencyKey: 'customer-notification:550e8400-e29b-41d4-a716-446655440000',
 };
+function env(values: Record<string, string>): NodeJS.ProcessEnv {
+  return { NODE_ENV: 'test', ...values } as NodeJS.ProcessEnv;
+}
+
 const RESPONSE = {
   accepted: true,
   status: 'QUEUED',
@@ -51,13 +55,13 @@ describe('TrigenysNotifyWhatsAppProvider — contrat serveur à serveur', () => 
     expect(provider.simulated).toBe(false);
     expect(provider.accountRef).toBe(CONFIG.phoneNumberId);
     expect(http).not.toHaveBeenCalled();
-    expect(createWhatsAppProvider({})).not.toBeInstanceOf(TrigenysNotifyWhatsAppProvider);
-    const selected = createWhatsAppProvider({
+    expect(createWhatsAppProvider(env({}))).not.toBeInstanceOf(TrigenysNotifyWhatsAppProvider);
+    const selected = createWhatsAppProvider(env({
       WHATSAPP_PROVIDER: 'trigenys-notify',
       TRIGENYS_NOTIFY_API_URL: ORIGIN,
       TRIGENYS_NOTIFY_INGEST_KEY: KEY,
       TRIGENYS_NOTIFY_PHONE_NUMBER_ID: CONFIG.phoneNumberId,
-    });
+    }));
     expect(selected).toBeInstanceOf(TrigenysNotifyWhatsAppProvider);
     expect(selected.name).toBe('whatsapp-cloud');
   });
@@ -75,7 +79,7 @@ describe('TrigenysNotifyWhatsAppProvider — contrat serveur à serveur', () => 
     }
     expect(() => new TrigenysNotifyWhatsAppProvider({ ...CONFIG, ingestKey: 'short' })).toThrow();
     expect(() => new TrigenysNotifyWhatsAppProvider({ ...CONFIG, phoneNumberId: 'not numeric' })).toThrow();
-    expect(() => createWhatsAppProvider({ WHATSAPP_PROVIDER: 'trigenys-notify' })).toThrow(/TRIGENYS_NOTIFY/);
+    expect(() => createWhatsAppProvider(env({ WHATSAPP_PROVIDER: 'trigenys-notify' }))).toThrow(/TRIGENYS_NOTIFY/);
   });
 
   it('transmet exclusivement le contrat Utility au Worker avec sa clé privée', async () => {
