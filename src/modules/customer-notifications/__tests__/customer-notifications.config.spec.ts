@@ -32,6 +32,13 @@ describe('loadCustomerNotificationsConfig', () => {
     expect(config.monthlyCap).toBe(150);
   });
 
+  it('live accepte un expéditeur Notify explicite en gardant le plafond et les modèles approuvés', () => {
+    const config = loadCustomerNotificationsConfig({ ...LIVE, WHATSAPP_PROVIDER: 'trigenys-notify' });
+    expect(config.mode).toBe('live');
+    expect(config.monthlyCap).toBe(150);
+    expect(config.approvedTemplates.has('am_vehicle_ready_v1:fr')).toBe(true);
+  });
+
   it('sandbox : destinataires normalisés en E.164, entrées invalides ignorées', () => {
     const config = loadCustomerNotificationsConfig({
       CUSTOMER_NOTIFICATIONS_MODE: 'sandbox',
