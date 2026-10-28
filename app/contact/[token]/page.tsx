@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { AlertCircle, MapPin, PhoneCall, Wrench, Loader2, RotateCcw, ShieldCheck } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 type Contact = {
@@ -103,11 +104,14 @@ export default function GarageContactPage() {
                   </div>
                 </div>
               )}
-              <Button asChild className="h-12 w-full bg-brand text-white hover:bg-brand-hover">
-                <a href={`tel:${contact.dialNumber}`} rel="noreferrer" aria-label={`Appeler ${contact.garageName}`}>
-                  <PhoneCall aria-hidden size={18} /> Appeler l’atelier
-                </a>
-              </Button>
+              <a
+                href={`tel:${contact.dialNumber}`}
+                rel="noreferrer"
+                aria-label={`Appeler ${contact.garageName}`}
+                className={cn(buttonVariants(), 'h-12 w-full bg-brand text-white hover:bg-brand-hover')}
+              >
+                <PhoneCall aria-hidden size={18} /> Appeler l’atelier
+              </a>
               <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
                 <ShieldCheck className="shrink-0" aria-hidden size={16} />
                 Cette page ne contient aucune donnée de facture ni information personnelle du client.
