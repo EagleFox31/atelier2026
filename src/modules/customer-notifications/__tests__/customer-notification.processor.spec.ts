@@ -38,7 +38,7 @@ const ROW = {
   invoiceId: null,
   paymentId: null,
   variables: { customerName: 'Jean', plate: 'LT 123 AB', garageName: 'Garage Central' },
-  garage: { tenantId: 't1' },
+  garage: { tenantId: 't1', phone: '690000001', status: 'active' },
   customer: { lang: 'fr' },
 };
 
@@ -204,6 +204,51 @@ describe('CustomerNotificationProcessor', () => {
         garageId: 'g1',
         status: { in: ['ACCEPTED', 'SENT', 'DELIVERED', 'READ'] },
       }),
+    });
+  });
+});
+
+describe('CustomerNotificationProcessor — lien de contact multigarage', () => {
+  it('n’envoie que le jeton du garage de la notification, jamais son téléphone', async () => {
+    const { processor, prisma, provider } = makeProcessor({
+      env: {
+        CUSTOMER_NOTIFICATIONS_MODE: 'live',
+        WHATSAPP_PROVIDER: 'whatsapp-cloud',
+        WHATSAPP_APPROVED_TEMPLATES: 'am_invoice_available_v1:fr',
+        CUSTOMER_NOTIFICATIONS_MONTHLY_CAP: '300',
+      },
+    });
+    prisma.customerNotification.findUniqueOrThrow.mockResolvedValue({
+      ...ROW,
+      eventType: 'INVOICE_AVAILABLE',
+      invoiceId: 'invoice-a',
+      variables: {
+        customerName: 'Jean', invoiceNumber: 'FAC-001', amount: '30 000 FCFA',
+        garageName: 'Garage Central',
+      },
+    });
+    const tokens = {
+      updateMany: jest.fn().mockReturnValue({ action: 'revoke' }),
+      create: jest.fn().mockReturnValue({ action: 'create' }),
+    };
+    const db = prisma as typeof prisma & Record<string, unknown>;
+    Object.assign(db, {
+      garageContactLink: tokens,
+      $transaction: jest.fn().mockResolvedValue([]),
+    });
+
+    await expect(processor.process(job())).resolves.toEqual({ outcome: 'ACCEPTED' });
+    expect(provider.sent[0].buttons).toEqual([
+      { index: 0, urlSuffix: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/) },
+    ]);
+    const token = provider.sent[0].buttons![0].urlSuffix;
+    const created = tokens.create.mock.calls[0][0].data;
+    expect(created.garageId).toBe('g1');
+    expect(created.notificationId).toBe('n1');
+    expect(created.tokenHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(JSON.stringify(created)).not.toContain(token);
+    expect(tokens.updateMany).toHaveBeenCalledWith({
+      where: { notificationId: 'n1', revokedAt: null }, data: { revokedAt: expect.any(Date) },
     });
   });
 });

@@ -29,7 +29,7 @@ const UTILITY_TEMPLATES = {
   am_service_order_received_v1: { eventType: 'SERVICE_ORDER_RECEIVED', count: 4, button: false },
   am_quote_approval_v1: { eventType: 'QUOTE_APPROVAL_REQUESTED', count: 4, button: true },
   am_vehicle_ready_v1: { eventType: 'VEHICLE_READY', count: 3, button: false },
-  am_invoice_available_v1: { eventType: 'INVOICE_AVAILABLE', count: 4, button: false },
+  am_invoice_available_v1: { eventType: 'INVOICE_AVAILABLE', count: 4, button: true },
   am_invoice_reminder_v1: { eventType: 'INVOICE_PAYMENT_REMINDER', count: 4, button: false },
   am_payment_confirmed_v1: { eventType: 'PAYMENT_CONFIRMED', count: 4, button: false },
 } as const;

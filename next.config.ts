@@ -42,6 +42,15 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Opaque garage-contact links contain private bearer tokens in the path.
+        source: '/contact/:token',
+        headers: [
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
+          { key: 'Cache-Control', value: 'no-store, private' },
+        ],
+      },
+      {
         source: '/:path*',
         headers: [
           { key: 'Content-Security-Policy-Report-Only', value: CONTENT_SECURITY_POLICY_REPORT_ONLY },

@@ -3,8 +3,9 @@ import { Inject, Logger } from '@nestjs/common';
 import type { CustomerNotificationStatus } from '@prisma/client';
 import { Job, UnrecoverableError } from 'bullmq';
 import { issueQuoteAccessToken } from '../../shared/billing/quote-access-token';
+import { issueGarageContactToken } from '../../shared/garage/garage-contact-token';
 import { PrismaService } from '../../shared/prisma/prisma.service';
-import { classifyMessagingFailure, maskPhone, type WhatsAppTemplateUrlButton } from '../messaging';
+import { classifyMessagingFailure, maskPhone, toE164, type WhatsAppTemplateUrlButton } from '../messaging';
 import { hasFeature } from '../subscription/entitlements';
 import { SubscriptionService } from '../subscription/subscription.service';
 import {
@@ -96,7 +97,7 @@ export class CustomerNotificationProcessor extends WorkerHost {
     const row = await this.prisma.customerNotification.findUniqueOrThrow({
       where: { id: notificationId },
       include: {
-        garage: { select: { tenantId: true } },
+        garage: { select: { tenantId: true, phone: true, status: true } },
         customer: { select: { lang: true } },
       },
     });
@@ -165,11 +166,21 @@ export class CustomerNotificationProcessor extends WorkerHost {
    * relance en émet un nouveau et révoque le précédent, jamais stocké en clair.
    */
   private async buildButtons(
-    row: { id: string; garageId: string; eventType: Parameters<typeof templateName>[0]; quoteId: string | null },
+    row: { id: string; garageId: string; eventType: Parameters<typeof templateName>[0]; quoteId: string | null; garage: { phone: string; status: string } },
     now: Date,
   ): Promise<WhatsAppTemplateUrlButton[]> {
     const button = NOTIFICATION_CATALOG[row.eventType].urlButton;
     if (!button) return [];
+    if (button.source === 'garageContactToken') {
+      if (row.garage.status !== 'active' || !toE164(row.garage.phone)) {
+        throw new MissingNotificationVariableError(row.eventType, [],
+          'Téléphone professionnel du garage indisponible pour le bouton de contact.');
+      }
+      const token = await issueGarageContactToken(this.prisma, {
+        garageId: row.garageId, notificationId: row.id, now,
+      });
+      return [{ index: button.index, urlSuffix: token }];
+    }
     const missingQuote = () =>
       new MissingNotificationVariableError(row.eventType, [], `Devis introuvable pour le bouton de ${row.eventType}`);
     if (!row.quoteId) throw missingQuote();

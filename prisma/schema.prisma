@@ -274,6 +274,7 @@ model Garage {
   customerChannelConsents CustomerChannelConsent[]
   notificationSettings    GarageNotificationSetting[]
   quoteAccessTokens       QuoteAccessToken[]
+  garageContactLinks     GarageContactLink[]
 
   @@unique([tenantId, slug])
   @@map("garages")
@@ -1215,6 +1216,7 @@ model CustomerNotification {
   fallbackOf        CustomerNotification?  @relation("NotificationFallback", fields: [fallbackOfId], references: [id], onDelete: SetNull)
   fallbacks         CustomerNotification[] @relation("NotificationFallback")
   quoteAccessTokens QuoteAccessToken[]
+  garageContactLinks GarageContactLink[]
   webhookEvents     WhatsAppWebhookEvent[]
 
   @@unique([garageId, idempotencyKey])
@@ -1328,6 +1330,23 @@ model GarageNotificationSetting {
 }
 
 /// Lien public vers un devis : seule l'empreinte SHA-256 du jeton est stockée.
+model GarageContactLink {
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  garageId       String    @map("garage_id") @db.Uuid
+  notificationId String    @map("notification_id") @db.Uuid
+  tokenHash      String    @unique @map("token_hash")
+  expiresAt      DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt      DateTime? @map("revoked_at") @db.Timestamptz
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  garage         Garage               @relation(fields: [garageId], references: [id], onDelete: Cascade)
+  notification   CustomerNotification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId])
+  @@index([garageId])
+  @@map("garage_contact_links")
+}
+
 model QuoteAccessToken {
   id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   garageId       String    @map("garage_id") @db.Uuid
