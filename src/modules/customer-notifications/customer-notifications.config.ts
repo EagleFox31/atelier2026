@@ -91,9 +91,9 @@ export function loadCustomerNotificationsConfig(
 
   if (mode === 'live') {
     const provider = env.WHATSAPP_PROVIDER?.trim().toLowerCase();
-    if (provider !== 'whatsapp-cloud') {
+    if (provider !== 'whatsapp-cloud' && provider !== 'trigenys-notify') {
       throw new CustomerNotificationsConfigurationError(
-        'CUSTOMER_NOTIFICATIONS_MODE=live exige WHATSAPP_PROVIDER=whatsapp-cloud.',
+        'CUSTOMER_NOTIFICATIONS_MODE=live exige WHATSAPP_PROVIDER=whatsapp-cloud ou trigenys-notify.',
       );
     }
     if (approvedTemplates.size === 0) {
