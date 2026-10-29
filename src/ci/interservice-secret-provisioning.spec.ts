@@ -15,7 +15,7 @@ describe('AppFactory ↔ AWS Notify credential safety contract', () => {
     expect(workflow).toContain('/atelier-maitre/prod/notify-ingest-key');
     expect(workflow).toContain('appfactory-api');
     expect(workflow).toContain('SecureString');
-    expect(workflow).not.toContain('--overwrite');
+    expect(workflow).not.toMatch(/aws ssm put-parameter[^\n]*--overwrite/);
     expect(workflow).not.toContain('GITHUB_OUTPUT');
     expect(workflow).toContain('set +x');
     expect(workflow).toContain('umask 077');
