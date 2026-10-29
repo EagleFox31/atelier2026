@@ -22,6 +22,43 @@ aws ssm get-parameter \
   --output text > "$ENV_FILE.tmp"
 mv "$ENV_FILE.tmp" "$ENV_FILE"
 
+# Dedicated, independently rotated SecureString; the existing /prod/env blob
+# is not modified. Keep the provider off until an authorized staging smoke.
+NOTIFY_KEY_PARAMETER="${NOTIFY_KEY_PARAMETER:-/atelier-maitre/prod/notify-ingest-key}"
+notify_key=""
+if notify_key="$(aws ssm get-parameter \
+  --name "$NOTIFY_KEY_PARAMETER" --with-decryption \
+  --query 'Parameter.Value' --output text 2>"$ENV_FILE.notify-error")"; then
+  if [[ ! "$notify_key" =~ ^[a-f0-9]{64}$ ]]; then
+    echo "Notify ingest key has invalid format; refusing deployment." >&2
+    exit 1
+  fi
+  # Existing env entries may be owned by another provisioner. Never shadow
+  # or silently overwrite a key; fail rather than accidentally changing trust.
+  if grep -q '^TRIGENYS_NOTIFY_INGEST_KEY=' "$ENV_FILE"; then
+    existing_key="$(sed -n 's/^TRIGENYS_NOTIFY_INGEST_KEY=//p' "$ENV_FILE")"
+    if [ "$existing_key" != "$notify_key" ]; then
+      echo "Notify ingest key conflicts with existing environment entry." >&2
+      exit 1
+    fi
+    unset existing_key
+  else
+    printf '\nTRIGENYS_NOTIFY_INGEST_KEY=%s\n' "$notify_key" >> "$ENV_FILE"
+  fi
+  unset notify_key
+  echo "Notify ingest credential loaded from dedicated SSM SecureString."
+elif grep -q 'ParameterNotFound' "$ENV_FILE.notify-error"; then
+  if grep -Eq '^WHATSAPP_PROVIDER=trigenys-notify$' "$ENV_FILE"; then
+    echo "Notify provider selected but dedicated key is absent." >&2
+    exit 1
+  fi
+  echo "Notify key not yet provisioned; existing provider unchanged."
+else
+  echo "AWS SSM read for Notify key failed; refusing deployment." >&2
+  exit 1
+fi
+rm -f "$ENV_FILE.notify-error"
+
 if grep -Eq '@postgres([:/?]|$)' "$ENV_FILE"; then
   echo "DATABASE_URL still targets the local 'postgres' service, which is not started on AWS." >&2
   echo "Use the Supabase pooler URL in the Parameter Store environment value." >&2
