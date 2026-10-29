@@ -48,7 +48,17 @@ if notify_key="$(aws ssm get-parameter \
   unset notify_key
   echo "Notify ingest credential loaded from dedicated SSM SecureString."
 elif grep -q 'ParameterNotFound' "$ENV_FILE.notify-error"; then
-  if grep -Eq '^WHATSAPP_PROVIDER=trigenys-notify
+  if grep -Eq '^WHATSAPP_PROVIDER=trigenys-notify$' "$ENV_FILE"; then
+    echo "Notify provider selected but dedicated key is absent." >&2
+    exit 1
+  fi
+  echo "Notify key not yet provisioned; existing provider unchanged."
+else
+  echo "AWS SSM read for Notify key failed; refusing deployment." >&2
+  exit 1
+fi
+rm -f "$ENV_FILE.notify-error"
+
 if grep -Eq '@postgres([:/?]|$)' "$ENV_FILE"; then
   echo "DATABASE_URL still targets the local 'postgres' service, which is not started on AWS." >&2
   echo "Use the Supabase pooler URL in the Parameter Store environment value." >&2
