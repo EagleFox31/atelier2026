@@ -5,8 +5,25 @@ import { resolve } from 'node:path';
 const root = resolve(__dirname, '../..');
 const workflow = readFileSync(resolve(root, '.github/workflows/appfactory-interservice-secrets.yml'), 'utf8');
 const deployment = readFileSync(resolve(root, 'deploy/scripts/aws-ssm-deploy.sh'), 'utf8');
+const bootstrap = readFileSync(resolve(root, 'infra/aws/bootstrap-github-oidc.yml'), 'utf8');
 
 describe('AppFactory ↔ AWS Notify credential safety contract', () => {
+  it('accorde à GitHub OIDC les permissions SSM strictement limitées au seul paramètre Notify', () => {
+    const policy = bootstrap.match(
+      /- PolicyName: ReconcileAtelierNotifyIngestKey([\s\S]*?)(?=\n        - PolicyName:|\n      Tags:)/
+    )?.[1];
+    expect(policy).toBeDefined();
+    expect(policy).toContain('ssm:GetParameter');
+    expect(policy).toContain('ssm:PutParameter');
+    expect(policy).toContain(
+      'parameter/atelier-maitre/prod/notify-ingest-key'
+    );
+    expect(policy).not.toContain('parameter/atelier-maitre/prod/*');
+    expect(policy).not.toContain('ssm:*');
+    expect(policy).not.toContain('ssm:GetParametersByPath');
+    expect(policy).not.toContain('iam:');
+  });
+
   it('exige la création manuelle et OIDC sans persister le secret dans GitHub', () => {
     expect(workflow).toMatch(/workflow_dispatch:/);
     expect(workflow).not.toMatch(/\bon:\s*\[?\s*push\b/);
