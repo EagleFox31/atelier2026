@@ -145,6 +145,19 @@ Resources:
                 Condition:
                   StringEquals:
                     iam:PassedToService: cloudformation.amazonaws.com
+        # Explicitly scoped to the new Notify credential, not the generic
+        # /atelier-maitre/prod/env blob or other SSM parameters.
+        - PolicyName: ReconcileAtelierNotifyIngestKey
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ReadAndCreateOnlyAtelierNotifyCredential
+                Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                  - ssm:PutParameter
+                Resource:
+                  Fn::Sub: arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/atelier-maitre/prod/notify-ingest-key
         - PolicyName: DeployAtelierApplication
           PolicyDocument:
             Version: '2012-10-17'
