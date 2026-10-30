@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.18.0](https://github.com/EagleFox31/atelier2026/compare/v1.17.0...v1.18.0) (2026-10-30)
+
+
+### Features
+
+* **deploy:** inject dedicated AWS SecureString Notify key without mutating prod env ([4dcad2d](https://github.com/EagleFox31/atelier2026/commit/4dcad2d96b264ea23d032eaa8655cb24bd01612e))
+* **infra:** provisionner la clé Notify depuis AWS SSM avec AppFactory OIDC ([e7d8d6a](https://github.com/EagleFox31/atelier2026/commit/e7d8d6a2726c88aef5b518ffda7bc0cc108e10cb))
+* **secrets:** manually reconcile AWS SSM SecureString with Notify via AppFactory OIDC ([651275b](https://github.com/EagleFox31/atelier2026/commit/651275b9c9f0bb1ff08f422e801d5aa222c36a8c))
+
+
+### Bug Fixes
+
+* **aws:** permissions SSM ciblées pour la clé Atelier ↔ Notify ([18071ed](https://github.com/EagleFox31/atelier2026/commit/18071edf966daadbada67b219c87e07cc20b0702))
+* **aws:** test scoped SSM grant and clarify safe IAM diagnostics ([7d8652c](https://github.com/EagleFox31/atelier2026/commit/7d8652cdad7e8ee48e852f80a093f0b7045906c2))
+* **aws:** test scoped SSM grant and clarify safe IAM diagnostics ([2fd1ab7](https://github.com/EagleFox31/atelier2026/commit/2fd1ab7cc8364f8d04fd2911245ecb40603a6548))
+* **deploy:** complete SSM missing-parameter fail-closed branch ([bdfd503](https://github.com/EagleFox31/atelier2026/commit/bdfd5031b9ea64602a6a438606a65321f0a02782))
+* **deploy:** remove duplicated shell tail after SSM integration ([6c7a7e5](https://github.com/EagleFox31/atelier2026/commit/6c7a7e534839268dfacecd521c05d33a7952f0fc))
+* **iam:** grant GitHub OIDC role only Notify SecureString SSM read/create ([932a643](https://github.com/EagleFox31/atelier2026/commit/932a6430c50cd3c37f03c5a5d01100d036c28901))
+* **oidc:** preserve AWS IAM main-ref subject for manual key provisioning ([67700b3](https://github.com/EagleFox31/atelier2026/commit/67700b3aa116611a10c38e77f9ed6b558ad10e8e))
+
 ## [1.17.0](https://github.com/EagleFox31/atelier2026/compare/v1.16.1...v1.17.0) (2026-10-28)
 
 
