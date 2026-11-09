@@ -36,6 +36,8 @@ import { LANDING_COLORS as C } from '@/components/marketing/landing-colors';
 import { LandingKenteBar } from '@/components/marketing/LandingKenteBar';
 import { LandingNav } from '@/components/marketing/LandingNav';
 import { BrandCalligraphy } from '@/components/marketing/brand-calligraphy';
+import { MarketingFooterLinks } from '@/components/marketing/MarketingFooterLinks';
+import { FAQ, PRICING_PLANS as CATALOG_PLANS, type PlanId } from '@/lib/marketing/catalog';
 
 const ROLES = [
   { photo: '/landing/gérant_garage.jpg',  role: 'Gérant',         desc: 'Vue CA consolidée, pilotage multi-sites et alertes en temps réel.' },
@@ -136,89 +138,14 @@ const STATS = [
   { Icon: TrendingUp,color: C.goldLight, value: 'Temps réel',label: 'Dashboard live' },
 ];
 
-const FAQ = [
-  {
-    q: 'Pour qui est fait Atelier Maître ?',
-    a: 'Pour les propriétaires de garage au Cameroun — qu\'ils aient un seul atelier ou plusieurs. Que vous ayez 2 employés ou 20, l\'application s\'adapte à votre équipe.',
-  },
-  {
-    q: 'Je gère plusieurs garages, ça marche ?',
-    a: 'Oui. Vous créez un compte, vous ajoutez vos garages (Douala, Yaoundé, Bafoussam…). Chaque employé travaille dans son atelier, vous voyez tout depuis un seul tableau de bord.',
-  },
-  {
-    q: 'Comment l\'avoir sur mon téléphone ?',
-    a: 'Sur Android : ouvrez le site, appuyez sur "Ajouter à l\'écran d\'accueil" — c\'est comme une appli normale. Sur iPhone : dans Safari, appuyez sur Partager puis "Sur l\'écran d\'accueil". Gratuit, sans passer par un store.',
-  },
-  {
-    q: 'Faut-il un serveur sur place ?',
-    a: 'Non. Un téléphone avec internet suffit — rien à installer, rien à acheter. Vos données sont sécurisées en ligne et accessibles depuis n\'importe où.',
-  },
-  {
-    q: 'Et mes clients et véhicules déjà enregistrés ?',
-    a: 'On s\'en occupe. On vous aide à importer votre liste de clients et de véhicules au démarrage — vous ne repartez pas de zéro.',
-  },
-];
+/** Couleur d'accent par forfait (présentation seulement ; contenu : lib/marketing/catalog). */
+const PLAN_ACCENTS: Record<PlanId, string> = {
+  essential: C.gold,
+  pro: C.brand,
+  business: C.green,
+};
 
-
-const PRICING_PLANS = [
-  {
-    id: 'essential',
-    name: 'Essentiel',
-    monthly: 20000,
-    annual: 200000,
-    annualEquivalent: 16667,
-    description: 'Pour structurer un atelier indépendant.',
-    accent: C.gold,
-    badge: null,
-    features: [
-      '1 garage',
-      'Jusqu’à 5 utilisateurs',
-      'OT, devis & factures PDF',
-      'Stock + alertes seuil',
-      'Planning & rendez-vous',
-      'Tableau de bord essentiel',
-      'Support en français',
-    ],
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    monthly: 45000,
-    annual: 450000,
-    annualEquivalent: 37500,
-    description: 'Pour les ateliers qui pilotent une équipe complète.',
-    accent: C.brand,
-    badge: 'Recommandé',
-    features: [
-      '1 garage',
-      'Utilisateurs illimités',
-      'Tout Essentiel',
-      'SMS Orange / MTN intégrés',
-      'Reporting avancé',
-      'Accompagnement au démarrage',
-      'Support prioritaire',
-    ],
-  },
-  {
-    id: 'business',
-    name: 'Business',
-    monthly: 65000,
-    annual: 650000,
-    annualEquivalent: 54167,
-    description: 'Pour les structures multi-sites et les équipes plus larges.',
-    accent: C.green,
-    badge: 'Multi-sites',
-    features: [
-      '2 garages inclus',
-      'Utilisateurs illimités',
-      'Tout Pro',
-      'Vue consolidée multi-garages',
-      'Rôles & permissions avancés',
-      '+20 000 FCFA / mois par garage supplémentaire',
-      'Support prioritaire',
-    ],
-  },
-] as const;
+const PRICING_PLANS = CATALOG_PLANS.map((plan) => ({ ...plan, accent: PLAN_ACCENTS[plan.id] }));
 
 /* ─── SOUS-COMPOSANTS ───────────────────────────────────────────────────── */
 
@@ -662,18 +589,18 @@ export function LandingPage() {
           {/* Copie */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} style={{ y: copyY, opacity: copyOpacity }}>
             {/* Badge */}
-            <div style={{
+            <h1 style={{
               display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
               background: 'rgba(212,164,50,0.15)', border: '1px solid rgba(212,164,50,0.35)',
               color: C.goldLight, padding: '0.35rem 0.9rem', borderRadius: 99,
               fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
               marginBottom: '1rem',
             }}>
-              <Globe size={12} color={C.goldLight} />
-              Logiciel garage · Cameroun
-            </div>
+              <Globe size={12} color={C.goldLight} aria-hidden />
+              Logiciel de gestion de garage au Cameroun
+            </h1>
 
-            <h1 style={{
+            <p style={{
               fontFamily: '"Playfair Display", serif',
               fontSize: 'clamp(2.4rem, 4.5vw, 3.75rem)',
               fontWeight: 900, lineHeight: 1.1, letterSpacing: '-0.03em',
@@ -682,7 +609,7 @@ export function LandingPage() {
               Votre atelier,{' '}
               <span style={{ color: C.goldLight }}>enfin maîtrisé.</span>
               <br />Du premier OT à l&apos;encaissement.
-            </h1>
+            </p>
 
             <p style={{ fontSize: '1.05rem', lineHeight: 1.7, color: 'rgba(255,255,255,0.7)', maxWidth: 480, marginBottom: '1.5rem' }}>
               OT, devis, stock, planning et factures en XAF — tout dans un seul flux.
@@ -2259,6 +2186,7 @@ export function LandingPage() {
             </div>
             <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.25)' }}>© 2026 Atelier Maître · Logiciel garage Cameroun</p>
           </div>
+          <MarketingFooterLinks />
           <p
             style={{
               marginTop: '1.5rem',
