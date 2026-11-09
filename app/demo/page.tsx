@@ -30,7 +30,17 @@ export default function DemoPage() {
       <main className="px-4 py-10 sm:px-6 sm:py-14">
         <Suspense
           fallback={
-            <div className="mx-auto h-80 w-full max-w-lg animate-pulse rounded-2xl bg-white/70" />
+            // Le formulaire lit l'URL (offre choisie) et n'est rendu qu'au navigateur :
+            // ce titre est ce que servent le HTML statique et les robots.
+            <div className="mx-auto w-full max-w-lg">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--afrique-earth)]">
+                Démonstration
+              </p>
+              <h1 className="mb-8 text-2xl font-bold tracking-tight text-slate-800 sm:text-3xl">
+                Réserver une démo d&apos;Atelier Maître
+              </h1>
+              <div className="h-80 w-full animate-pulse rounded-2xl bg-white/70" />
+            </div>
           }
         >
           <DemoRequestForm />
