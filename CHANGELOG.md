@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.19.0](https://github.com/EagleFox31/atelier2026/compare/v1.18.0...v1.19.0) (2026-11-19)
+
+
+### Features
+
+* **seo:** landing rendue côté serveur, métadonnées, JSON-LD et pages d'intention ([#103](https://github.com/EagleFox31/atelier2026/issues/103)) ([50c2d6f](https://github.com/EagleFox31/atelier2026/commit/50c2d6f00b71c710db2fdc6c2f7f02b39c8441c5))
+
 ## [1.18.0](https://github.com/EagleFox31/atelier2026/compare/v1.17.0...v1.18.0) (2026-10-30)
 
 
