@@ -472,3 +472,17 @@ Toute intégration externe : fixtures copiées d'échanges réels (sandbox) + jo
 **Prévention** : activer *Settings → General → Automatically delete head branches* (recibrage automatique des PR empilées) ; à défaut, avant chaque merge d'une PR empilée, vérifier `gh pr view N --json baseRefName` = `main` (sinon `gh pr edit N --base main`). Après un merge, contrôler `git log origin/main` avant la release.
 
 **Leçon généralisée** : « Merged » ne dit pas *où*. Vérifier que la cible du merge est la branche déployée.
+
+## LESSON-2026-017 — La landing servait un écran de chargement aux robots
+
+**Contexte** : audit SEO/GEO des sites Trigenys du 2026-11-07 sur https://atelier.trigenys.com.
+
+**Échec (near miss)** : `/` avait un bon `<title>`, mais `HomeEntry` (composant client) rendait un `Loader` tant que `useAuth` chargeait. La session vit dans `localStorage`, donc côté serveur `isLoading` vaut toujours `true` : le HTML servi ne contenait que « Chargement en cours… », sans H1 ni texte. Les moteurs sans JavaScript et les crawlers IA ne voyaient rien. Ni canonical, ni JSON-LD, ni `robots.txt`, `sitemap.xml` ou `llms.txt` ; les routes applicatives n'étaient pas marquées `noindex`. Aucun test ne regardait le HTML brut.
+
+**Cause racine** : une redirection « connecté → app » codée comme une garde de rendu (`if (isLoading) return <Loader/>`) sur une page publique, alors que l'état d'auth n'existe que dans le navigateur.
+
+**Résolution** : la landing est toujours rendue ; la redirection des connectés se fait après hydratation, sans masquer le contenu. H1 descriptif, `metadata` complète (canonical, Open Graph, Twitter, `metadataBase`), JSON-LD `SoftwareApplication`, `robots.ts`, `sitemap.ts`, `/llms.txt`, `X-Robots-Tag: noindex` sur l'espace applicatif. Liste des pages publiques et des routes exclues centralisée dans `lib/seo/site.ts`. Deuxième cause trouvée en vérifiant : `app/loading.tsx` enveloppait toutes les pages dans un Suspense ; React sort les gros contenus de ce Suspense dans un bloc `<div hidden id="S:0">`, si bien que `/`, `/tarifs` et `/faq` s'affichaient encore en squelette sans JavaScript. Le squelette est déplacé sur chaque dossier applicatif (`AppRouteLoading`).
+
+**Prévention** : `e2e-ux/seo.spec.ts` (gate `ux-guardrails`) lit le HTML **sans JavaScript** et échoue si `/` perd son H1, son JSON-LD ou son canonical, si une page publique n'est plus rendue côté serveur, si une route applicative devient indexable, ou si un nouveau dossier de `app/` n'est classé ni public ni applicatif, si une page publique contient un bloc `S:n` caché, ou si `app/loading.tsx` réapparaît.
+
+**Leçon généralisée** : une page publique ne conditionne jamais son contenu à un état connu seulement du navigateur. Tester ce que reçoit un client sans JavaScript, pas ce qu'affiche Chromium après hydratation.

@@ -10,11 +10,13 @@ import { ServiceStatusBanner } from "@/components/layout/ServiceStatusBanner";
 import { AuthProvider } from "@/contexts/auth-context";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { PwaInstallProvider } from "@/components/pwa/pwa-install-context";
+import { DEFAULT_METADATA } from "@/lib/seo/metadata";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 const geistMono = Geist_Mono({subsets:['latin'],variable:'--font-mono'});
 
 export const metadata: Metadata = {
+  ...DEFAULT_METADATA,
   title: 'Atelier Maître | Gestion Automobile',
   description: 'Système de gestion d\'atelier automobile moderne et intuitif.',
   manifest: '/manifest.webmanifest',

@@ -1,4 +1,5 @@
-﻿import type { NextConfig } from 'next';
+import type { NextConfig } from 'next';
+import { APP_PATH_PREFIXES, NOINDEX_PUBLIC_PATHS } from './lib/seo/site';
 
 // BACKEND_URL : URL interne du serveur NestJS, lue au démarrage (pas au build).
 // En dev     : http://localhost:3001 (défaut)
@@ -37,10 +38,27 @@ const CONTENT_SECURITY_POLICY_REPORT_ONLY = [
   "frame-ancestors 'none'",
 ].join('; ');
 
+// Espace applicatif, liens à jeton et formulaires de compte : jamais indexés.
+// L'en-tête couvre aussi les pages client (sans `metadata` possible).
+// La liste vit dans lib/seo/site.ts, partagée avec robots.ts et AppLayout.
+const NOINDEX_SOURCES = [...NOINDEX_PUBLIC_PATHS, ...APP_PATH_PREFIXES]
+  .filter((prefix) => prefix !== '/api')
+  .map((prefix) => `${prefix}/:path*`);
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  async redirects() {
+    return [
+      // Ancienne URL marketing : redirection permanente vers la landing.
+      { source: '/accueil', destination: '/', statusCode: 301 },
+    ];
+  },
   async headers() {
     return [
+      ...NOINDEX_SOURCES.map((source) => ({
+        source,
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+      })),
       {
         // Opaque garage-contact links contain private bearer tokens in the path.
         source: '/contact/:token',

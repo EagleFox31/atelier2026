@@ -21,8 +21,10 @@ import { Loader } from '@/components/ui/loader';
 import { useTrialStatus } from '@/hooks/use-trial-status';
 import { TrialStatusBanner } from '@/components/subscription/TrialStatusBanner';
 import { SubscriptionBlockedScreen } from '@/components/subscription/SubscriptionBlockedScreen';
+import { MARKETING_PAGES } from '@/lib/seo/site';
 
-const PUBLIC_PATHS = ['/', '/login', '/forgot-password', '/demo', '/inscription'];
+// Pages marketing (lib/seo/site.ts) + formulaires de compte.
+const PUBLIC_PATHS = [...MARKETING_PAGES.map((page) => page.path), '/login', '/forgot-password', '/inscription'];
 /** Pages publiques dynamiques (ex. /invitation/<jeton>) : correspondance par préfixe. */
 const PUBLIC_PATH_PREFIXES = ['/invitation/', '/devis/', '/contact/'];
 
